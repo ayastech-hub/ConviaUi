@@ -91,7 +91,7 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
   useEffect(() => {
     const prefill = consumeSendPrefill();
     if (prefill) {
-      setSelectedAsset(cryptoAssets.find((a) => a.symbol.toUpperCase() === (prefill.asset ?? 'USDT').toUpperCase()) ?? cryptoAssets.find((a) => a.symbol === 'USDT') || cryptoAssets[0] || selectedAsset);
+      setSelectedAsset(cryptoAssets.find((a) => a.symbol.toUpperCase() === (prefill.asset ?? 'USDT').toUpperCase()) ?? (cryptoAssets.find((a) => a.symbol === 'USDT') || cryptoAssets[0] || selectedAsset));
       applyScanResult(prefill);
     }
   }, [applyScanResult]);
