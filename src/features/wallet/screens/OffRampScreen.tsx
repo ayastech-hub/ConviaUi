@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft } from 'lucide-react';
-import { type Screen } from '../../../shared/data/mockData';
+import { type Screen, type Asset } from '../../../shared/data/mockData';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
-import { usePaymentMethods } from '../../../shared/context/PaymentMethodsContext';
+import * as banksApi from '../../../shared/api/banks';
+import type { BankAccount } from '../../../shared/api/banks';
 import { OffRampFormStep } from '../components/offramp/OffRampFormStep';
 import { OffRampReviewStep, OffRampProcessingStep, OffRampDoneStep } from '../components/offramp/OffRampStatusSteps';
 import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
@@ -26,8 +27,18 @@ export function OffRampScreen({ goBack, navigate }: OffRampScreenProps) {
     // Prefer stable default once catalog loads
   }, [registryAssets]);
   const { currency, format } = useCurrency();
-  const { bankAccounts } = usePaymentMethods();
   const { userId } = useAuth();
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  useEffect(() => {
+    if (!userId) {
+      setBankAccounts([]);
+      return;
+    }
+    banksApi
+      .listBankAccounts(userId)
+      .then((list) => setBankAccounts(Array.isArray(list) ? list : []))
+      .catch(() => setBankAccounts([]));
+  }, [userId]);
   const { isApproved } = useKycStatus();
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
   const [eligibility, setEligibility] = useState<{ canOfframp?: boolean; kycStatus?: string; action?: string } | null>(null);
@@ -48,7 +59,10 @@ export function OffRampScreen({ goBack, navigate }: OffRampScreenProps) {
   chains: [],
   sparkline: [],
 } as Asset);
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(bankAccounts[0]?.id ?? null);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  useEffect(() => {
+    if (bankAccounts.length && !selectedAccountId) setSelectedAccountId(bankAccounts[0].id);
+  }, [bankAccounts, selectedAccountId]);
   const [amount, setAmount] = useState('');
   const [step, setStep] = useState<'form' | 'review' | 'processing' | 'done'>('form');
   const [showTokenDropdown, setShowTokenDropdown] = useState(false);
@@ -58,7 +72,7 @@ export function OffRampScreen({ goBack, navigate }: OffRampScreenProps) {
   const fee = Number(amount) * selectedAsset.price * 0.015;
   const youGet = (Number(amount) * selectedAsset.price - fee) * currency.rate;
 
-  const compatibleAccounts = bankAccounts.filter((a) => a.currency === currency.code);
+  const compatibleAccounts = bankAccounts;
   const selectedAccount = bankAccounts.find((a) => a.id === selectedAccountId);
 
   return (

@@ -74,7 +74,23 @@ function initialScreen(): import('../shared/data/mockData').Screen {
 
 export default function App() {
   const { current, navigate, goBack, switchTab, navParam } = useNavigation(initialScreen());
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem('convia.theme');
+      if (saved === 'light') return false;
+      if (saved === 'dark') return true;
+    } catch {}
+    return true;
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (darkMode) root.classList.add('dark');
+    else root.classList.remove('dark');
+    try {
+      localStorage.setItem('convia.theme', darkMode ? 'dark' : 'light');
+    } catch {}
+  }, [darkMode]);
   const { status } = useAuth();
 
   // When auth finishes loading, bounce authenticated users off login/signup
