@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import {
-  ChevronLeft, ChevronRight, Bell, Globe, Moon, Sun,
-  LogOut, ChevronDown, Check,
-} from 'lucide-react';
+import { Bell, Globe, Moon, Sun } from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
-import { useCurrency, CURRENCIES } from '../../../shared/context/CurrencyContext';
+import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { ConviaLogo } from '../../../shared/components/ConviaLogo';
+import { ScreenHeader } from '../../../shared/components/ScreenHeader';
+import { ListSection } from '../../../shared/components/ListSection';
+import { ListRow } from '../../../shared/components/ListRow';
+import { ToggleSwitch } from '../../../shared/components/ToggleSwitch';
+import { CurrencyPickerView } from '../components/CurrencyPickerView';
+import { SignOutButton } from '../components/SignOutButton';
 
 interface SettingsScreenProps {
   goBack: () => void;
@@ -15,7 +17,7 @@ interface SettingsScreenProps {
   toggleDark?: () => void;
 }
 
-export function SettingsScreen({ goBack, navigate }: SettingsScreenProps) {
+export function SettingsScreen({ goBack }: SettingsScreenProps) {
   const { currency, setCurrency } = useCurrency();
   const [darkMode, setDarkMode] = useState(true);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
@@ -25,66 +27,21 @@ export function SettingsScreen({ goBack, navigate }: SettingsScreenProps) {
 
   if (showCurrencyPicker) {
     return (
-      <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-        <div style={{ height: 50 }} />
-        <div className="flex items-center gap-3 px-5 mb-6">
-          <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowCurrencyPicker(false)} className="w-10 h-10 rounded-2xl flex items-center justify-center glass-card" style={{ border: '1px solid var(--border)' }}>
-            <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
-          </motion.button>
-          <h2 style={{ color: 'var(--foreground)', fontWeight: 800 }}>Select Currency</h2>
-        </div>
-        <div className="flex-1 overflow-y-auto px-5">
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginBottom: 16 }}>All prices and balances across the app will use this currency.</p>
-          <div className="rounded-[20px] overflow-hidden glass-card" style={{ border: '1px solid var(--border)' }}>
-            {CURRENCIES.map((c, i) => (
-              <motion.button
-                key={c.code}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => { setCurrency(c); setShowCurrencyPicker(false); }}
-                className="flex items-center gap-3 px-4 py-3.5 w-full"
-                style={{ borderBottom: i < CURRENCIES.length - 1 ? '1px solid var(--border)' : 'none' }}
-              >
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'var(--muted)' }}>
-                  <span style={{ color: 'var(--foreground)', fontSize: 11, fontWeight: 700 }}>{c.flag}</span>
-                </div>
-                <div className="flex-1 text-left">
-                  <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>{c.code} · {c.name}</p>
-                  <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>1 USD = {c.symbol}{c.rate.toLocaleString()}</p>
-                </div>
-                {currency.code === c.code && <Check size={18} style={{ color: 'var(--foreground)' }} />}
-              </motion.button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <CurrencyPickerView
+        currentCode={currency.code}
+        onSelect={(c) => { setCurrency(c); setShowCurrencyPicker(false); }}
+        onBack={() => setShowCurrencyPicker(false)}
+      />
     );
   }
-
-  const sections = [
-    {
-      title: 'PREFERENCES',
-      items: [
-        { icon: Globe, label: 'Currency', desc: `${currency.code} · ${currency.name}`, action: () => setShowCurrencyPicker(true) },
-        { icon: darkMode ? Moon : Sun, label: 'Dark Mode', desc: darkMode ? 'On' : 'Off', toggle: { value: darkMode, onChange: () => setDarkMode(!darkMode) } },
-        { icon: Bell, label: 'Push Notifications', desc: 'Transaction & security alerts', toggle: { value: notifications, onChange: () => setNotifications(!notifications) } },
-        { icon: Bell, label: 'Email Notifications', desc: 'Weekly summary & alerts', toggle: { value: emailNotifs, onChange: () => setEmailNotifs(!emailNotifs) } },
-        { icon: Bell, label: 'Price Alerts', desc: 'Crypto price movements', toggle: { value: priceAlerts, onChange: () => setPriceAlerts(!priceAlerts) } },
-      ],
-    },
-  ];
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
       <div style={{ height: 50 }} />
-      <div className="flex items-center gap-3 px-5 mb-6">
-        <motion.button whileTap={{ scale: 0.9 }} onClick={goBack} className="w-10 h-10 rounded-2xl flex items-center justify-center glass-card" style={{ border: '1px solid var(--border)' }}>
-          <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
-        </motion.button>
-        <h2 style={{ color: 'var(--foreground)', fontWeight: 800 }}>Settings</h2>
-      </div>
+      <ScreenHeader title="Settings" onBack={goBack} />
 
       <div className="flex-1 overflow-y-auto px-5">
-        <div className="rounded-[20px] p-5 mb-4 glass-card glass-refraction" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+        <div className="rounded-[20px] p-5 mb-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'var(--primary)' }}>
               <ConviaLogo size={28} color="#FFFFFF" />
@@ -96,53 +53,42 @@ export function SettingsScreen({ goBack, navigate }: SettingsScreenProps) {
           </div>
         </div>
 
-        {sections.map((section, si) => (
-          <div key={si} className="mb-4">
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginBottom: 10, fontWeight: 600 }}>{section.title}</p>
-            <div className="rounded-[20px] overflow-hidden glass-card" style={{ border: '1px solid var(--border)' }}>
-              {section.items.map((item, i) => {
-                const Icon = item.icon;
-                return (
-                  <div
-                    key={i}
-                    onClick={item.action}
-                    className="flex items-center gap-3 px-4 py-3.5"
-                    style={{ borderBottom: i < section.items.length - 1 ? '1px solid var(--border)' : 'none', cursor: item.action || item.toggle ? 'pointer' : 'default' }}
-                  >
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'var(--muted)' }}>
-                      <Icon size={18} style={{ color: 'var(--foreground)' }} />
-                    </div>
-                    <div className="flex-1">
-                      <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>{item.label}</p>
-                      <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>{item.desc}</p>
-                    </div>
-                    {item.toggle ? (
-                      <motion.button
-                        whileTap={{ scale: 0.9 }}
-                        onClick={(e) => { e.stopPropagation(); item.toggle!.onChange(); }}
-                        className="w-12 h-7 rounded-full flex items-center px-1 transition-colors"
-                        style={{ background: item.toggle.value ? 'var(--primary)' : 'var(--switch-background)', justifyContent: item.toggle.value ? 'flex-end' : 'flex-start' }}
-                      >
-                        <div className="w-5 h-5 rounded-full bg-white" />
-                      </motion.button>
-                    ) : (
-                      <ChevronRight size={16} style={{ color: 'var(--muted-foreground)' }} />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+        <ListSection title="PREFERENCES">
+          <ListRow
+            icon={Globe}
+            label="Currency"
+            desc={`${currency.code} · ${currency.name}`}
+            onClick={() => setShowCurrencyPicker(true)}
+          />
+          <ListRow
+            icon={darkMode ? Moon : Sun}
+            label="Dark Mode"
+            desc={darkMode ? 'On' : 'Off'}
+            trailing={<ToggleSwitch checked={darkMode} onChange={() => setDarkMode(!darkMode)} />}
+          />
+          <ListRow
+            icon={Bell}
+            label="Push Notifications"
+            desc="Transaction & security alerts"
+            trailing={<ToggleSwitch checked={notifications} onChange={() => setNotifications(!notifications)} />}
+          />
+          <ListRow
+            icon={Bell}
+            label="Email Notifications"
+            desc="Weekly summary & alerts"
+            trailing={<ToggleSwitch checked={emailNotifs} onChange={() => setEmailNotifs(!emailNotifs)} />}
+          />
+          <ListRow
+            icon={Bell}
+            label="Price Alerts"
+            desc="Crypto price movements"
+            trailing={<ToggleSwitch checked={priceAlerts} onChange={() => setPriceAlerts(!priceAlerts)} />}
+          />
+        </ListSection>
 
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          className="w-full py-3.5 rounded-[16px] mb-4 flex items-center justify-center gap-2"
-          style={{ background: 'var(--muted)', color: 'var(--destructive)', fontWeight: 700, fontSize: 15, border: '1px solid var(--muted)' }}
-        >
-          <LogOut size={16} />
-          Sign Out
-        </motion.button>
+        <div className="mb-4">
+          <SignOutButton />
+        </div>
 
         <p style={{ color: 'var(--muted-foreground)', fontSize: 11, textAlign: 'center', marginBottom: 20 }}>
           Convia Finance v2.4.1 · Built for Africa

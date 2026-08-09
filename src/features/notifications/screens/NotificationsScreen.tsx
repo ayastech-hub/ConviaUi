@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, TrendingUp, Shield, Gift, Users, FileCheck, ArrowDownLeft, Check } from 'lucide-react';
+import { ChevronLeft, TrendingUp, Shield, Gift, FileCheck, ArrowDownLeft, Check } from 'lucide-react';
 import { notifications as initialNotifications, type Screen } from '../../../shared/data/mockData';
 
 interface NotificationsScreenProps {
@@ -12,7 +12,6 @@ const notifIcon = (type: string) => {
     receive: { icon: ArrowDownLeft, bg: 'var(--muted)', color: 'var(--foreground)' },
     price: { icon: TrendingUp, bg: 'var(--muted)', color: 'var(--foreground)' },
     security: { icon: Shield, bg: 'var(--muted)', color: 'var(--destructive)' },
-    social: { icon: Users, bg: 'var(--muted)', color: 'var(--foreground)' },
     reward: { icon: Gift, bg: 'var(--muted)', color: 'var(--muted-foreground)' },
     kyc: { icon: FileCheck, bg: 'var(--muted)', color: 'var(--foreground)' },
   };

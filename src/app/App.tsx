@@ -21,10 +21,6 @@ import { WithdrawScreen } from '../features/wallet/screens/WithdrawScreen';
 import { PortfolioScreen } from '../features/wallet/screens/PortfolioScreen';
 import { PaymentMethodsScreen } from '../features/wallet/screens/PaymentMethodsScreen';
 
-import { TradeScreen } from '../features/trade/screens/TradeScreen';
-import { OTCScreen } from '../features/trade/screens/OTCScreen';
-import { TokenInfoScreen } from '../features/trade/screens/TokenInfoScreen';
-
 import { ProfileScreen } from '../features/profile/screens/ProfileScreen';
 import { EditProfileScreen } from '../features/profile/screens/EditProfileScreen';
 import { SettingsScreen } from '../features/profile/screens/SettingsScreen';
@@ -39,10 +35,16 @@ import { NotificationsScreen } from '../features/notifications/screens/Notificat
 import { RewardsScreen } from '../features/rewards/screens/RewardsScreen';
 import { ServicesScreen } from '../features/services/screens/ServicesScreen';
 
-/** Bottom-nav main tabs (no social). */
-const MAIN_TABS: Screen[] = ['home', 'wallet', 'swap', 'profile'];
+const MAIN_TABS: Screen[] = ['home', 'wallet', 'profile'];
 
 const springTransition = { type: 'spring' as const, damping: 28, stiffness: 320 };
+
+const slideUp = {
+  initial: { y: '100%', opacity: 0 },
+  animate: { y: 0, opacity: 1 },
+  exit: { y: '100%', opacity: 0 },
+  transition: springTransition,
+};
 
 const slideRight = {
   initial: { x: '100%', opacity: 0 },
@@ -66,6 +68,8 @@ export default function App() {
   const activeTab = isMainTab ? current : MAIN_TABS[0];
 
   const renderScreen = () => {
+    const commonProps = { navigate, goBack };
+
     switch (current) {
       case 'onboarding':
         return (
@@ -85,18 +89,6 @@ export default function App() {
             <WalletScreen navigate={navigate} />
           </motion.div>
         );
-      case 'swap':
-        return (
-          <motion.div key="swap" {...fadeIn} className="absolute inset-0 flex flex-col" style={{ paddingBottom: 68 }}>
-            <SwapScreen />
-          </motion.div>
-        );
-      case 'trade':
-        return (
-          <motion.div key="trade" {...fadeIn} className="absolute inset-0 flex flex-col" style={{ paddingBottom: 68 }}>
-            <TradeScreen navigate={navigate} />
-          </motion.div>
-        );
       case 'profile':
         return (
           <motion.div key="profile" {...fadeIn} className="absolute inset-0 flex flex-col" style={{ paddingBottom: 68 }}>
@@ -104,7 +96,7 @@ export default function App() {
           </motion.div>
         );
 
-      // Sub-screens
+      // Sub-screens (slide up)
       case 'send':
         return (
           <motion.div key="send" {...slideRight} className="absolute inset-0">
@@ -115,6 +107,12 @@ export default function App() {
         return (
           <motion.div key="receive" {...slideRight} className="absolute inset-0">
             <ReceiveScreen goBack={goBack} />
+          </motion.div>
+        );
+      case 'swap':
+        return (
+          <motion.div key="swap" {...slideRight} className="absolute inset-0">
+            <SwapScreen goBack={goBack} />
           </motion.div>
         );
       case 'offramp':
@@ -139,12 +137,6 @@ export default function App() {
         return (
           <motion.div key="withdraw" {...slideRight} className="absolute inset-0">
             <WithdrawScreen goBack={goBack} />
-          </motion.div>
-        );
-      case 'otc':
-        return (
-          <motion.div key="otc" {...slideRight} className="absolute inset-0">
-            <OTCScreen goBack={goBack} navigate={navigate} />
           </motion.div>
         );
       case 'notifications':
@@ -237,12 +229,6 @@ export default function App() {
             <EditProfileScreen goBack={goBack} />
           </motion.div>
         );
-      case 'token-info':
-        return (
-          <motion.div key="token-info" {...slideRight} className="absolute inset-0">
-            <TokenInfoScreen navigate={navigate} goBack={goBack} symbol={navParam ?? 'BTC'} />
-          </motion.div>
-        );
       default:
         return null;
     }
@@ -251,27 +237,29 @@ export default function App() {
   return (
     <div className={darkMode ? 'dark' : ''} style={{ width: '100%', height: '100%' }}>
       <AppProviders>
-        {/* Full-viewport app shell (no phone frame) */}
+        {/* Fills the browser viewport directly — no phone-frame mockup */}
         <div
           className="relative flex flex-col overflow-hidden"
           style={{
-            width: '100%',
-            height: '100%',
-            minHeight: '100vh',
-            minWidth: '100vw',
+            width: '100vw',
+            height: '100dvh',
             background: 'var(--background)',
           }}
         >
+          {/* Screen content */}
           <div className="relative flex-1 overflow-hidden" style={{ background: 'var(--background)' }}>
-            <AnimatePresence mode="wait">{renderScreen()}</AnimatePresence>
+            <AnimatePresence mode="wait">
+              {renderScreen()}
+            </AnimatePresence>
           </div>
 
+          {/* Bottom Nav */}
           {isMainTab && (
             <div className="absolute bottom-0 left-0 right-0 z-40">
               <BottomNav
                 activeTab={activeTab as Screen}
                 onNavigate={switchTab}
-                onSend={() => navigate('send')}
+                onSwap={() => navigate('swap')}
               />
             </div>
           )}
