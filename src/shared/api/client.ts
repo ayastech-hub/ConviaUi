@@ -152,6 +152,8 @@ export const api = {
     apiRequest<T>(path, { ...opts, method: 'PATCH', body }),
   put: <T>(path: string, body?: unknown, opts?: Omit<RequestOptions, 'method' | 'body'>) =>
     apiRequest<T>(path, { ...opts, method: 'PUT', body }),
+  delete: <T>(path: string, body?: unknown, opts?: Omit<RequestOptions, 'method' | 'body'>) =>
+    apiRequest<T>(path, { ...opts, method: 'DELETE', body }),
 };
 
 export function getApiBaseUrl() {

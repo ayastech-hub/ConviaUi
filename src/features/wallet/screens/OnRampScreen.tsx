@@ -9,6 +9,8 @@ import { OnRampFormStep } from '../components/onramp/OnRampFormStep';
 import { OnRampReviewStep } from '../components/onramp/OnRampReviewStep';
 import { OnRampInstructionsStep } from '../components/onramp/OnRampInstructionsStep';
 import { OnRampProcessingStep, OnRampDoneStep } from '../components/onramp/OnRampStatusSteps';
+import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
+import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 
 interface OnRampScreenProps {
   goBack: () => void;
@@ -51,6 +53,7 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
       <div style={{ height: 50 }} />
+      <div className="px-5 pt-2"><WalletFeatureBanner feature="onramp" /></div>
 
       <div className="flex items-center gap-3 px-5 mb-5">
         <motion.button whileTap={{ scale: 0.9 }} onClick={step === 'form' ? goBack : () => setStep('form')} className="w-10 h-10 rounded-2xl flex items-center justify-center glass-card" style={{ border: '1px solid var(--border)' }}>

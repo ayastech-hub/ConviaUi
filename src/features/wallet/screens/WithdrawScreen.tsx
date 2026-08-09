@@ -5,6 +5,7 @@ import { WithdrawForm } from '../components/withdraw/WithdrawForm';
 import { WithdrawPinStep } from '../components/withdraw/WithdrawPinStep';
 import { WithdrawProcessingStep } from '../components/withdraw/WithdrawProcessingStep';
 import { WithdrawSuccessView } from '../components/withdraw/WithdrawSuccessView';
+import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
 
 interface WithdrawScreenProps {
   goBack: () => void;
@@ -107,15 +108,20 @@ export function WithdrawScreen({ goBack }: WithdrawScreenProps) {
   if (!selectedAsset) return null;
 
   return (
-    <WithdrawForm
-      asset={selectedAsset}
-      selectedChain={selectedChain} setSelectedChain={setSelectedChain}
-      address={address} onAddressChange={validateAddress}
-      amount={amount} onAmountChange={validateAmount}
-      error={error} fee={fee} feeUSD={feeUSD}
-      onChangeAsset={() => setStep('select')}
-      onBack={() => setStep('select')}
-      onContinue={() => { setStep('pin'); setError(''); setPin(['', '', '', '']); }}
-    />
+    <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
+      <div className="px-5 pt-12">
+        <WalletFeatureBanner feature="withdraw" />
+      </div>
+      <WithdrawForm
+        asset={selectedAsset}
+        selectedChain={selectedChain} setSelectedChain={setSelectedChain}
+        address={address} onAddressChange={validateAddress}
+        amount={amount} onAmountChange={validateAmount}
+        error={error} fee={fee} feeUSD={feeUSD}
+        onChangeAsset={() => setStep('select')}
+        onBack={() => setStep('select')}
+        onContinue={() => { setStep('pin'); setError(''); setPin(['', '', '', '']); }}
+      />
+    </div>
   );
 }

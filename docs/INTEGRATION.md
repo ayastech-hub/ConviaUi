@@ -63,6 +63,7 @@ Never commit secrets. Access tokens live in memory; refresh token + sessionId in
 | **0** | Docs + client + AuthContext + first-visit onboarding | This PR |
 | **1** | Auth register / login / refresh / logout live | User can create account against real API |
 | **2** | Portfolio + balances + addresses + tx history | Home & Wallet show real numbers (**done**: portfolio + tx list) |
+| **3–6** | Receive QR (live address), swap execute, whitelist, seed reveal, KYC/suspension banners | **partially done** this commit |
 | **3** | Deposit info + receive QR from real addresses | Receive screen is live |
 | **4** | Swap quote + execute | Swap is live (subject to Li.Fi + country controls) |
 | **5** | Fiat on/off-ramp + bank accounts | Buy/Sell live where providers configured |

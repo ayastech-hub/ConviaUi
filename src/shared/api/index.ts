@@ -5,3 +5,7 @@ export * as portfolioApi from './portfolio';
 export * as walletApi from './wallet';
 export * as swapApi from './swap';
 export * as transactionsApi from './transactions';
+export * as securityApi from './security';
+export * as fiatApi from './fiat';
+export * as paymentsApi from './payments';
+export * as complianceApi from './compliance';

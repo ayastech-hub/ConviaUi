@@ -21,6 +21,8 @@ interface SwapScreenProps {
 type SwapPhase = 'idle' | 'review' | 'swapping' | 'success';
 
 export function SwapScreen({ goBack }: SwapScreenProps) {
+  const { userId } = useAuth();
+  const [apiBlock, setApiBlock] = useState<{ code?: string; message?: string } | null>(null);
   const { format, currency } = useCurrency();
 
   const [fromAsset, setFromAsset] = useState<Asset>(cryptoAssets.find((a) => a.id === 'eth') ?? cryptoAssets[0]);
@@ -130,10 +132,23 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
 
   const openReview = useCallback(() => { if (canSwap) setPhase('review'); }, [canSwap]);
 
-  const confirmSwap = useCallback(() => {
+    const confirmSwap = useCallback(async () => {
+    setApiBlock(null);
     setPhase('swapping');
-    setTimeout(() => {
-      const hash = '0x' + Array.from({ length: 64 }, () => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join('');
+    try {
+      if (userId) {
+        const from = resolveChain(fromAsset.chains[0] || 'Ethereum');
+        const to = resolveChain(toAsset.chains[0] || 'Ethereum');
+        await executeSwap({
+          userId,
+          fromAsset: fromAsset.symbol,
+          toAsset: toAsset.symbol,
+          amount: String(fromNum),
+          fromChain: from.chainKey,
+          toChain: to.chainKey,
+        });
+      }
+      const hash = '0x' + Array.from({ length: 16 }, () => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join('');
       setReceiptTx({
         id: 'swap-' + Date.now(),
         type: 'swap',
@@ -147,8 +162,15 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
         hash,
       });
       setPhase('success');
-    }, 2200);
-  }, [fromAsset, toAsset, fromNum, toAmount, fromUSD]);
+    } catch (err) {
+      setPhase('idle');
+      if (err instanceof ApiError) {
+        setApiBlock({ code: err.code, message: err.body.message || err.message });
+      } else {
+        setApiBlock({ message: 'Swap failed — is the API running?' });
+      }
+    }
+  }, [fromAsset, toAsset, fromNum, toAmount, fromUSD, userId]);
 
   const resetSwap = useCallback(() => {
     setPhase('idle');
@@ -178,15 +200,21 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
       <div style={{ height: 50 }} />
 
-      <div className="flex items-center gap-3 px-5 mb-5">
-        <motion.button whileTap={{ scale: 0.9 }} onClick={goBack} aria-label="Go back" className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'var(--muted)' }}>
-          <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
-        </motion.button>
+      <div className="flex items-center gap-3 px-5 mb-3">
+        {goBack ? (
+          <motion.button whileTap={{ scale: 0.9 }} onClick={goBack} aria-label="Go back" className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'var(--muted)' }}>
+            <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
+          </motion.button>
+        ) : null}
         <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20 }}>Swap</h2>
         <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1.5 rounded-full" style={{ background: 'var(--muted)' }}>
           <Zap size={12} style={{ color: 'var(--foreground)' }} />
           <span style={{ color: 'var(--foreground)', fontSize: 11, fontWeight: 700 }}>Best Rate</span>
         </div>
+      </div>
+      <div className="px-5 mb-3">
+        <WalletFeatureBanner feature="swap" />
+        {apiBlock && <FeatureAlert reason={mapApiCodeToReason(apiBlock.code)} message={apiBlock.message} detail={apiBlock.code} />}
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 pb-6">

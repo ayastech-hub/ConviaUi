@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft } from 'lucide-react';
 import { cryptoAssets, type Screen } from '../../../shared/data/mockData';
@@ -6,6 +6,10 @@ import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { usePaymentMethods } from '../../../shared/context/PaymentMethodsContext';
 import { OffRampFormStep } from '../components/offramp/OffRampFormStep';
 import { OffRampReviewStep, OffRampProcessingStep, OffRampDoneStep } from '../components/offramp/OffRampStatusSteps';
+import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
+import { useAuth } from '../../../shared/context/AuthContext';
+import * as fiatApi from '../../../shared/api/fiat';
+import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 
 interface OffRampScreenProps {
   goBack: () => void;
@@ -15,6 +19,12 @@ interface OffRampScreenProps {
 export function OffRampScreen({ goBack, navigate }: OffRampScreenProps) {
   const { currency, format } = useCurrency();
   const { bankAccounts } = usePaymentMethods();
+  const { userId } = useAuth();
+  const [eligibility, setEligibility] = useState<{ canOfframp?: boolean; kycStatus?: string; action?: string } | null>(null);
+  useEffect(() => {
+    if (!userId) return;
+    fiatApi.offrampEligibility(userId).then(setEligibility).catch(() => setEligibility(null));
+  }, [userId]);
   const [selectedAsset, setSelectedAsset] = useState(cryptoAssets.find((a) => a.id === 'usdt')!);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(bankAccounts[0]?.id ?? null);
   const [amount, setAmount] = useState('');
@@ -32,6 +42,15 @@ export function OffRampScreen({ goBack, navigate }: OffRampScreenProps) {
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
       <div style={{ height: 50 }} />
+      <div className="px-5 pt-2">
+        <WalletFeatureBanner feature="offramp" onGoKyc={() => navigate('kyc')} />
+        {eligibility && eligibility.action === 'complete_kyc' && (
+          <FeatureAlert reason="kyc_required" message="Off-ramp requires approved KYC and a bank account in your legal name." onAction={() => navigate('kyc')} actionLabel="Start KYC" />
+        )}
+        {eligibility && eligibility.action === 'add_payment_details' && (
+          <FeatureAlert reason="generic" message="Add a bank account before selling crypto to fiat." onAction={() => navigate('payment-methods')} actionLabel="Add bank" />
+        )}
+      </div>
 
       <div className="flex items-center gap-3 px-5 mb-5">
         <motion.button whileTap={{ scale: 0.9 }} onClick={step === 'form' ? goBack : () => setStep('form')} className="w-10 h-10 rounded-2xl flex items-center justify-center glass-card" style={{ border: '1px solid var(--border)' }}>

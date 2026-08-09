@@ -9,6 +9,8 @@ import { TokenSelectionList } from '../components/deposit/TokenSelectionList';
 import { DepositSelectors } from '../components/deposit/DepositSelectors';
 import { DepositAddressCard } from '../components/deposit/DepositAddressCard';
 import { DepositInfoAndHistory } from '../components/deposit/DepositInfoAndHistory';
+import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
+import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 
 interface DepositScreenProps {
   goBack: () => void;
@@ -51,6 +53,7 @@ export function DepositScreen({ goBack }: DepositScreenProps) {
   return (
     <div className="flex flex-col h-full relative" style={{ background: 'var(--background)' }}>
       <div style={{ height: 50 }} />
+      <div className="px-5 pt-2"><WalletFeatureBanner feature="deposit" /></div>
 
       <div className="flex items-center gap-3 px-5 mb-5">
         <motion.button whileTap={{ scale: 0.9 }} onClick={goBack} aria-label="Go back" className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}>
