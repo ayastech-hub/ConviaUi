@@ -1,6 +1,9 @@
 # Convia API Reference (Frontend integration)
 
-Source of truth: [coviaBackend README](https://github.com/ayastech-hub/coviaBackend) §5–§6 and route implementations under `src/routes/*`.
+> **Important:** The backend README is partially outdated. Prefer **route source code** (`src/routes/*`, services) over README tables when they disagree (verified Aug 2026).
+
+Source of truth (in priority order): route handlers → services → README:
+ [coviaBackend README](https://github.com/ayastech-hub/coviaBackend) §5–§6 and route implementations under `src/routes/*`.
 
 **Base URL:** `VITE_API_BASE_URL` (default `http://localhost:4000`)
 
@@ -85,7 +88,7 @@ Register provisions **four** custodial chain addresses (EVM, Solana, Bitcoin, Tr
 |---|---|---|
 | `GET` | `/wallets/:userId/addresses` | `[{ chainFamily, address }, ...]` |
 | `GET` | `/wallets/:userId/deposit-info?asset=&chainKey=` | address, confirmations, contract |
-| `GET` | `/wallets/:userId/balances` | ledger balances for tracked assets |
+| `GET` | `/wallets/:userId/balances` | `{ userId, balances: [{ chainKey, chainFamily, address, asset, ledgerBalance, onChainBalance, inSync }] }` |
 
 ---
 
@@ -127,7 +130,7 @@ Balances are **crypto-only** on-platform; fiat is converted at the edge.
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/portfolio/:userId` | Summary for tracked assets (USD, BTC, ETH, SOL starter set) |
+| `GET` | `/portfolio/:userId` | `{ totalValueUsd: string, holdings: [{ asset, quantity, priceUsd, valueUsd }] }` — from ledger + price feed; starter assets USD/BTC/ETH/SOL |
 
 ---
 

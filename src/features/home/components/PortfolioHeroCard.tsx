@@ -1,17 +1,29 @@
 import { motion } from 'motion/react';
-import { Eye, EyeOff, TrendingUp } from 'lucide-react';
-import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
-import { portfolio, portfolioChartData } from '../../../shared/data/mockData';
+import { Eye, EyeOff, TrendingUp, Loader } from 'lucide-react';
+import { AreaChart, Area, ResponsiveContainer } from 'recharts';
+import { portfolioChartData } from '../../../shared/data/mockData';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
+import { usePortfolio } from '../../../shared/hooks/usePortfolio';
+import { useAuth } from '../../../shared/context/AuthContext';
 
 interface PortfolioHeroCardProps {
   balanceVisible: boolean;
   onToggleVisibility: () => void;
 }
 
-/** The big balance card at the top of Home, with the 24h change and mini trend chart. */
+/**
+ * Home hero balance. Prefers live GET /portfolio/:userId
+ * (totalValueUsd + holdings from ledger). Falls back to empty $0 when
+ * anonymous or API unreachable — never invents balances.
+ */
 export function PortfolioHeroCard({ balanceVisible, onToggleVisibility }: PortfolioHeroCardProps) {
   const { format } = useCurrency();
+  const { status } = useAuth();
+  const { data, loading, source } = usePortfolio();
+
+  const totalUSD = data ? Number(data.totalValueUsd) || 0 : 0;
+  // NGN display is a soft estimate until FX endpoint is wired into CurrencyContext.
+  const totalNGN = totalUSD * 1600;
 
   return (
     <div className="px-5 mb-5">
@@ -21,60 +33,62 @@ export function PortfolioHeroCard({ balanceVisible, onToggleVisibility }: Portfo
         className="rounded-[24px] overflow-hidden p-5 glass-card glass-refraction"
         style={{ background: 'var(--card)', boxShadow: '0 20px 60px var(--border)', border: '1px solid var(--muted)' }}
       >
-        <div className="absolute inset-0 overflow-hidden rounded-[24px]" style={{ position: 'relative' }}>
-          <div className="absolute top-0 right-0 w-40 h-40 rounded-full opacity-20" style={{ background: 'transparent', transform: 'translate(20%, -30%)' }} />
-          <div className="absolute bottom-0 left-10 w-32 h-32 rounded-full opacity-10" style={{ background: 'transparent', transform: 'translateY(40%)' }} />
-        </div>
-
         <div className="relative">
           <div className="flex items-center justify-between mb-1">
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Total Portfolio</p>
+            <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
+              Total Portfolio
+              {source === 'live' && (
+                <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--positive)' }}>LIVE</span>
+              )}
+            </p>
             <motion.button whileTap={{ scale: 0.9 }} onClick={onToggleVisibility} aria-label="Toggle balance visibility">
-              {balanceVisible ? <Eye size={16} style={{ color: 'var(--muted-foreground)' }} /> : <EyeOff size={16} style={{ color: 'var(--muted-foreground)' }} />}
+              {balanceVisible ? (
+                <Eye size={16} style={{ color: 'var(--muted-foreground)' }} />
+              ) : (
+                <EyeOff size={16} style={{ color: 'var(--muted-foreground)' }} />
+              )}
             </motion.button>
           </div>
 
-          {balanceVisible ? (
+          {loading || status === 'loading' ? (
+            <div className="flex items-center gap-2 mb-1" style={{ height: 40 }}>
+              <Loader size={18} className="animate-spin" style={{ color: 'var(--muted-foreground)' }} />
+            </div>
+          ) : balanceVisible ? (
             <p className="text-white mb-1" style={{ fontSize: 36, fontWeight: 800, letterSpacing: -1, lineHeight: 1.1 }}>
-              {format(portfolio.totalUSD)}
+              {format(totalUSD)}
             </p>
           ) : (
-            <p className="text-white mb-1" style={{ fontSize: 36, fontWeight: 800 }}>••••••</p>
+            <p className="text-white mb-1" style={{ fontSize: 36, fontWeight: 800 }}>
+              ••••••
+            </p>
           )}
 
           <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginBottom: 12 }}>
-            ≈ ₦{portfolio.totalNGN.toLocaleString()}
+            {balanceVisible ? `≈ ₦${totalNGN.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '••••'}
           </p>
 
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'var(--muted)' }}>
-              <TrendingUp size={12} style={{ color: 'var(--positive)' }} />
-              <span style={{ color: 'var(--positive)', fontSize: 12, fontWeight: 600 }}>
-                +{format(portfolio.change24hUSD)} ({portfolio.change24hPct}%)
-              </span>
-            </div>
-            <span style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>24h</span>
+          <div className="flex items-center gap-1.5 mb-3">
+            <TrendingUp size={14} style={{ color: 'var(--muted-foreground)' }} />
+            <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
+              {status === 'anonymous'
+                ? 'Sign in to see your live balance'
+                : source === 'live'
+                  ? `${data?.holdings?.length ?? 0} assets from ledger`
+                  : 'Connect API to load portfolio'}
+            </span>
           </div>
 
-          <div style={{ height: 60, marginTop: 16, marginLeft: -8, marginRight: -8 }}>
+          <div style={{ height: 56, marginLeft: -8, marginRight: -8 }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={portfolioChartData}>
                 <defs>
-                  <linearGradient id="heroGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.3} />
+                  <linearGradient id="pfGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.35} />
                     <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <Area type="monotone" dataKey="value" stroke="var(--primary)" strokeWidth={2} fill="url(#heroGrad)" dot={false} />
-                <Tooltip
-                  content={({ active, payload }) =>
-                    active && payload?.length ? (
-                      <div className="px-2 py-1 rounded-lg text-xs text-white" style={{ background: 'rgba(0,0,0,0.8)', fontSize: 11 }}>
-                        {format(payload[0].value as number)}
-                      </div>
-                    ) : null
-                  }
-                />
+                <Area type="monotone" dataKey="value" stroke="var(--primary)" fill="url(#pfGrad)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </div>

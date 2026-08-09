@@ -2,6 +2,8 @@
 
 This UI shipped as a high-fidelity Figma Make prototype with **local mock data**. The backend (`coviaBackend`) is a real Fastify + Prisma + ledger system. This document is the path from mock → production.
 
+**Backend README drift:** several README sections still mention social/OTC/trading and older payload shapes. Always verify against `src/routes/*.ts` and services before wiring a screen. Home/Wallet are wired to the real portfolio + transaction-history handlers.
+
 ## Principles
 
 1. **One API client** — never call `fetch` from screens. All HTTP goes through `src/shared/api/client.ts`.
@@ -60,7 +62,7 @@ Never commit secrets. Access tokens live in memory; refresh token + sessionId in
 |---|---|---|
 | **0** | Docs + client + AuthContext + first-visit onboarding | This PR |
 | **1** | Auth register / login / refresh / logout live | User can create account against real API |
-| **2** | Portfolio + balances + addresses + tx history | Home & Wallet show real numbers |
+| **2** | Portfolio + balances + addresses + tx history | Home & Wallet show real numbers (**done**: portfolio + tx list) |
 | **3** | Deposit info + receive QR from real addresses | Receive screen is live |
 | **4** | Swap quote + execute | Swap is live (subject to Li.Fi + country controls) |
 | **5** | Fiat on/off-ramp + bank accounts | Buy/Sell live where providers configured |

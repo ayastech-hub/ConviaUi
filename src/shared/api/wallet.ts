@@ -9,6 +9,23 @@ export type DepositInfo = {
   contractAddress: string | null;
 };
 
+/** Actual shape from GET /wallets/:userId/balances (src/routes/wallet-info.ts). */
+export type ChainBalanceRow = {
+  chainKey: string;
+  chainFamily: string;
+  address: string;
+  asset: string;
+  ledgerBalance: string;
+  onChainBalance: string | null;
+  inSync: boolean | null;
+  error?: string;
+};
+
+export type WalletBalancesResponse = {
+  userId: string;
+  balances: ChainBalanceRow[];
+};
+
 export function fetchAddresses(userId: string) {
   return api.get<WalletAddress[]>(`/wallets/${userId}/addresses`);
 }
@@ -19,7 +36,7 @@ export function fetchDepositInfo(userId: string, asset: string, chainKey: string
 }
 
 export function fetchBalances(userId: string) {
-  return api.get<unknown>(`/wallets/${userId}/balances`);
+  return api.get<WalletBalancesResponse>(`/wallets/${userId}/balances`);
 }
 
 export function withdrawCrypto(body: {

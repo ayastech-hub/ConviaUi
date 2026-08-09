@@ -1,14 +1,16 @@
 import { api } from './client';
 
+/** Actual shape from portfolioService.getSummary (src/services/portfolio-service.ts). */
+export type HoldingView = {
+  asset: string;
+  quantity: string;
+  priceUsd: string;
+  valueUsd: string;
+};
+
 export type PortfolioSummary = {
-  totalValueUsd?: number;
-  assets?: Array<{
-    asset: string;
-    balance?: string | number;
-    valueUsd?: number;
-    change24h?: number;
-  }>;
-  [key: string]: unknown;
+  totalValueUsd: string;
+  holdings: HoldingView[];
 };
 
 export function fetchPortfolio(userId: string) {
