@@ -14,6 +14,10 @@ export type UserProfile = {
   [key: string]: unknown;
 };
 
+export function getMyProfile() {
+  return api.get<UserProfile>('/profiles/me');
+}
+
 export function getPublicProfile(username: string) {
   return api.get<UserProfile>(`/profiles/${encodeURIComponent(username)}`, { auth: false });
 }

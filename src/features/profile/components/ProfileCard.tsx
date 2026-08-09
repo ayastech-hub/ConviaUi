@@ -1,43 +1,22 @@
-import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { BadgeCheck, Loader } from 'lucide-react';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { useKycStatus } from '../../../shared/hooks/useKycStatus';
-import * as profileApi from '../../../shared/api/profile';
-import type { UserProfile } from '../../../shared/api/profile';
+import { useMyProfile } from '../../../shared/hooks/useMyProfile';
 
-/** Avatar, name, username, KYC badge — loaded from GET /profiles/:username when known. */
+/** Avatar initials, display name, username, KYC — from GET /profiles/me (cached). */
 export function ProfileCard() {
-  const { userId, username, status } = useAuth();
+  const { userId, username: sessionUsername, displayName: sessionDisplayName, status } = useAuth();
   const { isApproved, kycStatus } = useKycStatus();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { profile, loading } = useMyProfile();
 
-  useEffect(() => {
-    if (!username) {
-      setProfile(null);
-      return;
-    }
-    let cancelled = false;
-    setLoading(true);
-    profileApi
-      .getPublicProfile(username)
-      .then((p) => {
-        if (!cancelled) setProfile(p);
-      })
-      .catch(() => {
-        if (!cancelled) setProfile({ username });
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [username]);
+  const displayName =
+    profile?.displayName || sessionDisplayName || profile?.username || sessionUsername || 'Convia user';
+  const handle = profile?.username || sessionUsername;
+  const country = profile?.country;
+  const currency = profile?.preferredCurrency;
+  const bio = profile?.bio;
 
-  const displayName = profile?.displayName || username || 'Convia user';
-  const handle = username ? `@${username}` : userId ? `ID ${userId.slice(0, 8)}…` : 'Not signed in';
   const initials = (displayName || 'C')
     .split(/\s+/)
     .map((w) => w[0])
@@ -50,38 +29,65 @@ export function ProfileCard() {
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-[24px] p-5 flex items-center gap-4"
+        className="rounded-[24px] p-5"
         style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
       >
-        <div
-          className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
-          style={{ background: 'var(--muted)' }}
-        >
-          {profile?.avatarUrl ? (
-            <img src={profile.avatarUrl} alt="" className="w-full h-full object-cover" />
-          ) : (
+        <div className="flex items-center gap-4">
+          <div
+            className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0"
+            style={{ background: 'var(--muted)' }}
+          >
             <span style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20 }}>{initials}</span>
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <p style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 18 }} className="truncate">
-              {loading ? '…' : displayName}
-            </p>
-            {isApproved && <BadgeCheck size={18} style={{ color: 'var(--primary)', flexShrink: 0 }} />}
           </div>
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }} className="truncate">
-            {handle}
-          </p>
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 11, marginTop: 4 }}>
-            {status === 'authenticated'
-              ? isApproved
-                ? 'Verified · KYC approved'
-                : `KYC: ${kycStatus}`
-              : 'Sign in to sync profile'}
-          </p>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <p style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 18 }} className="truncate">
+                {displayName}
+              </p>
+              {isApproved && <BadgeCheck size={18} style={{ color: 'var(--primary)', flexShrink: 0 }} />}
+              {loading && !profile && (
+                <Loader size={14} className="animate-spin" style={{ color: 'var(--muted-foreground)' }} />
+              )}
+            </div>
+            <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }} className="truncate">
+              {handle ? `@${handle}` : userId ? `ID ${userId.slice(0, 8)}…` : 'Not signed in'}
+            </p>
+            <p style={{ color: 'var(--muted-foreground)', fontSize: 11, marginTop: 4 }}>
+              {status === 'authenticated'
+                ? isApproved
+                  ? 'Verified · KYC approved'
+                  : `KYC: ${kycStatus}`
+                : 'Sign in to sync profile'}
+            </p>
+          </div>
         </div>
-        {loading && <Loader size={16} className="animate-spin" style={{ color: 'var(--muted-foreground)' }} />}
+        {(bio || country || currency) && (
+          <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
+            {bio && (
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginBottom: 6 }} className="line-clamp-2">
+                {bio}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {country && (
+                <span
+                  className="px-2 py-0.5 rounded-md"
+                  style={{ background: 'var(--muted)', color: 'var(--foreground)', fontSize: 11, fontWeight: 600 }}
+                >
+                  {country}
+                </span>
+              )}
+              {currency && (
+                <span
+                  className="px-2 py-0.5 rounded-md"
+                  style={{ background: 'var(--muted)', color: 'var(--foreground)', fontSize: 11, fontWeight: 600 }}
+                >
+                  {currency}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
       </motion.div>
     </div>
   );

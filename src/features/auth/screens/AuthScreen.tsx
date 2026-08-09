@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft } from 'lucide-react';
 import { ConviaLogo } from '../../../shared/components/ConviaLogo';
 import type { Screen } from '../../../shared/data/mockData';
 import { passwordStrength } from '../components/passwordStrength';
@@ -28,6 +27,7 @@ type Step = 'credentials' | 'phone' | 'otp';
 export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProps) {
   const { login, register } = useAuth();
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [phone, setPhone] = useState('');
@@ -99,12 +99,12 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
     setLoading(true);
     setError('');
     try {
-      await register(email, password);
+      await register(email, password, username.trim() || undefined);
       setSuccess(true);
       setTimeout(() => switchTab('home'), 800);
     } catch (err) {
       const msg = err instanceof ApiError
-        ? (err.code === 'username_taken' ? 'That username is taken — try another email' : (err.body.message || err.code))
+        ? (err.code === 'username_taken' ? 'That username is taken — pick another' : (err.body.message || err.code))
         : 'Registration failed — is the API running?';
       setError(String(msg));
       setStep('credentials');
@@ -160,16 +160,7 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
       <div style={{ height: 50 }} />
 
-      <div className="flex items-center gap-3 px-5 mb-6">
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={() => { if (step !== 'credentials') setStep('credentials'); else goBack(); }}
-          className="w-10 h-10 rounded-2xl flex items-center justify-center glass-card"
-          style={{ border: '1px solid var(--border)' }}
-        >
-          <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
-        </motion.button>
-      </div>
+      <div style={{ height: 12 }} />
 
       <div className="px-6 flex-1 flex flex-col">
         <div className="flex items-center gap-3 mb-8">
@@ -187,6 +178,7 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
             <CredentialsStep
               mode={mode}
               email={email} setEmail={setEmail}
+              username={username} setUsername={setUsername}
               password={password} setPassword={setPassword}
               confirmPassword={confirmPassword} setConfirmPassword={setConfirmPassword}
               showPassword={showPassword} setShowPassword={setShowPassword}

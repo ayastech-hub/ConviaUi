@@ -4,7 +4,7 @@ import type { LoginResponse, RegisterResponse, SessionTokens } from './types';
 export async function register(input: {
   email: string;
   password: string;
-  username: string;
+  username?: string;
 }): Promise<RegisterResponse> {
   return api.post<RegisterResponse>('/auth/register', input, { auth: false });
 }

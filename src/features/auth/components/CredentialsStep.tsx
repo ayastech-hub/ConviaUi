@@ -8,6 +8,8 @@ interface CredentialsStepProps {
   mode: 'login' | 'signup' | 'forgot-password';
   email: string;
   setEmail: (v: string) => void;
+  username?: string;
+  setUsername?: (v: string) => void;
   password: string;
   setPassword: (v: string) => void;
   confirmPassword: string;
@@ -35,7 +37,7 @@ interface CredentialsStepProps {
  * `../components/BiometricStep.tsx`) and intentionally omitted on web.
  */
 export function CredentialsStep({
-  mode, email, setEmail, password, setPassword, confirmPassword, setConfirmPassword,
+  mode, email, setEmail, username = '', setUsername, password, setPassword, confirmPassword, setConfirmPassword,
   showPassword, setShowPassword, agreeTerms, setAgreeTerms, strength,
   loading, error, onSubmit, onForgotPassword, onQuickAccess, onSignup, onLogin,
 }: CredentialsStepProps) {
@@ -62,7 +64,17 @@ export function CredentialsStep({
         {mode !== 'forgot-password' && (
           <>
             <div>
-              <InputField
+              
+        {mode === 'signup' && setUsername && (
+          <InputField
+            icon={Mail}
+            type="text"
+            placeholder="Username (optional)"
+            value={username}
+            onChange={(v) => setUsername(v.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 24))}
+          />
+        )}
+<InputField
                 icon={<Lock size={18} style={{ color: 'var(--muted-foreground)' }} />}
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Password"

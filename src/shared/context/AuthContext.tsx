@@ -15,6 +15,7 @@ import {
 import * as authApi from '../api/auth';
 import type { SessionTokens } from '../api/types';
 import { ApiError } from '../api/types';
+import { cacheInvalidate } from '../cache/queryCache';
 
 type AuthStatus = 'loading' | 'authenticated' | 'anonymous';
 
@@ -22,6 +23,8 @@ type AuthContextValue = {
   status: AuthStatus;
   session: SessionTokens | null;
   userId: string | null;
+  username: string | null;
+  displayName: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, username?: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -63,6 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         persistSession(null);
         setSessionState(null);
         setStatus('anonymous');
+        cacheInvalidate();
       },
     });
   }, []);
@@ -79,6 +83,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refreshToken: res.refreshToken,
         sessionId: res.sessionId,
         userId: res.userId,
+        username: res.username,
+        displayName: res.displayName,
+        preferredCurrency: res.preferredCurrency,
+        country: res.country,
       });
     },
     [setSession],
@@ -86,14 +94,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = useCallback(
     async (email: string, password: string, username?: string) => {
-      const uname = username || authApi.usernameFromEmail(email);
-      const res = await authApi.register({ email, password, username: uname });
+      // Empty / undefined username → backend derives from email
+      const payload: { email: string; password: string; username?: string } = { email, password };
+      if (username && username.trim().length >= 3) {
+        payload.username = username.trim().toLowerCase();
+      }
+      const res = await authApi.register(payload);
       setSession({
         accessToken: res.accessToken,
         refreshToken: res.refreshToken,
         sessionId: res.sessionId,
         userId: res.userId,
-        username: uname,
+        username: res.username || payload.username,
       });
     },
     [setSession],
@@ -104,11 +116,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       if (sid) await authApi.logout(sid);
     } catch (err) {
-      // Still clear local session even if network fails
       if (!(err instanceof ApiError)) {
         // ignore
       }
     } finally {
+      cacheInvalidate();
       setSession(null);
     }
   }, [session?.sessionId, setSession]);
@@ -118,6 +130,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status,
       session,
       userId: session?.userId ?? null,
+      username: session?.username ?? null,
+      displayName: session?.displayName ?? null,
       login,
       register,
       logout,

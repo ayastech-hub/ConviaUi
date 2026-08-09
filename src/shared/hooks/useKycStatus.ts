@@ -2,24 +2,39 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { fetchKyc, type KycRecord } from '../api/compliance';
 import { ApiError } from '../api/types';
+import { cacheGet, cacheSet } from '../cache/queryCache';
 
 export function useKycStatus() {
   const { userId, status } = useAuth();
-  const [kyc, setKyc] = useState<KycRecord | null>(null);
-  const [loading, setLoading] = useState(false);
+  const cacheKey = userId ? `kyc:${userId}` : '';
+  const cached = cacheKey ? cacheGet<KycRecord | null>(cacheKey) : undefined;
+
+  const [kyc, setKyc] = useState<KycRecord | null>(cached !== undefined ? cached : null);
+  const [loading, setLoading] = useState(cached === undefined && !!userId);
 
   const refresh = useCallback(async () => {
     if (!userId) {
       setKyc(null);
+      setLoading(false);
       return;
     }
-    setLoading(true);
+    const key = `kyc:${userId}`;
+    const existing = cacheGet<KycRecord | null>(key);
+    if (existing !== undefined) {
+      setKyc(existing);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     try {
-      setKyc(await fetchKyc(userId));
+      const data = await fetchKyc(userId);
+      cacheSet(key, data);
+      setKyc(data);
     } catch (err) {
       if (!(err instanceof ApiError && err.status === 404)) {
-        setKyc(null);
+        /* keep prior */
       } else {
+        cacheSet(key, null);
         setKyc(null);
       }
     } finally {

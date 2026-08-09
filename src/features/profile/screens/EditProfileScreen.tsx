@@ -8,6 +8,7 @@ import { useAuth } from '../../../shared/context/AuthContext';
 import * as profileApi from '../../../shared/api/profile';
 import { ApiError } from '../../../shared/api/types';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
+import { cacheInvalidate } from '../../../shared/cache/queryCache';
 
 interface EditProfileScreenProps {
   goBack: () => void;
@@ -27,10 +28,9 @@ export function EditProfileScreen({ goBack }: EditProfileScreenProps) {
   const [error, setError] = useState<{ code?: string; message?: string } | null>(null);
 
   useEffect(() => {
-    if (!username) return;
     setLoading(true);
     profileApi
-      .getPublicProfile(username)
+      .getMyProfile()
       .then((p) => {
         setDisplayName(p.displayName || '');
         setBio(p.bio || '');
@@ -40,7 +40,7 @@ export function EditProfileScreen({ goBack }: EditProfileScreenProps) {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [username]);
+  }, []);
 
   const save = async () => {
     setSaving(true);
@@ -61,6 +61,7 @@ export function EditProfileScreen({ goBack }: EditProfileScreenProps) {
       // Only send avatar if it's already a URL (data URLs need upload infrastructure)
       if (avatar && /^https?:\/\//i.test(avatar)) body.avatarUrl = avatar;
       await profileApi.updateMyProfile(body);
+      cacheInvalidate('profile:');
       setSaved(true);
     } catch (err) {
       if (err instanceof ApiError) setError({ code: err.code, message: err.body.message || err.message });
