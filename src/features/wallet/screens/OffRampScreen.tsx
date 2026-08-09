@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft } from 'lucide-react';
-import { cryptoAssets, type Screen } from '../../../shared/data/mockData';
+import { type Screen } from '../../../shared/data/mockData';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { usePaymentMethods } from '../../../shared/context/PaymentMethodsContext';
 import { OffRampFormStep } from '../components/offramp/OffRampFormStep';
@@ -10,6 +10,7 @@ import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBan
 import { useAuth } from '../../../shared/context/AuthContext';
 import * as fiatApi from '../../../shared/api/fiat';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
+import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
 
 interface OffRampScreenProps {
   goBack: () => void;
@@ -17,6 +18,12 @@ interface OffRampScreenProps {
 }
 
 export function OffRampScreen({ goBack, navigate }: OffRampScreenProps) {
+  const { assets: registryAssets, loading: registryLoading } = useTokenRegistry();
+  const cryptoAssets = registryAssets.length ? registryAssets : [];
+  useEffect(() => {
+    if (!registryAssets.length) return;
+    // Prefer stable default once catalog loads
+  }, [registryAssets]);
   const { currency, format } = useCurrency();
   const { bankAccounts } = usePaymentMethods();
   const { userId } = useAuth();
@@ -26,14 +33,26 @@ export function OffRampScreen({ goBack, navigate }: OffRampScreenProps) {
     if (!userId) return;
     fiatApi.offrampEligibility(userId).then(setEligibility).catch(() => setEligibility(null));
   }, [userId]);
-  const [selectedAsset, setSelectedAsset] = useState(cryptoAssets.find((a) => a.id === 'usdt')!);
+  const [selectedAsset, setSelectedAsset] = useState(cryptoAssets.find((a) => a.symbol === 'USDT') || cryptoAssets[0] || {
+  id: 'loading',
+  symbol: '…',
+  name: 'Loading',
+  price: 0,
+  change24h: 0,
+  balance: 0,
+  valueUSD: 0,
+  color: 'var(--muted-foreground)',
+  bgColor: 'var(--muted)',
+  chains: [],
+  sparkline: [],
+} as Asset);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(bankAccounts[0]?.id ?? null);
   const [amount, setAmount] = useState('');
   const [step, setStep] = useState<'form' | 'review' | 'processing' | 'done'>('form');
   const [showTokenDropdown, setShowTokenDropdown] = useState(false);
   const [showAccountDropdown, setShowAccountDropdown] = useState(false);
 
-  const stablecoins = cryptoAssets.filter((a) => ['usdt', 'usdc', 'eth', 'btc', 'sol', 'bnb'].includes(a.id));
+  const stablecoins = cryptoAssets;
   const fee = Number(amount) * selectedAsset.price * 0.015;
   const youGet = (Number(amount) * selectedAsset.price - fee) * currency.rate;
 

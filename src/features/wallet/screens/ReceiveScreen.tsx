@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { ChevronLeft, Loader } from 'lucide-react';
-import { cryptoAssets, type Asset } from '../../../shared/data/mockData';
+import { type Asset } from '../../../shared/data/mockData';
+import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { NETWORKS } from '../components/receive/types';
@@ -22,13 +23,13 @@ interface ReceiveScreenProps {
   goBack: () => void;
 }
 
-/** QR via frontend `qrcode` lib; address from GET /wallets/:userId/deposit-info. */
 export function ReceiveScreen({ goBack }: ReceiveScreenProps) {
   const { format } = useCurrency();
+  const { assets: tokenList, loading: regLoading } = useTokenRegistry();
   const { userId, status } = useAuth();
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
-  const [asset, setAsset] = useState<Asset>(cryptoAssets.find((a) => a.id === 'usdt') || cryptoAssets[0]);
-  const [network, setNetwork] = useState<string>(asset.chains[0] || 'Ethereum');
+  const [asset, setAsset] = useState<Asset | null>(null);
+  const [network, setNetwork] = useState('');
   const [networkOpen, setNetworkOpen] = useState(false);
   const [assetOpen, setAssetOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -40,14 +41,14 @@ export function ReceiveScreen({ goBack }: ReceiveScreenProps) {
   const [error, setError] = useState<{ code?: string; message?: string } | null>(null);
 
   const netInfo = NETWORKS[network] || {
-    name: network,
-    label: network,
+    name: network || 'Network',
+    label: network || '—',
     color: 'var(--muted-foreground)',
     estTime: '—',
   };
 
   const loadAddress = useCallback(async () => {
-    if (!userId || !selectedAsset) return;
+    if (!userId || !selectedAsset || !asset) return;
     setLoadingAddr(true);
     setError(null);
     const { chainKey, chainFamily } = resolveChain(network);
@@ -72,7 +73,7 @@ export function ReceiveScreen({ goBack }: ReceiveScreenProps) {
     } finally {
       setLoadingAddr(false);
     }
-  }, [userId, selectedAsset, asset.symbol, network]);
+  }, [userId, selectedAsset, asset, network]);
 
   useEffect(() => {
     void loadAddress();
@@ -80,7 +81,7 @@ export function ReceiveScreen({ goBack }: ReceiveScreenProps) {
 
   const handleAssetChange = useCallback((a: Asset) => {
     setAsset(a);
-    setNetwork(a.chains[0] || 'Ethereum');
+    setNetwork(a.chains[0] || '');
   }, []);
 
   const handleCopy = useCallback(() => {
@@ -95,7 +96,7 @@ export function ReceiveScreen({ goBack }: ReceiveScreenProps) {
   }, [address]);
 
   const handleShare = useCallback(() => {
-    if (!address) return;
+    if (!address || !asset) return;
     setShared(true);
     try {
       navigator.share?.({ title: `Convia ${asset.symbol} address`, text: address });
@@ -103,19 +104,27 @@ export function ReceiveScreen({ goBack }: ReceiveScreenProps) {
       /* ignore */
     }
     setTimeout(() => setShared(false), 2000);
-  }, [address, asset.symbol]);
+  }, [address, asset]);
 
   const amountNum = parseFloat(requestAmount) || 0;
-  const usdValue = amountNum * asset.price;
+  const usdValue = amountNum * (asset?.price || 0);
 
-  if (!selectedAsset) {
+  if (!selectedAsset || !asset) {
+    if (regLoading && tokenList.length === 0) {
+      return (
+        <div className="flex flex-col h-full items-center justify-center" style={{ background: 'var(--background)' }}>
+          <Loader className="animate-spin mb-3" style={{ color: 'var(--muted-foreground)' }} />
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Loading supported tokens…</p>
+        </div>
+      );
+    }
     return (
       <ReceiveTokenList
-        assets={cryptoAssets}
+        assets={tokenList}
         goBack={goBack}
         onSelect={(a) => {
           setAsset(a);
-          setNetwork(a.chains[0]);
+          setNetwork(a.chains[0] || '');
           setSelectedAsset(a);
         }}
       />
@@ -144,7 +153,7 @@ export function ReceiveScreen({ goBack }: ReceiveScreenProps) {
             Receive {asset.symbol}
           </h2>
           <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
-            {address ? 'Live custodial address · QR generated on device' : 'Get paid in crypto'}
+            {address ? 'Live custodial address · QR on device' : 'Select network'}
           </p>
         </div>
       </div>
@@ -214,7 +223,7 @@ export function ReceiveScreen({ goBack }: ReceiveScreenProps) {
       />
       <AssetDropdown
         open={assetOpen}
-        assets={cryptoAssets}
+        assets={tokenList}
         selected={asset}
         onSelect={handleAssetChange}
         onClose={() => setAssetOpen(false)}

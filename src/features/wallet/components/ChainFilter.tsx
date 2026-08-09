@@ -1,18 +1,29 @@
 import { motion } from 'motion/react';
-
-export const CHAINS = ['All', 'Ethereum', 'Bitcoin', 'Solana', 'BSC', 'BASE'];
+import { useMemo } from 'react';
+import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
 
 interface ChainFilterProps {
   activeChain: string;
   onSelect: (chain: string) => void;
+  /** Optional override; defaults to live registry chain names */
+  chains?: string[];
 }
 
-/** Horizontal scroll of chain filter pills (All/Ethereum/Bitcoin/...) above the asset list. */
-export function ChainFilter({ activeChain, onSelect }: ChainFilterProps) {
+/** Horizontal chain filter pills — driven by GET /chains when available. */
+export function ChainFilter({ activeChain, onSelect, chains: chainsProp }: ChainFilterProps) {
+  const { chains: registryChains } = useTokenRegistry();
+  const chains = useMemo(() => {
+    if (chainsProp?.length) return chainsProp;
+    const names = registryChains
+      .map((c) => c.name || c.chainName || c.key || c.chainKey || '')
+      .filter(Boolean);
+    return ['All', ...(names.length ? names : ['Ethereum', 'Bitcoin', 'Solana'])];
+  }, [chainsProp, registryChains]);
+
   return (
     <div className="mb-4">
       <div className="flex gap-2 px-5 overflow-x-auto pb-1">
-        {CHAINS.map((chain) => (
+        {chains.map((chain) => (
           <motion.button
             key={chain}
             whileTap={{ scale: 0.95 }}
@@ -21,7 +32,8 @@ export function ChainFilter({ activeChain, onSelect }: ChainFilterProps) {
             style={{
               background: activeChain === chain ? 'var(--primary)' : 'var(--muted)',
               color: activeChain === chain ? '#FFF' : 'var(--muted-foreground)',
-              fontSize: 12, fontWeight: 600,
+              fontSize: 12,
+              fontWeight: 600,
             }}
           >
             {chain}
@@ -31,3 +43,6 @@ export function ChainFilter({ activeChain, onSelect }: ChainFilterProps) {
     </div>
   );
 }
+
+/** @deprecated use live registry via ChainFilter */
+export const CHAINS = ['All', 'Ethereum', 'Bitcoin', 'Solana', 'BSC', 'BASE'];

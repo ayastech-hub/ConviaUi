@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { cryptoAssets, type Asset, type Transaction } from '../../../shared/data/mockData';
+import { type Asset, type Transaction } from '../../../shared/data/mockData';
 import { WithdrawTokenList } from '../components/withdraw/WithdrawTokenList';
 import { WithdrawForm } from '../components/withdraw/WithdrawForm';
 import { WithdrawPinStep } from '../components/withdraw/WithdrawPinStep';
@@ -13,12 +13,15 @@ import { resolveChain } from '../../../shared/utils/chains';
 import { ApiError } from '../../../shared/api/types';
 import { usePortfolio } from '../../../shared/hooks/usePortfolio';
 import { holdingToAsset } from '../../../shared/utils/mapApiToUi';
+import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
 
 interface WithdrawScreenProps {
   goBack: () => void;
 }
 
 export function WithdrawScreen({ goBack }: WithdrawScreenProps) {
+  const { assets: registryAssets, loading: registryLoading } = useTokenRegistry();
+  const cryptoAssets = registryAssets.length ? registryAssets : [];
   const { userId } = useAuth();
   const { data: portfolioData } = usePortfolio();
   const liveAssets = (portfolioData?.holdings || []).map(holdingToAsset);

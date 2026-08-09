@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../../../shared/context/AuthContext';
+import { useKycStatus } from '../../../shared/hooks/useKycStatus';
 import * as securityApi from '../../../shared/api/security';
 import { ApiError } from '../../../shared/api/types';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
@@ -31,6 +32,7 @@ interface KYCScreenProps {
  */
 export function KYCScreen({ goBack }: KYCScreenProps) {
   const { userId } = useAuth();
+  const { isApproved, isPending, kycStatus, loading: kycLoading } = useKycStatus();
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
 
   const [activeStep, setActiveStep] = useState(0);
@@ -137,6 +139,45 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
   };
 
   const docTypeLabel = DOC_TYPES.find((d) => d.id === docType)?.label ?? '';
+
+
+  if (kycLoading) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center" style={{ background: 'var(--background)' }}>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Checking verification status…</p>
+      </div>
+    );
+  }
+
+  if (isApproved || isPending) {
+    return (
+      <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
+        <div style={{ height: 50 }} />
+        <ScreenHeader title="KYC Verification" onBack={goBack} />
+        <div className="flex-1 px-5 flex flex-col items-center justify-center text-center">
+          <div className="w-16 h-16 rounded-3xl flex items-center justify-center mb-4" style={{ background: 'var(--muted)' }}>
+            <Shield size={28} style={{ color: isApproved ? 'var(--positive)' : 'var(--primary)' }} />
+          </div>
+          <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20, marginBottom: 8 }}>
+            {isApproved ? 'You are verified' : 'Verification in review'}
+          </h2>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 13, maxWidth: 280, lineHeight: 1.45 }}>
+            {isApproved
+              ? 'Your identity is approved. You do not need to submit KYC again.'
+              : `Status: ${kycStatus}. We will notify you when review completes.`}
+          </p>
+          <button
+            type="button"
+            onClick={goBack}
+            className="mt-8 w-full max-w-xs py-3.5 rounded-[16px] text-white"
+            style={{ background: 'var(--primary)', fontWeight: 700 }}
+          >
+            Back
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (submitted) {
     return <SuccessView firstName={fullName.split(' ')[0]} onDone={goBack} />;

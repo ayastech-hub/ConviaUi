@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { ChevronLeft, Loader } from 'lucide-react';
-import { cryptoAssets, type Asset } from '../../../shared/data/mockData';
+import { type Asset } from '../../../shared/data/mockData';
 import { NETWORKS } from '../components/deposit/types';
 import { AssetDropdown } from '../components/deposit/AssetDropdown';
 import { NetworkDropdown } from '../components/deposit/NetworkDropdown';
@@ -15,6 +15,7 @@ import { useAuth } from '../../../shared/context/AuthContext';
 import { fetchDepositInfo, fetchAddresses } from '../../../shared/api/wallet';
 import { resolveChain } from '../../../shared/utils/chains';
 import { ApiError } from '../../../shared/api/types';
+import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
 
 interface DepositScreenProps {
   goBack: () => void;
@@ -22,6 +23,8 @@ interface DepositScreenProps {
 
 /** Deposit crypto to custodial address — same live source as Receive. */
 export function DepositScreen({ goBack }: DepositScreenProps) {
+  const { assets: registryAssets, loading: registryLoading } = useTokenRegistry();
+  const cryptoAssets = registryAssets.length ? registryAssets : [];
   const { userId, status } = useAuth();
   const [asset, setAsset] = useState<Asset | null>(null);
   const [network, setNetwork] = useState<string>('');
@@ -95,7 +98,7 @@ export function DepositScreen({ goBack }: DepositScreenProps) {
   }, [address, asset]);
 
   if (!asset) {
-    return <TokenSelectionList assets={cryptoAssets} goBack={goBack} onSelect={handleAssetSelect} />;
+    return <TokenSelectionList assets={cryptoAssets.length ? cryptoAssets : []} goBack={goBack} onSelect={handleAssetSelect} />;
   }
 
   return (
@@ -159,7 +162,7 @@ export function DepositScreen({ goBack }: DepositScreenProps) {
 
       <AssetDropdown
         open={assetOpen}
-        assets={cryptoAssets}
+        assets={cryptoAssets.length ? cryptoAssets : []}
         selected={asset}
         onSelect={handleAssetSelect}
         onClose={() => setAssetOpen(false)}

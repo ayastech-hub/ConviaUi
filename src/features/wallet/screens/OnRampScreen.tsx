@@ -1,7 +1,7 @@
 import { useState } from 'react';
+import { type Asset } from '../../../shared/data/mockData';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft } from 'lucide-react';
-import { cryptoAssets } from '../../../shared/data/mockData';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { usePaymentMethods, type SavedCard } from '../../../shared/context/PaymentMethodsContext';
 import type { PaymentMethod, NewCardDraft } from '../components/onramp/PaymentMethodSelector';
@@ -14,18 +14,40 @@ import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/Fea
 import { useAuth } from '../../../shared/context/AuthContext';
 import * as fiatApi from '../../../shared/api/fiat';
 import { ApiError } from '../../../shared/api/types';
+import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
 
 interface OnRampScreenProps {
   goBack: () => void;
 }
 
 export function OnRampScreen({ goBack }: OnRampScreenProps) {
+  const { assets: registryAssets, loading: registryLoading } = useTokenRegistry();
+  const cryptoAssets = registryAssets.length ? registryAssets : [];
+  useEffect(() => {
+    if (!registryAssets.length) return;
+    // Prefer stable default once catalog loads
+  }, [registryAssets]);
   const { userId } = useAuth();
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
 
   const { currency, format } = useCurrency();
   const { cards, addCard } = usePaymentMethods();
-  const [selectedAsset, setSelectedAsset] = useState(cryptoAssets.find((a) => a.id === 'usdt')!);
+  const [selectedAsset, setSelectedAsset] = useState<Asset>(
+    cryptoAssets.find((a) => a.symbol === 'USDT') ||
+      cryptoAssets[0] || {
+        id: 'usdt',
+        symbol: 'USDT',
+        name: 'Tether',
+        price: 1,
+        change24h: 0,
+        balance: 0,
+        valueUSD: 0,
+        color: '#26A17B',
+        bgColor: 'rgba(38,161,123,0.15)',
+        chains: [],
+        sparkline: [],
+      }
+  );
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('bank');
   const [selectedCardId, setSelectedCardId] = useState<string | null>(cards[0]?.id ?? null);
   const [showNewCard, setShowNewCard] = useState(false);
@@ -35,7 +57,7 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
   const [showTokenDropdown, setShowTokenDropdown] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const rampAssets = cryptoAssets.filter((a) => ['usdt', 'usdc', 'btc', 'eth', 'sol'].includes(a.id));
+  const rampAssets = cryptoAssets;
 
   const usdAmount = Number(amount) / currency.rate;
   const fee = usdAmount * 0.015;

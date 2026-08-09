@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft } from 'lucide-react';
-import { cryptoAssets, chatContacts, type Screen, type Asset, type ChatContact, type Transaction } from '../../../shared/data/mockData';
+import { chatContacts, type Screen, type Asset, type ChatContact, type Transaction } from '../../../shared/data/mockData';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { AssetPicker } from '../../../shared/components/AssetPicker';
 import { QRScanner } from '../../../shared/components/QRScanner';
@@ -23,6 +23,7 @@ import { resolveChain } from '../../../shared/utils/chains';
 import { ApiError } from '../../../shared/api/types';
 import { usePortfolio } from '../../../shared/hooks/usePortfolio';
 import { holdingToAsset } from '../../../shared/utils/mapApiToUi';
+import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
 
 interface SendScreenProps {
   navigate: (s: Screen) => void;
@@ -35,6 +36,12 @@ const genHash = () => '0x' + Array.from({ length: 64 }, () => '0123456789abcdef'
 const shortenHash = (h: string) => `${h.slice(0, 10)}…${h.slice(-8)}`;
 
 export function SendScreen({ navigate, goBack }: SendScreenProps) {
+  const { assets: registryAssets, loading: registryLoading } = useTokenRegistry();
+  const cryptoAssets = registryAssets.length ? registryAssets : [];
+  useEffect(() => {
+    if (!registryAssets.length) return;
+    // Prefer stable default once catalog loads
+  }, [registryAssets]);
   const { userId } = useAuth();
   const { data: portfolioData } = usePortfolio();
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
@@ -45,7 +52,19 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
   const [step, setStep] = useState<Step>('select');
   const [recipient, setRecipient] = useState('');
   const [selectedContact, setSelectedContact] = useState<ChatContact | null>(null);
-  const [selectedAsset, setSelectedAsset] = useState<Asset>(cryptoAssets.find((a) => a.id === 'usdt')!);
+  const [selectedAsset, setSelectedAsset] = useState<Asset>(cryptoAssets.find((a) => a.symbol === 'USDT') || cryptoAssets[0] || {
+  id: 'loading',
+  symbol: '…',
+  name: 'Loading',
+  price: 0,
+  change24h: 0,
+  balance: 0,
+  valueUSD: 0,
+  color: 'var(--muted-foreground)',
+  bgColor: 'var(--muted)',
+  chains: [],
+  sparkline: [],
+} as Asset);
   const [amount, setAmount] = useState('');
   const [search, setSearch] = useState('');
   const [showPicker, setShowPicker] = useState(false);
@@ -72,7 +91,7 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
   useEffect(() => {
     const prefill = consumeSendPrefill();
     if (prefill) {
-      setSelectedAsset(cryptoAssets.find((a) => a.symbol.toUpperCase() === (prefill.asset ?? 'USDT').toUpperCase()) ?? cryptoAssets.find((a) => a.id === 'usdt')!);
+      setSelectedAsset(cryptoAssets.find((a) => a.symbol.toUpperCase() === (prefill.asset ?? 'USDT').toUpperCase()) ?? cryptoAssets.find((a) => a.symbol === 'USDT') || cryptoAssets[0] || selectedAsset);
       applyScanResult(prefill);
     }
   }, [applyScanResult]);
@@ -232,7 +251,7 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
     setStep('select');
     setRecipient('');
     setSelectedContact(null);
-    setSelectedAsset(cryptoAssets.find((a) => a.id === 'usdt')!);
+    setSelectedAsset(cryptoAssets.find((a) => a.symbol === 'USDT') || cryptoAssets[0] || selectedAsset);
     setAmount('');
     setSearch('');
     setError('');

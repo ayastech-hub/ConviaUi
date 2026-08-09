@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, Zap, AlertTriangle } from 'lucide-react';
-import { cryptoAssets, type Asset, type Transaction } from '../../../shared/data/mockData';
+import { type Asset, type Transaction } from '../../../shared/data/mockData';
 import { AssetPicker } from '../../../shared/components/AssetPicker';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { STABLE_SYMBOLS, decimalsFor } from '../components/swap/utils';
@@ -13,6 +13,7 @@ import { SwapRouteSummary } from '../components/swap/SwapRouteSummary';
 import { SwapReviewSheet } from '../components/swap/SwapReviewSheet';
 import { SwapProcessingOverlay } from '../components/swap/SwapProcessingOverlay';
 import { SwapSuccessView } from '../components/swap/SwapSuccessView';
+import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
 
 interface SwapScreenProps {
   goBack: () => void;
@@ -21,12 +22,42 @@ interface SwapScreenProps {
 type SwapPhase = 'idle' | 'review' | 'swapping' | 'success';
 
 export function SwapScreen({ goBack }: SwapScreenProps) {
+  const { assets: registryAssets, loading: registryLoading } = useTokenRegistry();
+  const cryptoAssets = registryAssets.length ? registryAssets : [];
+  useEffect(() => {
+    if (!registryAssets.length) return;
+    // Prefer stable default once catalog loads
+  }, [registryAssets]);
   const { userId } = useAuth();
   const [apiBlock, setApiBlock] = useState<{ code?: string; message?: string } | null>(null);
   const { format, currency } = useCurrency();
 
-  const [fromAsset, setFromAsset] = useState<Asset>(cryptoAssets.find((a) => a.id === 'eth') ?? cryptoAssets[0]);
-  const [toAsset, setToAsset] = useState<Asset>(cryptoAssets.find((a) => a.id === 'usdt') ?? cryptoAssets[1]);
+  const [fromAsset, setFromAsset] = useState<Asset>(cryptoAssets.find((a) => a.symbol === 'ETH') || cryptoAssets[0] || {
+  id: 'loading',
+  symbol: '…',
+  name: 'Loading',
+  price: 0,
+  change24h: 0,
+  balance: 0,
+  valueUSD: 0,
+  color: 'var(--muted-foreground)',
+  bgColor: 'var(--muted)',
+  chains: [],
+  sparkline: [],
+} as Asset);
+  const [toAsset, setToAsset] = useState<Asset>(cryptoAssets.find((a) => a.symbol === 'USDT') || cryptoAssets[1] || cryptoAssets[0] || {
+  id: 'loading',
+  symbol: '…',
+  name: 'Loading',
+  price: 0,
+  change24h: 0,
+  balance: 0,
+  valueUSD: 0,
+  color: 'var(--muted-foreground)',
+  bgColor: 'var(--muted)',
+  chains: [],
+  sparkline: [],
+} as Asset);
   const [fromAmount, setFromAmount] = useState<string>('');
   const [slippage, setSlippage] = useState<string>('0.5%');
   const [customSlippage, setCustomSlippage] = useState<string>('');
