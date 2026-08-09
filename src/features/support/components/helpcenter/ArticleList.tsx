@@ -25,7 +25,7 @@ export function ArticleList({ activeCategory, search, articles, onSelectArticle 
         <div className="rounded-[20px] overflow-hidden glass-card mb-6" style={{ border: '1px solid var(--border)' }}>
           {articles.map((article, i) => (
             <motion.button
-              key={i}
+              key={article.id || article.title || i}
               whileTap={{ scale: 0.98 }}
               onClick={() => onSelectArticle(article)}
               className="flex items-center gap-3 px-4 py-3.5 w-full"

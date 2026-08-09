@@ -23,11 +23,17 @@ export function HelpCenterScreen({ goBack }: HelpCenterScreenProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const filteredArticles = allArticles.filter((article) => {
-    const matchesSearch = search === '' || article.title.toLowerCase().includes(search.toLowerCase()) || article.category.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = !activeCategory || article.category.toLowerCase().includes(activeCategory.toLowerCase());
+    const q = search.trim().toLowerCase();
+    const matchesSearch =
+      !q ||
+      article.title.toLowerCase().includes(q) ||
+      article.category.toLowerCase().includes(q) ||
+      (article.summary && article.summary.toLowerCase().includes(q)) ||
+      article.steps.some((s) => s.toLowerCase().includes(q));
+    const matchesCategory = !activeCategory || article.category === activeCategory;
     return matchesSearch && matchesCategory;
   });
-  const popularArticles = filteredArticles.slice(0, 6);
+  const popularArticles = activeCategory || search.trim() ? filteredArticles : filteredArticles.slice(0, 8);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;

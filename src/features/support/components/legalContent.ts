@@ -1,67 +1,62 @@
-import { FileText, Shield, Mail, Globe, type LucideIcon } from 'lucide-react';
+import { FileText, Shield, Scale, Mail, Globe, type LucideIcon } from 'lucide-react';
 
-export interface LegalSection {
-  heading: string;
-  body: string[];
-}
-
-export const legalContent: Record<string, LegalSection> = {
+export const legalContent: Record<
+  string,
+  { heading: string; body: string[] }
+> = {
   'Terms of Service': {
     heading: 'Terms of Service',
     body: [
-      'By using Convia, you agree to these terms. Convia provides digital asset trading, peer-to-peer exchange, and payment services across supported African countries.',
-      'You must be at least 18 years old and have completed identity verification (KYC) to use trading and withdrawal features.',
-      'Convia acts as a facilitator for peer-to-peer trades and is not a counterparty to OTC transactions. Escrow services are provided to protect both parties.',
-      'Fees are disclosed before each transaction. We reserve the right to suspend accounts that violate our terms or engage in fraudulent activity.',
-      'For questions about these terms, contact legal@convia.app.',
+      'Convia provides a digital wallet and financial services interface for supported markets in Africa, including crypto custody features, swaps, on-ramp/off-ramp partners, and bill payments where enabled.',
+      'By creating an account you agree to use the service lawfully, keep your credentials secure, and not attempt to circumvent KYC, sanctions, or country controls enforced by the platform.',
+      'Crypto transfers are irreversible once broadcast. Always verify asset, network, and address. Convia is not responsible for funds sent on the wrong network or to an incorrect address.',
+      'Limits, fees, and available products may vary by country, KYC level, and partner availability. Features can be suspended per market for compliance reasons.',
+      'We may update these terms; continued use after notice constitutes acceptance of material updates where required by law.',
     ],
   },
   'Privacy Policy': {
     heading: 'Privacy Policy',
     body: [
-      'Convia collects personal information you provide during registration and KYC verification, including your name, email, phone number, and government-issued ID.',
-      'We use your data to provide and improve our services, verify your identity, prevent fraud, and comply with regulatory requirements.',
-      'We do not sell your personal data to third parties. We may share data with payment partners and regulators when required by law.',
-      'Your transaction data is encrypted at rest and in transit. Biometric data, if enabled, is stored locally on your device and never transmitted.',
-      'You can request data deletion at any time by contacting privacy@convia.app.',
+      'We process account data (email, profile), identity data for KYC, transaction metadata, device/session information, and support communications to operate the service and meet regulatory duties.',
+      'Ledger balances and wallet addresses are processed to provide custody, deposits, withdrawals, and portfolio views.',
+      'We do not sell your personal data. We share data with infrastructure providers, KYC vendors, and payment partners only as needed to deliver features you use.',
+      'You may request access or deletion subject to legal retention requirements (for example anti-fraud and accounting records).',
+      'Session tokens are stored on your device; sign out clears local session data on that browser.',
     ],
   },
   'Licenses & Disclosures': {
     heading: 'Licenses & Disclosures',
     body: [
-      'Convia operates as a registered Virtual Asset Service Provider (VASP) in supported jurisdictions.',
-      'Convia is not a bank and digital assets held in your Convia account are not covered by deposit insurance.',
-      'Crypto-asset services are provided by Convia Technologies Ltd. Fiat services are provided through licensed payment partners in each supported country.',
-      'Cryptocurrency investments are subject to market risk. The value of digital assets can fluctuate significantly.',
-      'For regulatory inquiries, contact compliance@convia.app.',
+      'Convia Technologies operates product surfaces that may rely on licensed partners for local payments and identity verification depending on jurisdiction.',
+      'Digital assets are volatile and can lose value. Past performance is not indicative of future results.',
+      'On-ramp and off-ramp are provided through integrated providers (such as regional ramp partners). Their terms may apply to those legs of a transaction.',
+      'Nothing in the app is investment, legal, or tax advice. Consult qualified professionals for your situation.',
+      'Country-level feature suspension may occur without prior notice when required for compliance or operational safety.',
     ],
   },
   'Contact Us': {
     heading: 'Contact Us',
     body: [
-      'Email: support@convia.app',
-      'Phone: +234 1 234 5678 (available 24/7)',
-      'Live chat: Available in-app via the Help Center',
-      'Mailing address: Convia Technologies Ltd, Plot 12, Victoria Island, Lagos, Nigeria',
-      'Response time: We aim to respond to all inquiries within 24 hours.',
+      'Product guidance: use Profile → Help Center (articles and in-app guide chat).',
+      'Account issues: support@convia.app',
+      'Do not send passwords, full seed phrases, or complete payment card numbers by email.',
+      'We aim to respond to support email within one business day where staffing allows.',
     ],
   },
   Website: {
-    heading: 'Website',
+    heading: 'Website & community',
     body: [
-      'Visit us at www.convia.app for the latest updates, blog posts, and announcements.',
-      'Follow us on social media:',
-      'Twitter/X: @conviaapp',
-      'Instagram: @convia.app',
-      'LinkedIn: Convia Technologies',
+      'Product site: www.convia.app',
+      'Updates and announcements may also be posted on official Convia social channels when published.',
+      'Only trust links that match official Convia domains.',
     ],
   },
 };
 
 export const legalLinks: { icon: LucideIcon; label: string; desc: string }[] = [
-  { icon: FileText, label: 'Terms of Service', desc: 'Read our terms' },
+  { icon: FileText, label: 'Terms of Service', desc: 'Account & product rules' },
   { icon: Shield, label: 'Privacy Policy', desc: 'How we handle your data' },
-  { icon: FileText, label: 'Licenses & Disclosures', desc: 'Regulatory information' },
+  { icon: Scale, label: 'Licenses & Disclosures', desc: 'Risk & partner disclosures' },
   { icon: Mail, label: 'Contact Us', desc: 'support@convia.app' },
   { icon: Globe, label: 'Website', desc: 'www.convia.app' },
 ];

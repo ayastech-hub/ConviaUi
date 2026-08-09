@@ -1,5 +1,5 @@
 import {
-  Shield, CreditCard, TrendingUp, User, Zap, HelpCircle, type LucideIcon,
+  Shield, CreditCard, TrendingUp, User, Zap, HelpCircle, Wallet, ArrowLeftRight, type LucideIcon,
 } from 'lucide-react';
 
 export interface HelpCategory {
@@ -7,121 +7,378 @@ export interface HelpCategory {
   title: string;
   desc: string;
   key: string;
-  count: number;
 }
 
 export interface HelpArticle {
+  id: string;
   title: string;
   category: string;
   time: string;
+  summary: string;
   steps: string[];
 }
 
-
-export const categories = [
-  { icon: User, title: 'Account & Profile', desc: 'Setup, verification, login issues', key: 'Account', count: 12 },
-  { icon: CreditCard, title: 'Payments & Banking', desc: 'Deposits, withdrawals, bank accounts', key: 'Payments', count: 18 },
-  { icon: TrendingUp, title: 'Trading & Swaps', desc: 'Buy, sell, swap, OTC trading', key: 'Trading', count: 15 },
-  { icon: Shield, title: 'Security & Privacy', desc: 'PIN, 2FA, biometrics, recovery', key: 'Security', count: 9 },
-  { icon: Zap, title: 'On-Ramp & Off-Ramp', desc: 'Cash to crypto, crypto to cash', key: 'On-Ramp', count: 11 },
-  { icon: HelpCircle, title: 'General FAQ', desc: 'Common questions and guides', key: 'General', count: 24 },
+export const categories: HelpCategory[] = [
+  { icon: User, title: 'Account & KYC', desc: 'Sign up, profile, verification', key: 'Account' },
+  { icon: Wallet, title: 'Wallet & Crypto', desc: 'Deposit, send, receive, addresses', key: 'Wallet' },
+  { icon: CreditCard, title: 'Banks & Cash-out', desc: 'Bank accounts, off-ramp', key: 'Payments' },
+  { icon: ArrowLeftRight, title: 'Swap & Trade', desc: 'Swap tokens inside Convia', key: 'Trading' },
+  { icon: Zap, title: 'On-Ramp & Bills', desc: 'Buy crypto, airtime, utilities', key: 'Services' },
+  { icon: Shield, title: 'Security', desc: 'PIN, sessions, whitelist', key: 'Security' },
+  { icon: HelpCircle, title: 'General', desc: 'Supported countries & FAQ', key: 'General' },
 ];
+
+/**
+ * In-app knowledge base aligned with live ConviaUi + coviaBackend behaviour.
+ * Categories must match `key` for filtering.
+ */
 export const allArticles: HelpArticle[] = [
-  // ── Account (12) ──
-  { title: 'How to verify your identity (KYC)', category: 'Account', time: '3 min read', steps: ['Go to Profile > KYC Verification', 'Select your country and document type', 'Take a clear photo of your ID', 'Take a selfie when prompted', 'Wait 1-5 minutes for verification'] },
-  { title: 'How to recover your account', category: 'Account', time: '3 min read', steps: ['Tap "Forgot Password" on the login screen', 'Enter your registered email or phone', 'Check your email/SMS for a recovery code', 'Enter the code and set a new password', 'If you lost 2FA, contact support@convia.app'] },
-  { title: 'Creating your Convia account', category: 'Account', time: '2 min read', steps: ['Tap "Sign Up" on the welcome screen', 'Enter your email and create a strong password', 'Verify your email address', 'Set your display name and profile photo', 'You are ready to start using Convia'] },
-  { title: 'Updating your profile photo and name', category: 'Account', time: '1 min read', steps: ['Go to Profile > Edit Profile', 'Tap your photo to upload a new image', 'Edit your display name', 'Tap Save to confirm changes', 'Your profile updates instantly'] },
-  { title: 'Changing your password', category: 'Account', time: '2 min read', steps: ['Go to Settings > Security > Change Password', 'Enter your current password', 'Enter your new password twice', 'Tap Confirm', 'You will be logged out and need to log in with the new password'] },
-  { title: 'Linking your phone number', category: 'Account', time: '2 min read', steps: ['Go to Profile > Edit Profile > Phone', 'Enter your phone number', 'Enter the 6-digit SMS code to verify', 'Your phone is now linked for recovery and 2FA', 'You can change it anytime in Settings'] },
-  { title: 'Switching between light and dark mode', category: 'Account', time: '1 min read', steps: ['Go to Settings from the bottom nav', 'Toggle "Dark Mode" on or off', 'The app switches instantly', 'Your preference is saved automatically', 'You can also let it follow your system setting'] },
-  { title: 'Changing your display currency', category: 'Account', time: '1 min read', steps: ['Go to Settings > Currency', 'Select from NGN, GHS, KES, UGX, ZAR, XOF, XAF', 'All balances and prices update instantly', 'Your selection is saved across sessions', 'You can change it anytime'] },
-  { title: 'Deleting your account', category: 'Account', time: '3 min read', steps: ['Go to Settings > Account > Delete Account', 'Read the warning carefully', 'Withdraw all funds before deletion', 'Enter your password to confirm', 'Account deletion is permanent and cannot be undone'] },
-  { title: 'Managing notification preferences', category: 'Account', time: '2 min read', steps: ['Go to Settings > Notifications', 'Toggle categories on or off (price alerts, security, rewards)', 'Choose push or in-app notifications', 'Tap Save', 'You will only receive the notifications you enabled'] },
-  { title: 'Transferring your account to a new phone', category: 'Account', time: '3 min read', steps: ['Install Convia on your new phone', 'Log in with your email and password', 'Complete 2FA verification', 'Re-enable biometric login on the new device', 'Your portfolio and history are restored automatically'] },
-  { title: 'Understanding account limits', category: 'Account', time: '2 min read', steps: ['Unverified accounts have a $500 daily limit', 'KYC Level 1 raises the limit to $5,000 daily', 'KYC Level 2 unlocks unlimited trading', 'Limits apply to deposits, withdrawals, and trades', 'Check your current limit in Profile > Verification'] },
+  // ── Account ──
+  {
+    id: 'kyc',
+    title: 'How to verify your identity (KYC)',
+    category: 'Account',
+    time: '4 min',
+    summary: 'KYC unlocks higher limits, off-ramp, and some fiat features. The server enforces status; the app only shows guides and banners.',
+    steps: [
+      'Open Profile → KYC Verification.',
+      'If status is already Approved or In review, the form will not show again — only your status.',
+      'Complete personal details, upload a government ID, and take a selfie when asked.',
+      'Submit and wait for review. Home may show a banner until you are approved.',
+      'Country on your profile can lock after successful verification and cannot be self-changed.',
+    ],
+  },
+  {
+    id: 'signup',
+    title: 'Create a Convia account',
+    category: 'Account',
+    time: '2 min',
+    summary: 'Email + password registration issues a session immediately so you can use the app without a second login.',
+    steps: [
+      'Open Sign up from the auth screen.',
+      'Enter email and a strong password (confirm password on signup).',
+      'Username is optional — if you skip it, the backend derives one from your email.',
+      'Agree to terms, then submit. Wallets and ledger accounts are provisioned for you.',
+      'You land on Home signed in. Complete KYC when you need cash-out or higher limits.',
+    ],
+  },
+  {
+    id: 'login',
+    title: 'Sign in and stay signed in',
+    category: 'Account',
+    time: '2 min',
+    summary: 'Sessions use access + refresh tokens stored on this device.',
+    steps: [
+      'Use the same email and password you registered with.',
+      'If login fails in the browser, check that the API is reachable and CORS is enabled.',
+      'Your session is stored locally; signing out clears it and cached portfolio data.',
+      'Use Forgot password only if that recovery flow is enabled for your environment.',
+    ],
+  },
+  {
+    id: 'profile',
+    title: 'Edit display name, bio, and country',
+    category: 'Account',
+    time: '2 min',
+    summary: 'Profile data comes from GET/PATCH /profiles/me — not mock names.',
+    steps: [
+      'Profile → Edit Profile.',
+      'Update display name, bio, preferred currency, and country (from supported markets).',
+      'Save. Country may be rejected with country_locked after KYC approval.',
+      'Avatar upload is not required for core money features.',
+    ],
+  },
+  {
+    id: 'onboarding',
+    title: 'First visit onboarding',
+    category: 'Account',
+    time: '1 min',
+    summary: 'Onboarding slides appear only the first time this browser loads the app.',
+    steps: [
+      'Complete or skip the intro slides.',
+      'A local flag remembers that you have seen onboarding.',
+      'Clearing site data will show onboarding again.',
+    ],
+  },
 
-  // ── Payments (18) ──
-  { title: 'Adding a bank account for withdrawals', category: 'Payments', time: '2 min read', steps: ['Go to Profile > Payment Methods', 'Tap "Add Bank Account"', 'Enter your bank name and account number', 'Verify with a small test deposit', 'Your bank account is now ready for withdrawals'] },
-  { title: 'Withdrawing crypto to an external wallet', category: 'Payments', time: '2 min read', steps: ['Go to Wallet and select your asset', 'Tap "Withdraw"', 'Enter the destination wallet address', 'Select the correct network (e.g. ERC-20, BEP-20)', 'Enter the amount and confirm with your PIN', 'Withdrawal typically completes in 5-30 minutes'] },
-  { title: 'How to deposit fiat into your Convia wallet', category: 'Payments', time: '2 min read', steps: ['Tap "Deposit" from the home screen', 'Select your currency (NGN, GHS, KES, etc.)', 'Choose a payment method (bank transfer or card)', 'Enter the amount and confirm', 'Funds appear in your wallet within minutes'] },
-  { title: 'Adding a debit or credit card', category: 'Payments', time: '2 min read', steps: ['Go to Profile > Payment Methods', 'Tap "Add Card"', 'Enter your card number, expiry, and CVV', 'Verify with an OTP from your bank', 'Your card is ready for instant purchases'] },
-  { title: 'Removing a payment method', category: 'Payments', time: '1 min read', steps: ['Go to Profile > Payment Methods', 'Tap the method you want to remove', 'Tap "Remove" and confirm', 'The method is removed instantly', 'Pending transactions are not affected'] },
-  { title: 'Understanding withdrawal limits and processing times', category: 'Payments', time: '3 min read', steps: ['Bank transfer withdrawals take 1-3 business days', 'Crypto withdrawals take 5-30 minutes depending on network', 'Daily withdrawal limits depend on your KYC level', 'Minimum withdrawal is $10 for bank, $5 for crypto', 'Large withdrawals may require additional verification'] },
-  { title: 'Why is my withdrawal pending?', category: 'Payments', time: '2 min read', steps: ['Withdrawals may be pending due to network congestion', 'Bank withdrawals may require manual review for large amounts', 'Check the transaction status in Wallet > History', 'If pending for over 24 hours, contact support', 'Never share your PIN or OTP with anyone'] },
-  { title: 'How to track a transaction', category: 'Payments', time: '1 min read', steps: ['Go to Wallet > History', 'Find your transaction in the list', 'Tap it to view full details', 'For crypto, tap the transaction hash to view on the blockchain', 'You will see the current status and confirmations'] },
-  { title: 'Receiving crypto from another wallet', category: 'Payments', time: '2 min read', steps: ['Tap "Receive" from the home screen', 'Select the cryptocurrency you want to receive', 'Share your QR code or wallet address with the sender', 'Ask the sender to use the correct network', 'Funds arrive once the transaction is confirmed on-chain'] },
-  { title: 'What to do if a deposit is missing', category: 'Payments', time: '3 min read', steps: ['Check the transaction status on the blockchain explorer', 'Ensure the sender used the correct network', 'Wait at least 30 minutes for network confirmations', 'If still missing after 1 hour, go to Help Center > Chat', 'Provide the transaction hash and sender details to support'] },
-  { title: 'Bank transfer troubleshooting', category: 'Payments', time: '3 min read', steps: ['Ensure your bank account name matches your Convia account name', 'Check that your bank supports the transfer type', 'Verify the account number is correct', 'Some banks may block crypto-related transfers — contact your bank', 'If the issue persists, try a different bank account'] },
-  { title: 'Understanding transaction fees', category: 'Payments', time: '3 min read', steps: ['Bank deposit fees: free for bank transfers, 1.5% for cards', 'Crypto withdrawal fees depend on the network (e.g. ERC-20 is higher)', 'Swap fees: 0.3% per trade', 'OTC trades: 1% fee per transaction', 'All fees are shown before you confirm any transaction'] },
-  { title: 'How to set up mobile money payments', category: 'Payments', time: '2 min read', steps: ['Go to Profile > Payment Methods', 'Tap "Add Mobile Money"', 'Select your provider (MTN, Airtel, MoMo, etc.)', 'Enter your mobile money number', 'Verify with a PIN sent to your phone'] },
-  { title: 'Cancelling a pending transaction', category: 'Payments', time: '2 min read', steps: ['Go to Wallet > History', 'Find the pending transaction', 'Tap it and select "Cancel" if available', 'Bank transfers cannot be cancelled once submitted', 'Crypto transactions cannot be cancelled once broadcast'] },
-  { title: 'How chargebacks work', category: 'Payments', time: '3 min read', steps: ['Card payments may be eligible for chargeback via your bank', 'Contact your bank within 30 days of the transaction', 'Provide the transaction ID and reason for dispute', 'Convia will cooperate with the bank investigation', 'Chargeback fraud is reported to authorities'] },
-  { title: 'Setting up automatic deposits', category: 'Payments', time: '2 min read', steps: ['Go to Settings > Auto-Deposit', 'Select the asset and amount', 'Choose frequency (weekly, monthly)', 'Select your payment method', 'Funds are deposited automatically on schedule'] },
-  { title: 'Payment method verification process', category: 'Payments', time: '2 min read', steps: ['New payment methods require verification', 'Bank accounts: a small test deposit is sent', 'Cards: an OTP from your bank confirms ownership', 'Mobile money: a PIN sent to your phone', 'Verification takes 1-5 minutes'] },
-  { title: 'Using multiple bank accounts', category: 'Payments', time: '2 min read', steps: ['You can add up to 5 bank accounts', 'Go to Profile > Payment Methods > Add', 'Each account must be verified separately', 'Set a default account for withdrawals', 'Switch between accounts when making a withdrawal'] },
+  // ── Wallet ──
+  {
+    id: 'deposit',
+    title: 'Deposit crypto to your Convia wallet',
+    category: 'Wallet',
+    time: '3 min',
+    summary: 'Deposits credit after on-chain detection to your custodial address for the selected asset and network.',
+    steps: [
+      'Open Wallet → Deposit, or Receive.',
+      'Pick a token from the live registry (not a hardcoded list).',
+      'Choose a network that supports deposits for that token.',
+      'Copy the address or scan the QR (generated on your device).',
+      'Send only the matching asset on that network. Wrong network can mean loss of funds.',
+      'Balances update from the ledger/portfolio API after the deposit scanner confirms.',
+    ],
+  },
+  {
+    id: 'receive',
+    title: 'Receive crypto (QR & address)',
+    category: 'Wallet',
+    time: '2 min',
+    summary: 'Receive uses your real deposit address from the wallet API.',
+    steps: [
+      'Wallet → Receive → select asset and network.',
+      'Share the QR or copy the address.',
+      'Optional: request a specific amount for display only — the chain transfer is still a normal deposit.',
+      'Sign in is required to load your address.',
+    ],
+  },
+  {
+    id: 'send',
+    title: 'Send crypto or pay a username',
+    category: 'Wallet',
+    time: '4 min',
+    summary: 'External sends use withdraw; username payments use the payments API. Hold-to-confirm may require your transaction PIN.',
+    steps: [
+      'Wallet → Send (or scan a QR from Home).',
+      'Select asset, enter amount, and destination address or Convia username.',
+      'Review network fees and limits. KYC may be required for larger transfers.',
+      'Confirm (hold-to-send / PIN where shown).',
+      'Track status under recent activity on Home or Wallet.',
+    ],
+  },
+  {
+    id: 'withdraw',
+    title: 'Withdraw to an external wallet',
+    category: 'Wallet',
+    time: '3 min',
+    summary: 'Withdrawals go through crypto withdraw endpoints and may need PIN + KYC.',
+    steps: [
+      'Wallet → Withdraw.',
+      'Choose asset, network, amount, and destination address.',
+      'Whitelisted addresses may be required for some policies.',
+      'Enter PIN if prompted and confirm.',
+      'If you see kyc_required, complete verification first.',
+    ],
+  },
+  {
+    id: 'portfolio',
+    title: 'Understanding your portfolio balance',
+    category: 'Wallet',
+    time: '2 min',
+    summary: 'Home and Portfolio show ledger totals from the API — never invented balances.',
+    steps: [
+      'Home hero shows total portfolio value when you are signed in.',
+      'LIVE means data came from the portfolio endpoint.',
+      'Per-asset rows reflect holdings; empty registry does not invent tokens.',
+      'Pull to refresh or revisit the tab — cached values avoid a blank flash while refetching.',
+    ],
+  },
 
-  // ── Trading (15) ──
-  { title: 'Trading on the OTC P2P marketplace', category: 'Trading', time: '5 min read', steps: ['Go to the OTC tab from the bottom nav', 'Browse listings or create your own', 'Select a listing and enter the amount', 'Choose your payment method', 'Confirm the trade — funds are held in escrow', 'Mark payment as made once you pay the seller', 'Seller confirms receipt and crypto is released to you'] },
-  { title: 'How to swap between cryptocurrencies', category: 'Trading', time: '2 min read', steps: ['Tap Swap from the home screen', 'Select the asset you want to swap from', 'Select the asset you want to receive', 'Enter the amount and check the rate', 'Review price impact and slippage', 'Confirm the swap — it completes in seconds'] },
-  { title: 'How to buy your first cryptocurrency', category: 'Trading', time: '3 min read', steps: ['Tap "Buy Crypto" from the home screen', 'Select the cryptocurrency you want to buy', 'Enter the amount in your local currency or crypto', 'Choose a payment method (bank transfer, card, mobile money)', 'Review the rate and fees', 'Confirm the purchase — crypto arrives in your wallet instantly'] },
-  { title: 'How to sell cryptocurrency for cash', category: 'Trading', time: '3 min read', steps: ['Tap "Sell Crypto" from the home screen', 'Select the cryptocurrency you want to sell', 'Enter the amount to sell', 'Choose your withdrawal method (bank or mobile money)', 'Review the rate and fees', 'Confirm — cash arrives in your account in 1-3 business days'] },
-  { title: 'Understanding price charts and market data', category: 'Trading', time: '4 min read', steps: ['Tap any asset on the Markets list to open its detail page', 'View the price chart with 1D, 1W, 1M, and 1Y ranges', 'Green candles indicate price increase, red indicates decrease', 'Check volume, market cap, and 24h change', 'Use the chart to inform your trading decisions — not financial advice'] },
-  { title: 'Setting price alerts', category: 'Trading', time: '2 min read', steps: ['Open any token detail page', 'Tap the bell icon to set an alert', 'Enter your target price', 'Choose above or below the current price', 'You will be notified when the price is reached'] },
-  { title: 'Understanding slippage and price impact', category: 'Trading', time: '3 min read', steps: ['Slippage is the difference between expected and actual price', 'Large swaps move the market, increasing slippage', 'Convia sets a default slippage tolerance of 1%', 'You can adjust slippage in Swap settings', 'If slippage exceeds your tolerance, the swap fails and funds are returned'] },
-  { title: 'How to create an OTC listing', category: 'Trading', time: '3 min read', steps: ['Go to OTC > Create Listing', 'Choose Buy or Sell', 'Select the cryptocurrency and amount', 'Set your price and accepted payment methods', 'Publish the listing — it appears in the marketplace', 'Wait for a buyer or seller to accept'] },
-  { title: 'OTC dispute resolution', category: 'Trading', time: '4 min read', steps: ['If a trade goes wrong, tap "Dispute" in the trade chat', 'Provide evidence (payment receipt, chat logs)', 'Convia support reviews the case within 24 hours', 'Escrow funds are held until resolution', 'Both parties are notified of the decision'] },
-  { title: 'Understanding market orders vs limit orders', category: 'Trading', time: '3 min read', steps: ['Market orders execute immediately at the current price', 'Limit orders execute only when the price reaches your target', 'Convia OTC uses market-style matching for instant trades', 'Limit orders are available on the Swap screen', 'Choose the order type that fits your strategy'] },
-  { title: 'How to use the token detail page', category: 'Trading', time: '2 min read', steps: ['Tap any token in the Markets list', 'View the full chart, stats, and description', 'Use the Buy and Sell panel to trade directly', 'Switch between tokens using the dropdown', 'Check the About section for project information'] },
-  { title: 'Trading safety tips', category: 'Trading', time: '3 min read', steps: ['Never trade more than you can afford to lose', 'Always verify the recipient address before sending', 'Use escrow for all OTC trades', 'Enable 2FA to protect your account', 'Be wary of offers that seem too good to be true'] },
-  { title: 'Understanding candlestick charts', category: 'Trading', time: '4 min read', steps: ['Each candle shows open, high, low, and close prices for a period', 'Green candles: close price is higher than open', 'Red candles: close price is lower than open', 'Wicks show the highest and lowest prices reached', 'Patterns can indicate trends — but past performance does not guarantee future results'] },
-  { title: 'How to read order book depth', category: 'Trading', time: '3 min read', steps: ['The order book shows buy and sell orders at different prices', 'Green side: buy orders (bids)', 'Red side: sell orders (asks)', 'The spread is the gap between the best bid and ask', 'A deep order book means more liquidity and less slippage'] },
-  { title: 'Tax reporting for crypto trades', category: 'Trading', time: '3 min read', steps: ['Convia provides a transaction history export in Settings', 'Download your CSV or PDF report', 'Each trade shows date, asset, amount, and value', 'Consult a local tax professional for your obligations', 'Keep records of all trades for tax season'] },
+  // ── Payments ──
+  {
+    id: 'add-bank',
+    title: 'Add a bank account for cash-out',
+    category: 'Payments',
+    time: '3 min',
+    summary: 'Banks and countries come from the bank directory API for supported markets only.',
+    steps: [
+      'Profile → Payment Methods (or Off-ramp → Add bank).',
+      'Tap Add bank account.',
+      'Select your country from the supported list.',
+      'Open the bank dropdown and pick your bank (live directory).',
+      'Enter the account number and save.',
+      'Account name is set server-side from your KYC legal name — you cannot spoof it.',
+    ],
+  },
+  {
+    id: 'offramp',
+    title: 'Sell crypto for local currency (off-ramp)',
+    category: 'Payments',
+    time: '4 min',
+    summary: 'Off-ramp needs approved KYC and at least one saved bank account.',
+    steps: [
+      'Complete KYC until status is approved.',
+      'Add a bank account under Payment Methods.',
+      'Open Off-ramp, choose asset and amount, select your bank.',
+      'Review fees and confirm.',
+      'Eligibility API may block you with complete_kyc or add_payment_details — follow the banner.',
+    ],
+  },
+  {
+    id: 'supported-countries',
+    title: 'Supported countries for banking',
+    category: 'Payments',
+    time: '2 min',
+    summary: 'Convia focuses on defined operating markets (e.g. NG, GH, KE, ZA, UG, TZ, EG) exposed by the API.',
+    steps: [
+      'Country chips in Payment Methods and Services load from GET /banks/countries.',
+      'Bank lists load from GET /banks?country=XX.',
+      'If a country shows no banks, the directory has no rows yet for that market.',
+      'Settings currency options follow those market currencies plus USD for display.',
+    ],
+  },
 
-  // ── Security (9) ──
-  { title: 'How to enable two-factor authentication', category: 'Security', time: '1 min read', steps: ['Go to Profile > Security', 'Tap "Two-Factor Authentication"', 'Enter your phone number', 'Enter the 6-digit code sent via SMS', '2FA is now enabled for all transactions'] },
-  { title: 'Setting up biometric login', category: 'Security', time: '1 min read', steps: ['Go to Profile > Security', 'Enable "Biometric Login"', 'Authenticate with Face ID or fingerprint', 'You can now log in with biometrics', 'You can disable this anytime in Settings'] },
-  { title: 'Understanding escrow protection', category: 'Security', time: '3 min read', steps: ['Escrow protects both parties in OTC trades', 'When you start a trade, crypto is locked in escrow', 'Funds are only released when both parties confirm', 'If there is a dispute, Convia support mediates', 'Never release escrow before confirming payment'] },
-  { title: 'How to recognize and avoid scams', category: 'Security', time: '4 min read', steps: ['Never share your PIN, password, or 2FA code with anyone', 'Convia staff will never ask for your password', 'Be wary of unsolicited investment offers', 'Always verify wallet addresses before sending', 'Report suspicious activity to support immediately'] },
-  { title: 'What to do if your account is compromised', category: 'Security', time: '3 min read', steps: ['Immediately change your password', 'Disable trusted devices in Settings > Security', 'Contact support via Help Center > Chat', 'Freeze your account if available', 'Review recent transactions and report unauthorized activity'] },
-  { title: 'Managing trusted devices', category: 'Security', time: '2 min read', steps: ['Go to Settings > Security > Trusted Devices', 'View all devices logged into your account', 'Tap "Remove" on any unfamiliar device', 'The device is logged out instantly', 'You will need to log in again on removed devices'] },
-  { title: 'How transaction PINs work', category: 'Security', time: '2 min read', steps: ['Your transaction PIN is a 4-digit code for confirming trades', 'It is separate from your login password', 'Set it up in Profile > Security > Transaction PIN', 'You must enter it for every withdrawal, swap, and trade', 'Never share it with anyone — not even Convia support'] },
-  { title: 'Recovering a lost 2FA device', category: 'Security', time: '3 min read', steps: ['Go to the login screen and tap "Lost 2FA?"', 'Verify your identity with your email and ID', 'Contact support to complete verification', 'Once verified, 2FA is reset on your account', 'Set up 2FA on your new device immediately'] },
-  { title: 'Data privacy and your information', category: 'Security', time: '3 min read', steps: ['Convia encrypts all personal data at rest and in transit', 'Your KYC documents are stored securely and access-restricted', 'We never sell your data to third parties', 'You can request a data export or deletion anytime', 'Read our full privacy policy in Settings > About'] },
+  // ── Trading ──
+  {
+    id: 'swap',
+    title: 'Swap one crypto for another',
+    category: 'Trading',
+    time: '3 min',
+    summary: 'Swap is available from the bottom bar and uses the live token registry for pairs.',
+    steps: [
+      'Tap Swap on the bottom navigation.',
+      'Select From and To assets (registry tokens).',
+      'Enter amount, review rate, slippage, and route summary.',
+      'Confirm the swap. Errors such as kyc_required surface as in-app alerts.',
+      'If the screen is blank, refresh — the app needs a successful load of the token catalog.',
+    ],
+  },
 
-  // ── On-Ramp (11) ──
-  { title: 'Understanding on-ramp fees and rates', category: 'On-Ramp', time: '4 min read', steps: ['On-ramp fees range from 1.5% to 3% depending on payment method', 'Bank transfers have the lowest fees', 'Card payments are instant but have higher fees', 'Rates are locked for 15 minutes after quoting', 'No hidden fees — all costs are shown before payment'] },
-  { title: 'How to buy crypto with bank transfer', category: 'On-Ramp', time: '3 min read', steps: ['Tap "Buy Crypto" from the home screen', 'Select your cryptocurrency', 'Choose "Bank Transfer" as the payment method', 'Enter the amount and confirm', 'Transfer funds to the provided account', 'Crypto is released once the transfer is confirmed'] },
-  { title: 'How to buy crypto with card', category: 'On-Ramp', time: '2 min read', steps: ['Tap "Buy Crypto" from the home screen', 'Select your cryptocurrency', 'Choose "Debit/Credit Card" as the payment method', 'Enter your card details or select a saved card', 'Confirm the purchase — crypto arrives instantly'] },
-  { title: 'How to buy crypto with mobile money', category: 'On-Ramp', time: '2 min read', steps: ['Tap "Buy Crypto" from the home screen', 'Select your cryptocurrency', 'Choose "Mobile Money" as the payment method', 'Enter your mobile money number', 'Approve the payment in your mobile money app', 'Crypto arrives in your wallet within minutes'] },
-  { title: 'Off-ramp: converting crypto to cash', category: 'On-Ramp', time: '3 min read', steps: ['Tap "Sell Crypto" from the home screen', 'Select the cryptocurrency to sell', 'Enter the amount', 'Choose your payout method (bank or mobile money)', 'Confirm — funds arrive in 1-3 business days'] },
-  { title: 'Understanding exchange rates', category: 'On-Ramp', time: '3 min read', steps: ['Rates are sourced from multiple exchanges for the best price', 'The rate you see includes Convia spread (typically 0.5-1%)', 'Rates update every few seconds', 'Your rate is locked for 15 minutes after quoting', 'Large orders may get a custom OTC rate'] },
-  { title: 'Minimum and maximum purchase limits', category: 'On-Ramp', time: '2 min read', steps: ['Minimum purchase: $5 (or local equivalent)', 'Maximum depends on your KYC level', 'Unverified: $500/day', 'KYC Level 1: $5,000/day', 'KYC Level 2: unlimited'] },
-  { title: 'What networks are supported for on-ramp?', category: 'On-Ramp', time: '2 min read', steps: ['BTC: Bitcoin network', 'ETH: ERC-20', 'USDT: ERC-20, BEP-20, and Solana', 'USDC: ERC-20 and Solana', 'SOL: Solana network', 'Always confirm the network before purchasing'] },
-  { title: 'Why did my on-ramp order fail?', category: 'On-Ramp', time: '3 min read', steps: ['Card decline: check with your bank or try a different card', 'Bank transfer: ensure the exact amount was sent', 'Mobile money: check your balance and try again', 'Network issues: wait a few minutes and retry', 'If the problem persists, contact support with your order ID'] },
-  { title: 'How long does on-ramp take?', category: 'On-Ramp', time: '2 min read', steps: ['Card payments: instant', 'Bank transfers: 1-30 minutes', 'Mobile money: 1-5 minutes', 'Large orders may require additional verification', 'Check status in Wallet > History'] },
-  { title: 'Off-ramp processing times by country', category: 'On-Ramp', time: '3 min read', steps: ['Nigeria (NGN): 1-2 business days', 'Ghana (GHS): 1-3 business days', 'Kenya (KES): instant to 1 business day via M-Pesa', 'Uganda (UGX): 1-2 business days', 'South Africa (ZAR): 1-2 business days'] },
+  // ── Services ──
+  {
+    id: 'onramp',
+    title: 'Buy crypto with cash (on-ramp)',
+    category: 'Services',
+    time: '3 min',
+    summary: 'On-ramp partners (e.g. provider rails) fund your Convia balance in supported markets.',
+    steps: [
+      'Open On-ramp from Home quick actions or Wallet.',
+      'Choose asset, amount, and payment method when offered.',
+      'Follow payment instructions for your country.',
+      'Crypto appears in portfolio after the provider confirms settlement.',
+      'KYC can increase limits; banners explain blocks before you submit.',
+    ],
+  },
+  {
+    id: 'bills',
+    title: 'Pay airtime, data, and bills',
+    category: 'Services',
+    time: '3 min',
+    summary: 'Services center uses billers from the bills API for your selected country.',
+    steps: [
+      'Tap the center Services button.',
+      'Pick a category (airtime, data, electricity, etc.).',
+      'Select country, provider/biller, amount, and customer reference (phone or meter).',
+      'Confirm pay. Idempotent requests protect against double charges on retry.',
+      'Failed pays show API error codes mapped to readable alerts.',
+    ],
+  },
 
-  // ── General (24) ──
-  { title: 'How referral rewards work', category: 'General', time: '2 min read', steps: ['Go to Rewards > Invite Friends', 'Share your referral code or link', 'Your friend must sign up and complete KYC', 'You both receive 500 points', 'Points can be redeemed for USDT at 1,000 pts = $1'] },
-  { title: 'Supported countries and currencies', category: 'General', time: '2 min read', steps: ['Convia supports 12+ African countries', 'Supported currencies include NGN, GHS, KES, UGX, ZAR, XOF, XAF and more', 'Crypto support includes BTC, ETH, USDT, USDC, SOL', 'New countries are added regularly', 'Check Settings > Region for your country'] },
-  { title: 'What is Convia?', category: 'General', time: '3 min read', steps: ['Convia is a crypto wallet built for Africa', 'Buy, sell, swap, and store cryptocurrency', 'On-ramp and off-ramp to local currencies', 'OTC P2P marketplace for direct trading', 'Instant swaps between supported tokens'] },
-  { title: 'Getting started guide for new users', category: 'General', time: '5 min read', steps: ['Download and install Convia', 'Create an account with your email', 'Complete KYC verification', 'Add a payment method', 'Buy your first cryptocurrency', 'Explore the OTC marketplace and swap tools'] },
-  { title: 'How to use the QR scanner', category: 'General', time: '1 min read', steps: ['Tap the scan icon in the top right of the home screen', 'Point your camera at the QR code', 'The app detects wallet addresses and payment requests automatically', 'For wallet addresses, you are taken to the Send screen pre-filled', 'For payment requests, the amount is pre-filled'] },
-  { title: 'Earning and redeeming reward points', category: 'General', time: '3 min read', steps: ['Earn points by trading, referring friends, and completing tasks', 'Check your balance in Rewards > Points', 'Redeem points for USDT at 1,000 pts = $1', 'Minimum redemption: 5,000 points', 'Points expire 12 months after earning'] },
-  { title: 'How to share your referral link', category: 'General', time: '2 min read', steps: ['Go to Rewards > Invite Friends', 'Tap "Share Link"', 'Choose a sharing method (WhatsApp, X, copy link)', 'Your friend uses the link to sign up', 'You both get 500 points after they complete KYC'] },
-  { title: 'How to contact support', category: 'General', time: '1 min read', steps: ['Go to Help Center from the profile menu', 'Tap "Start a Conversation"', 'Chat with our support team 24/7', 'Provide your issue and transaction details', 'Support typically responds within minutes'] },
-  { title: 'App updates and new features', category: 'General', time: '2 min read', steps: ['Convia updates regularly with new features', 'Updates are automatic if auto-update is enabled', 'Check Settings > About for your current version', 'Follow our social channels for announcements', 'Report bugs via Help Center > Chat'] },
-  { title: 'Why is my balance different from the market price?', category: 'General', time: '2 min read', steps: ['Your balance shows the current market value of your holdings', 'Crypto prices fluctuate constantly', 'The value updates every few seconds', 'Your actual holdings (amount of crypto) do not change unless you trade', 'Check the Markets tab for live prices'] },
-  { title: 'Can I use Convia without KYC?', category: 'General', time: '2 min read', steps: ['You can create an account without KYC', 'Without KYC, you have a $500 daily limit', 'You can receive crypto without KYC', 'KYC is required for deposits, withdrawals, and trading', 'Complete KYC to unlock full features'] },
-  { title: 'What cryptocurrencies are supported?', category: 'General', time: '2 min read', steps: ['Bitcoin (BTC)', 'Ethereum (ETH)', 'Tether (USDT) on multiple networks', 'USD Coin (USDC) on multiple networks', 'Solana (SOL)', 'More assets are added regularly'] },
-  { title: 'How to report a bug', category: 'General', time: '2 min read', steps: ['Go to Help Center > Chat', 'Describe the bug with steps to reproduce', 'Include screenshots if possible', 'Mention your device and app version', 'Our team investigates and responds'] },
-  { title: 'Is Convia available on iOS and Android?', category: 'General', time: '1 min read', steps: ['Convia is available on both iOS and Android', 'Download from the App Store or Google Play', 'The web version is also available at convia.app', 'All versions sync automatically', 'Your account works across all devices'] },
-  { title: 'How to change your language', category: 'General', time: '1 min read', steps: ['Go to Settings > Language', 'Choose from English, French, Swahili, and more', 'The app switches instantly', 'Your preference is saved automatically', 'New languages are added regularly'] },
-  { title: 'What are gas fees and who pays them?', category: 'General', time: '3 min read', steps: ['Gas fees are network transaction costs for blockchain operations', 'For withdrawals, you pay the gas fee', 'For swaps, the fee is included in the slippage', 'For on-ramp/off-ramp, Convia covers the network fee', 'Gas fees vary by network and congestion'] },
-  { title: 'How to enable dark mode', category: 'General', time: '1 min read', steps: ['Go to Settings', 'Toggle "Dark Mode" on', 'The app switches to a dark color scheme', 'Easier on the eyes in low light', 'You can also follow your system setting'] },
-  { title: 'Understanding portfolio performance', category: 'General', time: '3 min read', steps: ['Your portfolio value is the total worth of all your holdings', 'The 24h change shows how much your portfolio changed in 24 hours', 'Check the chart on the home screen for trends', 'Diversification can reduce risk', 'Past performance does not guarantee future results'] },
-  { title: 'How to use the Convia wallet', category: 'General', time: '3 min read', steps: ['The Wallet tab shows all your crypto holdings', 'Tap any asset to see details and transactions', 'Use Send to transfer out and Receive to get funds', 'Swap between assets instantly', 'Buy and sell directly from the wallet'] },
-  { title: 'What is slippage tolerance?', category: 'General', time: '2 min read', steps: ['Slippage tolerance is the maximum price change you accept on a swap', 'Default is 1%', 'Higher tolerance means more likely to succeed but worse price', 'Lower tolerance means better price or the swap fails', 'Adjust in Swap settings before confirming'] },
-  { title: 'How does Convia make money?', category: 'General', time: '2 min read', steps: ['Convia charges small fees on transactions', 'On-ramp/off-ramp: 1.5-3% depending on method', 'Swaps: 0.3% per trade', 'OTC trades: 1% per transaction', 'We do not sell your data — fees are our only revenue model'] },
+  // ── Security ──
+  {
+    id: 'pin',
+    title: 'Transaction PIN',
+    category: 'Security',
+    time: '2 min',
+    summary: 'PIN protects sensitive moves like withdraw and some sends.',
+    steps: [
+      'Profile → Security Center to set or change PIN when available.',
+      'Enter PIN when the withdraw/send flow requests it.',
+      'Never share your PIN or seed phrase with anyone, including support.',
+    ],
+  },
+  {
+    id: 'seed',
+    title: 'Wallet seed / recovery material',
+    category: 'Security',
+    time: '3 min',
+    summary: 'Custodial wallets are provisioned by Convia. Seed reveal, if enabled, is highly sensitive.',
+    steps: [
+      'Only reveal recovery material in a private place.',
+      'Convia support will never ask for your full seed in chat or email.',
+      'Losing control of seed material can mean permanent loss of unilateral recovery options.',
+    ],
+  },
+  {
+    id: 'sessions',
+    title: 'Devices and sessions',
+    category: 'Security',
+    time: '2 min',
+    summary: 'You can review and end sessions from Security when the API lists them.',
+    steps: [
+      'Open Security Center.',
+      'Review active sessions if listed.',
+      'Sign out on this device from Profile to clear local tokens.',
+      'New-device logins may trigger notifications when device tracking is enabled.',
+    ],
+  },
+  {
+    id: 'whitelist',
+    title: 'Address whitelist',
+    category: 'Security',
+    time: '2 min',
+    summary: 'Some withdrawals only allow pre-approved addresses.',
+    steps: [
+      'Add trusted external addresses under Security / whitelist if the feature is enabled.',
+      'Withdrawals to non-whitelisted addresses may return address_not_whitelisted.',
+      'Double-check chain and address before saving.',
+    ],
+  },
+
+  // ── General ──
+  {
+    id: 'theme',
+    title: 'Dark and light mode',
+    category: 'General',
+    time: '1 min',
+    summary: 'Theme preference is saved in this browser.',
+    steps: [
+      'Profile → Settings → Dark Mode, or the toggle on Profile.',
+      'Preference is stored as convia.theme and applied to the whole page.',
+      'Switching should update colors immediately across all screens.',
+    ],
+  },
+  {
+    id: 'currency-display',
+    title: 'Display currency',
+    category: 'General',
+    time: '2 min',
+    summary: 'Display currency converts USD portfolio figures for readability.',
+    steps: [
+      'Settings → Currency.',
+      'Options follow supported market currencies from the bank directory.',
+      'This is a display preference; ledger accounting remains in product assets.',
+    ],
+  },
+  {
+    id: 'notifications',
+    title: 'Notifications',
+    category: 'General',
+    time: '2 min',
+    summary: 'In-app inbox is loaded from the notifications API when you are signed in.',
+    steps: [
+      'Tap the bell on Home.',
+      'Unread count uses live inbox data when available.',
+      'Settings can control push/email preferences when the backend exposes preference channels.',
+    ],
+  },
+  {
+    id: 'errors',
+    title: 'Understanding feature blocks and errors',
+    category: 'General',
+    time: '3 min',
+    summary: 'Banners map backend codes so you know why an action is blocked.',
+    steps: [
+      'kyc_required / kyc_pending — finish or wait for identity verification.',
+      'country_feature_suspended — this product is paused in your market.',
+      'address_not_whitelisted — use or add an approved address.',
+      'Sign-in prompts appear when the session is missing or expired.',
+      'Retry after fixing the underlying requirement; do not spam confirm on money actions.',
+    ],
+  },
+  {
+    id: 'support-contact',
+    title: 'Contact support',
+    category: 'General',
+    time: '1 min',
+    summary: 'Use in-app Help chat for guided answers; email for account-specific cases.',
+    steps: [
+      'Help Center → chat button for quick product guidance.',
+      'Email support@convia.app for account recovery that needs human review.',
+      'Never send passwords, full card numbers, or seed phrases by email.',
+    ],
+  },
 ];
+
+export function articlesForCategory(key: string | null): HelpArticle[] {
+  if (!key) return allArticles;
+  return allArticles.filter((a) => a.category === key);
+}
