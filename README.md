@@ -9,3 +9,8 @@
 
   Run `npm run dev` to start the development server.
   
+## Architecture
+
+This project's folder structure is organized by feature/domain. See
+[ARCHITECTURE.md](./ARCHITECTURE.md) for the full breakdown, the reasoning
+behind it, and suggested next steps.

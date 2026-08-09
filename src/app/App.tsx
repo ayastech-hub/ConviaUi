@@ -1,47 +1,48 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
-import type { Screen } from './data/mockData';
-import { BottomNav } from './components/BottomNav';
-import { OnboardingScreen } from './components/screens/OnboardingScreen';
-import { HomeScreen } from './components/screens/HomeScreen';
-import { WalletScreen } from './components/screens/WalletScreen';
-import { TradeScreen } from './components/screens/TradeScreen';
-import { SocialScreen } from './components/screens/SocialScreen';
-import { ProfileScreen } from './components/screens/ProfileScreen';
-import { SendScreen } from './components/screens/SendScreen';
-import { SwapScreen } from './components/screens/SwapScreen';
-import { OffRampScreen } from './components/screens/OffRampScreen';
-import { DepositScreen } from './components/screens/DepositScreen';
-import { OTCScreen } from './components/screens/OTCScreen';
-import { NotificationsScreen } from './components/screens/NotificationsScreen';
-import { RewardsScreen } from './components/screens/RewardsScreen';
-import { SettingsScreen } from './components/screens/SettingsScreen';
-import { SecurityScreen } from './components/screens/SecurityScreen';
-import { KYCScreen } from './components/screens/KYCScreen';
-import { ChatScreen } from './components/screens/ChatScreen';
-import { PortfolioScreen } from './components/screens/PortfolioScreen';
-import { WithdrawScreen } from './components/screens/WithdrawScreen';
-import { OnRampScreen } from './components/screens/OnRampScreen';
-import { AuthScreen } from './components/screens/AuthScreen';
-import { HelpCenterScreen } from './components/screens/HelpCenterScreen';
-import { AboutScreen } from './components/screens/AboutScreen';
-import { PaymentMethodsScreen } from './components/screens/PaymentMethodsScreen';
-import { CurrencyProvider } from './context/CurrencyContext';
-import { ConviaLogo } from './components/ConviaLogo';
+import type { Screen } from '../shared/data/mockData';
+import { BottomNav } from '../shared/components/BottomNav';
+import { ConviaLogo } from '../shared/components/ConviaLogo';
+import { AppProviders } from './providers/AppProviders';
+import { useNavigation } from './navigation';
+
+import { OnboardingScreen } from '../features/onboarding/screens/OnboardingScreen';
+import { AuthScreen } from '../features/auth/screens/AuthScreen';
+import { HomeScreen } from '../features/home/screens/HomeScreen';
+
+import { WalletScreen } from '../features/wallet/screens/WalletScreen';
+import { SendScreen } from '../features/wallet/screens/SendScreen';
+import { ReceiveScreen } from '../features/wallet/screens/ReceiveScreen';
+import { SwapScreen } from '../features/wallet/screens/SwapScreen';
+import { OffRampScreen } from '../features/wallet/screens/OffRampScreen';
+import { OnRampScreen } from '../features/wallet/screens/OnRampScreen';
+import { DepositScreen } from '../features/wallet/screens/DepositScreen';
+import { WithdrawScreen } from '../features/wallet/screens/WithdrawScreen';
+import { PortfolioScreen } from '../features/wallet/screens/PortfolioScreen';
+import { PaymentMethodsScreen } from '../features/wallet/screens/PaymentMethodsScreen';
+
+import { TradeScreen } from '../features/trade/screens/TradeScreen';
+import { OTCScreen } from '../features/trade/screens/OTCScreen';
+import { TokenInfoScreen } from '../features/trade/screens/TokenInfoScreen';
+
+import { SocialScreen } from '../features/social/screens/SocialScreen';
+
+import { ProfileScreen } from '../features/profile/screens/ProfileScreen';
+import { EditProfileScreen } from '../features/profile/screens/EditProfileScreen';
+import { SettingsScreen } from '../features/profile/screens/SettingsScreen';
+import { SecurityScreen } from '../features/profile/screens/SecurityScreen';
+import { KYCScreen } from '../features/profile/screens/KYCScreen';
+
+import { HelpCenterScreen } from '../features/support/screens/HelpCenterScreen';
+import { AboutScreen } from '../features/support/screens/AboutScreen';
+import { ChatScreen } from '../features/support/screens/ChatScreen';
+
+import { NotificationsScreen } from '../features/notifications/screens/NotificationsScreen';
+import { RewardsScreen } from '../features/rewards/screens/RewardsScreen';
+import { ServicesScreen } from '../features/services/screens/ServicesScreen';
 
 const MAIN_TABS: Screen[] = ['home', 'wallet', 'social', 'trade', 'profile'];
-
-function useNavigation(initial: Screen = 'onboarding') {
-  const [stack, setStack] = useState<Screen[]>([initial]);
-  const current = stack[stack.length - 1];
-
-  const navigate = (s: Screen) => setStack(prev => [...prev, s]);
-  const goBack = () => setStack(prev => prev.length > 1 ? prev.slice(0, -1) : prev);
-  const switchTab = (s: Screen) => setStack([s]);
-
-  return { current, navigate, goBack, switchTab };
-}
 
 const springTransition = { type: 'spring' as const, damping: 28, stiffness: 320 };
 
@@ -67,7 +68,7 @@ const fadeIn = {
 };
 
 export default function App() {
-  const { current, navigate, goBack, switchTab } = useNavigation('onboarding');
+  const { current, navigate, goBack, switchTab, navParam } = useNavigation('onboarding');
   const [darkMode, setDarkMode] = useState(true);
 
   const isMainTab = MAIN_TABS.includes(current);
@@ -124,7 +125,7 @@ export default function App() {
       case 'receive':
         return (
           <motion.div key="receive" {...slideRight} className="absolute inset-0">
-            <DepositScreen goBack={goBack} />
+            <ReceiveScreen goBack={goBack} />
           </motion.div>
         );
       case 'swap':
@@ -241,6 +242,24 @@ export default function App() {
             <PaymentMethodsScreen goBack={goBack} />
           </motion.div>
         );
+      case 'services':
+        return (
+          <motion.div key="services" {...slideRight} className="absolute inset-0">
+            <ServicesScreen navigate={navigate} goBack={goBack} switchTab={switchTab} />
+          </motion.div>
+        );
+      case 'edit-profile':
+        return (
+          <motion.div key="edit-profile" {...slideRight} className="absolute inset-0">
+            <EditProfileScreen goBack={goBack} />
+          </motion.div>
+        );
+      case 'token-info':
+        return (
+          <motion.div key="token-info" {...slideRight} className="absolute inset-0">
+            <TokenInfoScreen navigate={navigate} goBack={goBack} symbol={navParam ?? 'BTC'} />
+          </motion.div>
+        );
       default:
         return null;
     }
@@ -248,16 +267,14 @@ export default function App() {
 
   return (
     <div className={darkMode ? 'dark' : ''} style={{ width: '100%', height: '100%' }}>
-      <CurrencyProvider>
+      <AppProviders>
       {/* Desktop wrapper with phone frame */}
       <div
         className="flex items-center justify-center"
         style={{
           minHeight: '100vh',
           minWidth: '100vw',
-          background: darkMode
-            ? 'linear-gradient(135deg, #0B0F19 0%, #131826 40%, #0B0F19 60%, #1A1F2E 100%)'
-            : 'linear-gradient(135deg, #F1F5F9 0%, #E0E7F0 50%, #F8FAFC 100%)',
+          background: darkMode ? '#050505' : '#F4F4F5',
         }}
       >
         {/* Phone frame */}
@@ -269,8 +286,8 @@ export default function App() {
             borderRadius: 44,
             flexShrink: 0,
             boxShadow: darkMode
-              ? '0 0 0 10px #111827, 0 0 0 12px #0a0f1e, 0 40px 120px rgba(99,102,241,0.3), 0 20px 80px rgba(0,0,0,0.9)'
-              : '0 0 0 10px #D1D5DB, 0 0 0 12px #9CA3AF, 0 40px 80px rgba(99,102,241,0.15)',
+              ? '0 0 0 10px #1C1C1F, 0 0 0 12px #050505, 0 40px 120px rgba(0,0,0,0.9), 0 20px 80px rgba(0,0,0,0.8)'
+              : '0 0 0 10px #D4D4D8, 0 0 0 12px #A1A1AA, 0 40px 80px rgba(0,0,0,0.12)',
             background: 'var(--background)',
           }}
         >
@@ -310,15 +327,15 @@ export default function App() {
         {/* Desktop label */}
         <div
           className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full"
-          style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.1)' }}
+          style={{ background: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', backdropFilter: 'blur(12px)', border: '1px solid var(--border)' }}
         >
-          <ConviaLogo size={14} color="#6366F1" />
-          <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 500 }}>
+          <ConviaLogo size={14} color="var(--primary)" />
+          <span style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 500 }}>
             Convia — Africa's Financial Universe
           </span>
         </div>
       </div>
-      </CurrencyProvider>
+      </AppProviders>
     </div>
   );
 }
