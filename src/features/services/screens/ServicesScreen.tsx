@@ -300,7 +300,7 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
               <PaymentSummaryCard
                 provider={selectedProvider}
                 serviceLabel={activeItem.label}
-                displayAmount={String(selectedAmount ?? customAmount || '0')}
+                displayAmount={String(selectedAmount ?? (customAmount || '0'))}
                 canPay={canPay()}
                 onPay={() => void handlePay()}
               />
