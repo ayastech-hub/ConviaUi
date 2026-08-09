@@ -1,17 +1,41 @@
+import { useState } from 'react';
 import { motion } from 'motion/react';
-import { LogOut } from 'lucide-react';
+import { LogOut, Loader } from 'lucide-react';
+import { useAuth } from '../../../shared/context/AuthContext';
 
-/** Destructive "Sign Out" button used on both the Profile and Settings screens. */
-export function SignOutButton({ onClick }: { onClick?: () => void }) {
+/** Signs out via POST /auth/logout and clears local session. */
+export function SignOutButton({ onSignedOut }: { onSignedOut?: () => void }) {
+  const { logout, status } = useAuth();
+  const [loading, setLoading] = useState(false);
+
+  if (status !== 'authenticated') return null;
+
   return (
-    <motion.button
-      whileTap={{ scale: 0.97 }}
-      onClick={onClick}
-      className="w-full py-3.5 rounded-[16px] flex items-center justify-center gap-2"
-      style={{ background: 'var(--muted)', color: 'var(--destructive)', fontWeight: 700, fontSize: 14, border: '1px solid var(--muted)' }}
-    >
-      <LogOut size={16} />
-      Sign Out
-    </motion.button>
+    <div className="px-5 mb-8">
+      <motion.button
+        whileTap={{ scale: 0.97 }}
+        disabled={loading}
+        onClick={async () => {
+          setLoading(true);
+          try {
+            await logout();
+            onSignedOut?.();
+          } finally {
+            setLoading(false);
+          }
+        }}
+        className="w-full py-3.5 rounded-[16px] flex items-center justify-center gap-2"
+        style={{
+          background: 'rgba(239,68,68,0.12)',
+          color: '#EF4444',
+          fontWeight: 700,
+          fontSize: 15,
+          border: '1px solid rgba(239,68,68,0.25)',
+        }}
+      >
+        {loading ? <Loader size={18} className="animate-spin" /> : <LogOut size={18} />}
+        Sign out
+      </motion.button>
+    </div>
   );
 }

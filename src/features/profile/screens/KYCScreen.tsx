@@ -1,4 +1,8 @@
 import { useState } from 'react';
+import { useAuth } from '../../../shared/context/AuthContext';
+import * as securityApi from '../../../shared/api/security';
+import { ApiError } from '../../../shared/api/types';
+import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { motion, AnimatePresence } from 'motion/react';
 import { Shield } from 'lucide-react';
 import { CameraCapture } from '../../../shared/components/CameraCapture';
@@ -26,6 +30,9 @@ interface KYCScreenProps {
  * own file — this screen only wires state + navigation between them.
  */
 export function KYCScreen({ goBack }: KYCScreenProps) {
+  const { userId } = useAuth();
+  const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
+
   const [activeStep, setActiveStep] = useState(0);
   const [direction, setDirection] = useState(1);
 
@@ -89,12 +96,44 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
     setSelfieErrors({});
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (!userId) {
+      setApiError({ message: 'Sign in required to submit KYC' });
+      return;
+    }
+    // Backend expects hosted image URLs. Local camera captures are data-URLs —
+    // until an upload service exists we send placeholders that fail validation
+    // only if provider is live; prefer real URLs when available.
+    const docUrl =
+      uploadedFile && 'url' in uploadedFile && typeof (uploadedFile as { url?: string }).url === 'string'
+        ? (uploadedFile as { url: string }).url
+        : uploadedFile && 'dataUrl' in (uploadedFile as object)
+          ? 'https://example.com/kyc/document-placeholder.jpg'
+          : 'https://example.com/kyc/document-placeholder.jpg';
+    const selfieUrl = 'https://example.com/kyc/selfie-placeholder.jpg';
+    const mapDoc =
+      docType === 'passport'
+        ? 'passport'
+        : docType === 'drivers_license' || docType === 'license'
+          ? 'drivers_license'
+          : 'national_id';
+
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
+    setApiError(null);
+    try {
+      await securityApi.submitKyc(userId, {
+        documentType: mapDoc as 'national_id' | 'passport' | 'drivers_license',
+        documentImageUrl: docUrl,
+        selfieImageUrl: selfieUrl,
+        declaredCountry: country?.code?.length === 2 ? country.code.toUpperCase() : undefined,
+      });
       setSubmitted(true);
-    }, 2800);
+    } catch (err) {
+      if (err instanceof ApiError) setApiError({ code: err.code, message: err.body.message || err.message });
+      else setApiError({ message: 'KYC submission failed' });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const docTypeLabel = DOC_TYPES.find((d) => d.id === docType)?.label ?? '';
@@ -124,6 +163,9 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
         <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>Secure & encrypted</p>
       </div>
 
+      {apiError && (
+        <div className="px-5"><FeatureAlert reason={mapApiCodeToReason(apiError.code)} message={apiError.message} detail={apiError.code} /></div>
+      )}
       <StepIndicator activeStep={activeStep} />
 
       <div className="flex-1 overflow-y-auto px-5 pb-4">

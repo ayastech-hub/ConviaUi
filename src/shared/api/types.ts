@@ -23,6 +23,7 @@ export type SessionTokens = {
   refreshToken: string;
   sessionId: string;
   userId: string;
+  username?: string;
 };
 
 export type RegisterResponse = SessionTokens & {

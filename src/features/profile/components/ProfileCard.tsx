@@ -1,55 +1,88 @@
-import { FileCheck, Wallet, Users, Award } from 'lucide-react';
-import { portfolio } from '../../../shared/data/mockData';
-import { useCurrency } from '../../../shared/context/CurrencyContext';
-import { AvatarUploader } from './AvatarUploader';
+import { useEffect, useState } from 'react';
+import { motion } from 'motion/react';
+import { BadgeCheck, Loader } from 'lucide-react';
+import { useAuth } from '../../../shared/context/AuthContext';
+import { useKycStatus } from '../../../shared/hooks/useKycStatus';
+import * as profileApi from '../../../shared/api/profile';
+import type { UserProfile } from '../../../shared/api/profile';
 
-interface ProfileCardProps {
-  avatar: string | null;
-  onAvatarChange: (dataUrl: string) => void;
-}
+/** Avatar, name, username, KYC badge — loaded from GET /profiles/:username when known. */
+export function ProfileCard() {
+  const { userId, username, status } = useAuth();
+  const { isApproved, kycStatus } = useKycStatus();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(false);
 
-/** The main card at the top of the Profile screen: avatar, name, username, KYC badge, and quick stats. */
-export function ProfileCard({ avatar, onAvatarChange }: ProfileCardProps) {
-  const { format } = useCurrency();
+  useEffect(() => {
+    if (!username) {
+      setProfile(null);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    profileApi
+      .getPublicProfile(username)
+      .then((p) => {
+        if (!cancelled) setProfile(p);
+      })
+      .catch(() => {
+        if (!cancelled) setProfile({ username });
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [username]);
 
-  const stats = [
-    { label: 'Portfolio', value: format(portfolio.totalUSD), icon: Wallet, color: 'var(--foreground)' },
-    { label: 'Followers', value: '1,247', icon: Users, color: 'var(--muted-foreground)' },
-    { label: 'Trades', value: '342', icon: Award, color: 'var(--muted-foreground)' },
-  ];
+  const displayName = profile?.displayName || username || 'Convia user';
+  const handle = username ? `@${username}` : userId ? `ID ${userId.slice(0, 8)}…` : 'Not signed in';
+  const initials = (displayName || 'C')
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
     <div className="px-5 mb-5">
-      <div
-        className="rounded-[24px] p-5 relative overflow-hidden"
-        style={{ background: 'var(--card)', border: '1px solid var(--border)', boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-[24px] p-5 flex items-center gap-4"
+        style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
       >
-        <div className="flex items-center gap-4 mb-4">
-          <AvatarUploader avatar={avatar} onChange={onAvatarChange} initials="AM" size={72} />
-
-          <div className="flex-1">
-            <p style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 18, marginBottom: 2 }}>Ade Mensah</p>
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginBottom: 6 }}>@ade_mensah</p>
-            <div className="flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'var(--muted)', width: 'fit-content' }}>
-              <FileCheck size={11} style={{ color: 'var(--foreground)' }} />
-              <span style={{ color: 'var(--foreground)', fontSize: 11, fontWeight: 600 }}>KYC Verified</span>
-            </div>
+        <div
+          className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
+          style={{ background: 'var(--muted)' }}
+        >
+          {profile?.avatarUrl ? (
+            <img src={profile.avatarUrl} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <span style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20 }}>{initials}</span>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <p style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 18 }} className="truncate">
+              {loading ? '…' : displayName}
+            </p>
+            {isApproved && <BadgeCheck size={18} style={{ color: 'var(--primary)', flexShrink: 0 }} />}
           </div>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }} className="truncate">
+            {handle}
+          </p>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 11, marginTop: 4 }}>
+            {status === 'authenticated'
+              ? isApproved
+                ? 'Verified · KYC approved'
+                : `KYC: ${kycStatus}`
+              : 'Sign in to sync profile'}
+          </p>
         </div>
-
-        <div className="grid grid-cols-3 gap-2">
-          {stats.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <div key={stat.label} className="p-3 rounded-[14px] text-center" style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}>
-                <Icon size={16} style={{ color: stat.color, margin: '0 auto 4px' }} />
-                <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 13 }}>{stat.value}</p>
-                <p style={{ color: 'var(--muted-foreground)', fontSize: 10 }}>{stat.label}</p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+        {loading && <Loader size={16} className="animate-spin" style={{ color: 'var(--muted-foreground)' }} />}
+      </motion.div>
     </div>
   );
 }

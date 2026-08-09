@@ -34,3 +34,34 @@ export function getTransactionPinStatus(userId: string) {
 export function setTransactionPin(userId: string, pin: string) {
   return api.post(`/security/${userId}/transaction-pin`, { pin });
 }
+
+
+export type SessionRow = {
+  id: string;
+  userId?: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  createdAt?: string;
+  revokedAt?: string | null;
+  [key: string]: unknown;
+};
+
+export function listSessions(userId: string) {
+  return api.get<SessionRow[]>(`/security/${userId}/sessions`);
+}
+
+export function changeTransactionPin(userId: string, body: { currentPin: string; newPin: string }) {
+  return api.put(`/security/${userId}/transaction-pin`, body);
+}
+
+export function submitKyc(
+  userId: string,
+  body: {
+    documentType: 'national_id' | 'passport' | 'drivers_license';
+    documentImageUrl: string;
+    selfieImageUrl: string;
+    declaredCountry?: string;
+  },
+) {
+  return api.post(`/compliance/${userId}/kyc/submit`, body);
+}

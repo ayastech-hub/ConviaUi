@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import {
   Shield, Gift, Settings, TrendingUp, Bell, Moon, Sun,
@@ -11,6 +11,8 @@ import { ListRow } from '../../../shared/components/ListRow';
 import { ProfileCard } from '../components/ProfileCard';
 import { ReferralBanner } from '../components/ReferralBanner';
 import { SignOutButton } from '../components/SignOutButton';
+import { useAuth } from '../../../shared/context/AuthContext';
+import * as rewardsApi from '../../../shared/api/rewards';
 
 interface ProfileScreenProps {
   navigate: (s: Screen) => void;
@@ -37,8 +39,21 @@ const SUPPORT_ITEMS = [
 ];
 
 export function ProfileScreen({ navigate, darkMode, toggleDark }: ProfileScreenProps) {
-  const [avatar, setAvatar] = useState<string | null>(null);
+  const { userId, status } = useAuth();
   const [showReferral, setShowReferral] = useState(false);
+  const [refCode, setRefCode] = useState('');
+  const [shareUrl, setShareUrl] = useState('');
+
+  useEffect(() => {
+    if (!userId) return;
+    rewardsApi
+      .getReferralCode(userId)
+      .then((r) => {
+        setRefCode(r.code);
+        setShareUrl(r.shareUrl || '');
+      })
+      .catch(() => setRefCode(''));
+  }, [userId]);
 
   return (
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
@@ -56,7 +71,7 @@ export function ProfileScreen({ navigate, darkMode, toggleDark }: ProfileScreenP
         </motion.button>
       </div>
 
-      <ProfileCard avatar={avatar} onAvatarChange={setAvatar} />
+      <ProfileCard />
 
       <div className="px-5">
         <ListSection title="ACCOUNT">
@@ -95,11 +110,11 @@ export function ProfileScreen({ navigate, darkMode, toggleDark }: ProfileScreenP
         </ListSection>
       </div>
 
-      <ReferralBanner code="ADE2026" reward="$10 USDT" onOpen={() => setShowReferral(true)} />
-      <ReferralModal open={showReferral} onClose={() => setShowReferral(false)} code="ADE2026" reward="$10 USDT" />
+      <ReferralBanner code={refCode || '—'} reward="Rewards on referral" onOpen={() => setShowReferral(true)} />
+      <ReferralModal open={showReferral} onClose={() => setShowReferral(false)} code={refCode || '—'} reward={shareUrl || 'Rewards on referral'} />
 
       <div className="px-5 mb-5">
-        <SignOutButton />
+        <SignOutButton onSignedOut={() => navigate('login')} />
       </div>
 
       <div style={{ height: 100 }} />

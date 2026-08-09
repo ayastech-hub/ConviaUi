@@ -10,3 +10,5 @@ export * as fiatApi from './fiat';
 export * as paymentsApi from './payments';
 export * as complianceApi from './compliance';
 export * as tokensApi from './tokens';
+export * as profileApi from './profile';
+export * as rewardsApi from './rewards';

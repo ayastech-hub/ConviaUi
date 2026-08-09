@@ -93,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refreshToken: res.refreshToken,
         sessionId: res.sessionId,
         userId: res.userId,
+        username: uname,
       });
     },
     [setSession],

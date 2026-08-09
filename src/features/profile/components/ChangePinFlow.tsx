@@ -1,92 +1,164 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Lock, CheckCircle2, X } from 'lucide-react';
+import { CheckCircle2, Loader } from 'lucide-react';
 import { ScreenHeader } from '../../../shared/components/ScreenHeader';
-
-const PIN_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'];
+import { useAuth } from '../../../shared/context/AuthContext';
+import * as securityApi from '../../../shared/api/security';
+import { ApiError } from '../../../shared/api/types';
+import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 
 interface ChangePinFlowProps {
   onBack: () => void;
-  /** Called once the 4th digit is entered and the success state has finished displaying. */
-  onComplete: () => void;
 }
 
-/** "Change PIN" flow: 4-digit keypad entry followed by a brief success state. */
-export function ChangePinFlow({ onBack, onComplete }: ChangePinFlowProps) {
-  const [pinDigits, setPinDigits] = useState(['', '', '', '']);
-  const [pinStep, setPinStep] = useState<'enter' | 'success'>('enter');
+/** Set or change transaction PIN via POST/PUT /security/:userId/transaction-pin. */
+export function ChangePinFlow({ onBack }: ChangePinFlowProps) {
+  const { userId } = useAuth();
+  const [step, setStep] = useState<'current' | 'new' | 'confirm' | 'done'>('current');
+  const [currentPin, setCurrentPin] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [error, setError] = useState<{ code?: string; message?: string } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [hasPin, setHasPin] = useState<boolean | null>(null);
 
-  const handlePinKey = (key: string) => {
-    if (key === 'del') {
-      const idx = pinDigits.findIndex((d) => d === '');
-      const target = idx === -1 ? 3 : idx - 1;
-      if (target >= 0) {
-        const next = [...pinDigits];
-        next[target] = '';
-        setPinDigits(next);
-      }
+  useEffect(() => {
+    if (!userId) return;
+    securityApi
+      .getTransactionPinStatus(userId)
+      .then((s) => {
+        const hp = Boolean(s.hasPin ?? (s as { set?: boolean }).set);
+        setHasPin(hp);
+        if (!hp) setStep('new');
+      })
+      .catch(() => {
+        setHasPin(false);
+        setStep('new');
+      });
+  }, [userId]);
+
+  const submit = async () => {
+    if (!userId) {
+      setError({ message: 'Sign in required' });
       return;
     }
-    if (key === '') return;
-    const idx = pinDigits.findIndex((d) => d === '');
-    if (idx === -1) return;
-    const next = [...pinDigits];
-    next[idx] = key;
-    setPinDigits(next);
-    if (idx === 3) {
-      setTimeout(() => setPinStep('success'), 200);
-      setTimeout(() => {
-        setPinStep('enter');
-        setPinDigits(['', '', '', '']);
-        onComplete();
-      }, 1800);
+    if (newPin !== confirmPin) {
+      setError({ message: 'PINs do not match' });
+      return;
+    }
+    if (!/^\d{6}$/.test(newPin)) {
+      setError({ message: 'PIN must be 6 digits' });
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      if (hasPin) {
+        await securityApi.changeTransactionPin(userId, { currentPin, newPin });
+      } else {
+        await securityApi.setTransactionPin(userId, newPin);
+      }
+      setStep('done');
+    } catch (err) {
+      if (err instanceof ApiError) setError({ code: err.code, message: err.body.message || err.message });
+      else setError({ message: 'Could not update PIN' });
+    } finally {
+      setLoading(false);
     }
   };
+
+  const PinInput = ({
+    value,
+    onChange,
+    label,
+  }: {
+    value: string;
+    onChange: (v: string) => void;
+    label: string;
+  }) => (
+    <div className="mb-4">
+      <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginBottom: 8 }}>{label}</p>
+      <input
+        type="password"
+        inputMode="numeric"
+        maxLength={6}
+        value={value}
+        onChange={(e) => onChange(e.target.value.replace(/\D/g, '').slice(0, 6))}
+        className="w-full rounded-[14px] px-4 py-3.5 text-center"
+        style={{
+          background: 'var(--muted)',
+          border: '1px solid var(--border)',
+          color: 'var(--foreground)',
+          fontSize: 22,
+          letterSpacing: 8,
+          fontWeight: 700,
+        }}
+      />
+    </div>
+  );
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
       <div style={{ height: 50 }} />
-      <ScreenHeader title="Change PIN" onBack={onBack} marginBottom={32} />
-
-      <div className="flex-1 flex flex-col items-center justify-center px-8">
+      <ScreenHeader title="Transaction PIN" onBack={onBack} />
+      <div className="flex-1 overflow-y-auto px-5 pb-8">
+        {error && <FeatureAlert reason={mapApiCodeToReason(error.code)} message={error.message} detail={error.code} />}
         <AnimatePresence mode="wait">
-          {pinStep === 'enter' ? (
-            <motion.div key="enter" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full flex flex-col items-center gap-10">
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: 'var(--muted)' }}>
-                <Lock size={28} style={{ color: 'var(--foreground)' }} />
+          {step === 'done' ? (
+            <motion.div
+              key="done"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="flex flex-col items-center gap-4 mt-10"
+            >
+              <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{ background: 'var(--muted)' }}>
+                <CheckCircle2 size={44} style={{ color: 'var(--positive)' }} />
               </div>
-              <div className="text-center">
-                <h3 style={{ color: 'var(--foreground)', fontWeight: 700, marginBottom: 4 }}>Enter New PIN</h3>
-                <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Choose a 4-digit PIN</p>
-              </div>
-              <div className="flex gap-4">
-                {pinDigits.map((d, i) => (
-                  <div key={i} className="w-4 h-4 rounded-full border-2" style={{
-                    background: d ? 'var(--primary)' : 'transparent',
-                    borderColor: d ? 'var(--primary)' : 'rgba(255,255,255,0.3)',
-                  }} />
-                ))}
-              </div>
-              <div className="grid grid-cols-3 gap-4 w-full max-w-[260px]">
-                {PIN_KEYS.map((key, i) => (
-                  <motion.button
-                    key={i}
-                    whileTap={{ scale: 0.88 }}
-                    onClick={() => key !== '' && handlePinKey(key)}
-                    className="h-14 rounded-2xl flex items-center justify-center"
-                    style={{ background: 'var(--card)', color: 'var(--foreground)', fontSize: 22, fontWeight: 500, cursor: key === '' ? 'default' : 'pointer', border: '1px solid var(--border)' }}
-                  >
-                    {key === 'del' ? <X size={18} style={{ color: 'var(--muted-foreground)' }} /> : key}
-                  </motion.button>
-                ))}
-              </div>
+              <h3 style={{ color: 'var(--foreground)', fontWeight: 700 }}>PIN updated</h3>
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={onBack}
+                className="w-full py-3.5 rounded-[16px] text-white"
+                style={{ background: 'var(--primary)', fontWeight: 700 }}
+              >
+                Done
+              </motion.button>
             </motion.div>
           ) : (
-            <motion.div key="success" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center gap-4">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{ background: 'var(--muted)' }}>
-                <CheckCircle2 size={44} style={{ color: 'var(--foreground)' }} />
-              </div>
-              <h3 style={{ color: 'var(--foreground)', fontWeight: 700 }}>PIN Changed!</h3>
+            <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginBottom: 16, lineHeight: 1.45 }}>
+                Required to reveal recovery phrase and for sensitive actions. Backend expects a 6-digit PIN.
+              </p>
+              {hasPin !== false && step === 'current' && (
+                <>
+                  <PinInput value={currentPin} onChange={setCurrentPin} label="Current PIN" />
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setStep('new')}
+                    disabled={currentPin.length < 4}
+                    className="w-full py-3.5 rounded-[16px] text-white"
+                    style={{ background: 'var(--primary)', fontWeight: 700 }}
+                  >
+                    Continue
+                  </motion.button>
+                </>
+              )}
+              {(step === 'new' || (!hasPin && step === 'current')) && (
+                <>
+                  <PinInput value={newPin} onChange={setNewPin} label="New 6-digit PIN" />
+                  <PinInput value={confirmPin} onChange={setConfirmPin} label="Confirm new PIN" />
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    disabled={loading}
+                    onClick={() => void submit()}
+                    className="w-full py-3.5 rounded-[16px] text-white flex items-center justify-center gap-2"
+                    style={{ background: 'var(--primary)', fontWeight: 700 }}
+                  >
+                    {loading ? <Loader size={18} className="animate-spin" /> : null}
+                    Save PIN
+                  </motion.button>
+                </>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

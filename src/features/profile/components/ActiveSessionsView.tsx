@@ -1,47 +1,89 @@
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { Smartphone } from 'lucide-react';
+import { Monitor, Loader } from 'lucide-react';
 import { ScreenHeader } from '../../../shared/components/ScreenHeader';
-
-const SESSIONS = [
-  { device: 'iPhone 15 Pro', location: 'Lagos, Nigeria', current: true, time: 'Active now' },
-  { device: 'MacBook Pro', location: 'Lagos, Nigeria', current: false, time: '2 hours ago' },
-  { device: 'iPad Air', location: 'Abuja, Nigeria', current: false, time: '3 days ago' },
-];
+import { useAuth } from '../../../shared/context/AuthContext';
+import * as securityApi from '../../../shared/api/security';
+import type { SessionRow } from '../../../shared/api/security';
+import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
+import { ApiError } from '../../../shared/api/types';
 
 interface ActiveSessionsViewProps {
   onBack: () => void;
 }
 
-/** "Active Sessions" view: lists logged-in devices with the option to revoke access. */
+/** Login history from GET /security/:userId/sessions (UserSession rows). */
 export function ActiveSessionsView({ onBack }: ActiveSessionsViewProps) {
+  const { userId } = useAuth();
+  const [rows, setRows] = useState<SessionRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<{ code?: string; message?: string } | null>(null);
+
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    setLoading(true);
+    securityApi
+      .listSessions(userId)
+      .then((list) => {
+        if (!cancelled) setRows(Array.isArray(list) ? list : []);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        if (err instanceof ApiError) setError({ code: err.code, message: err.message });
+        else setError({ message: 'Could not load sessions' });
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
       <div style={{ height: 50 }} />
-      <ScreenHeader title="Active Sessions" onBack={onBack} />
-      <div className="flex-1 overflow-y-auto px-5">
-        {SESSIONS.map((s, i) => (
-          <div key={i} className="flex items-center gap-3 p-4 rounded-[16px] mb-3" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'var(--muted)' }}>
-              <Smartphone size={18} style={{ color: s.current ? 'var(--primary)' : 'var(--muted-foreground)' }} />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>{s.device}</p>
-                {s.current && <span className="px-2 py-0.5 rounded-full" style={{ background: 'var(--muted)', color: 'var(--foreground)', fontSize: 10, fontWeight: 700 }}>CURRENT</span>}
-              </div>
-              <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>{s.location}</p>
-              <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>{s.time}</p>
-            </div>
-            {!s.current && (
-              <motion.button whileTap={{ scale: 0.9 }} className="px-3 py-1.5 rounded-lg" style={{ background: 'var(--muted)', color: 'var(--destructive)', fontSize: 12, fontWeight: 600 }}>
-                Revoke
-              </motion.button>
-            )}
+      <ScreenHeader title="Active sessions" onBack={onBack} />
+      <div className="flex-1 overflow-y-auto px-5 pb-8">
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginBottom: 12 }}>
+          Devices and IPs from recent logins. Revoking other sessions requires backend support (use Sign out for this device).
+        </p>
+        {error && <FeatureAlert reason={mapApiCodeToReason(error.code)} message={error.message} />}
+        {loading && (
+          <div className="flex justify-center py-10">
+            <Loader className="animate-spin" style={{ color: 'var(--muted-foreground)' }} />
           </div>
-        ))}
-        <motion.button whileTap={{ scale: 0.97 }} className="w-full py-3.5 rounded-[16px] mt-2" style={{ background: 'var(--muted)', color: 'var(--destructive)', fontWeight: 700, fontSize: 15, border: '1px solid var(--muted)' }}>
-          Revoke All Other Sessions
-        </motion.button>
+        )}
+        {!loading && rows.length === 0 && (
+          <p className="text-center py-8" style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
+            No sessions found
+          </p>
+        )}
+        <div className="rounded-[16px] overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+          {rows.map((s, i) => (
+            <motion.div
+              key={s.id || i}
+              className="flex items-start gap-3 px-4 py-3.5"
+              style={{
+                background: 'var(--card)',
+                borderBottom: i < rows.length - 1 ? '1px solid var(--border)' : 'none',
+              }}
+            >
+              <Monitor size={18} style={{ color: 'var(--muted-foreground)', marginTop: 2 }} />
+              <div className="min-w-0 flex-1">
+                <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13 }} className="truncate">
+                  {s.userAgent || 'Unknown device'}
+                </p>
+                <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>
+                  {s.ipAddress || '—'} ·{' '}
+                  {s.createdAt ? new Date(s.createdAt).toLocaleString() : '—'}
+                  {s.revokedAt ? ' · revoked' : ''}
+                </p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
       </div>
     </div>
   );
