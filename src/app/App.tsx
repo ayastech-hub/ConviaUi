@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
 import type { Screen } from '../shared/data/mockData';
 import { BottomNav } from '../shared/components/BottomNav';
-import { AppProviders } from './providers/AppProviders';
 import { useNavigation } from './navigation';
+import { hasSeenOnboarding, markOnboardingSeen } from '../shared/utils/firstVisit';
+import { useAuth } from '../shared/context/AuthContext';
 
 import { OnboardingScreen } from '../features/onboarding/screens/OnboardingScreen';
 import { AuthScreen } from '../features/auth/screens/AuthScreen';
@@ -60,9 +61,31 @@ const fadeIn = {
   transition: { duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] as const },
 };
 
+function initialScreen(): import('../shared/data/mockData').Screen {
+  // First browser visit → onboarding. Returning visitors skip straight to
+  // login (or home once AuthProvider hydrates a stored session).
+  if (!hasSeenOnboarding()) return 'onboarding';
+  try {
+    const raw = localStorage.getItem('convia.session');
+    if (raw) return 'home';
+  } catch { /* ignore */ }
+  return 'login';
+}
+
 export default function App() {
-  const { current, navigate, goBack, switchTab, navParam } = useNavigation('onboarding');
+  const { current, navigate, goBack, switchTab, navParam } = useNavigation(initialScreen());
   const [darkMode, setDarkMode] = useState(true);
+  const { status } = useAuth();
+
+  // When auth finishes loading, bounce authenticated users off login/signup
+  // and anonymous users off main tabs if they hit a deep link without a session.
+  useEffect(() => {
+    if (status === 'loading') return;
+    if (status === 'authenticated' && (current === 'login' || current === 'signup' || current === 'onboarding')) {
+      markOnboardingSeen();
+      switchTab('home');
+    }
+  }, [status, current, switchTab]);
 
   const isMainTab = MAIN_TABS.includes(current);
   const activeTab = isMainTab ? current : MAIN_TABS[0];
@@ -236,35 +259,29 @@ export default function App() {
 
   return (
     <div className={darkMode ? 'dark' : ''} style={{ width: '100%', height: '100%' }}>
-      <AppProviders>
-        {/* Fills the browser viewport directly — no phone-frame mockup */}
-        <div
-          className="relative flex flex-col overflow-hidden"
-          style={{
-            width: '100vw',
-            height: '100dvh',
-            background: 'var(--background)',
-          }}
-        >
-          {/* Screen content */}
-          <div className="relative flex-1 overflow-hidden" style={{ background: 'var(--background)' }}>
-            <AnimatePresence mode="wait">
-              {renderScreen()}
-            </AnimatePresence>
-          </div>
-
-          {/* Bottom Nav */}
-          {isMainTab && (
-            <div className="absolute bottom-0 left-0 right-0 z-40">
-              <BottomNav
-                activeTab={activeTab as Screen}
-                onNavigate={switchTab}
-                onSwap={() => navigate('swap')}
-              />
-            </div>
-          )}
+      {/* Fills the browser viewport directly — no phone-frame mockup */}
+      <div
+        className="relative flex flex-col overflow-hidden"
+        style={{
+          width: '100vw',
+          height: '100dvh',
+          background: 'var(--background)',
+        }}
+      >
+        <div className="relative flex-1 overflow-hidden" style={{ background: 'var(--background)' }}>
+          <AnimatePresence mode="wait">{renderScreen()}</AnimatePresence>
         </div>
-      </AppProviders>
+
+        {isMainTab && (
+          <div className="absolute bottom-0 left-0 right-0 z-40">
+            <BottomNav
+              activeTab={activeTab as Screen}
+              onNavigate={switchTab}
+              onSwap={() => navigate('swap')}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

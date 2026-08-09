@@ -8,6 +8,9 @@ import { CredentialsStep } from '../components/CredentialsStep';
 import { PhoneStep } from '../components/PhoneStep';
 import { OtpStep } from '../components/OtpStep';
 import { AuthSuccessView } from '../components/AuthSuccessView';
+import { useAuth } from '../../../shared/context/AuthContext';
+import { ApiError } from '../../../shared/api/types';
+import * as authApi from '../../../shared/api/auth';
 
 // Native biometric login (`BiometricStep`) intentionally not imported here —
 // see the comment at the top of `../components/BiometricStep.tsx` for why.
@@ -23,6 +26,7 @@ interface AuthScreenProps {
 type Step = 'credentials' | 'phone' | 'otp';
 
 export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProps) {
+  const { login, register } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -46,37 +50,103 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
     }, delay);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setError('');
     if (!email || !email.includes('@')) { setError('Please enter a valid email address'); return; }
     if (mode !== 'forgot-password' && !password) { setError('Please enter your password'); return; }
+
     if (mode === 'signup') {
       if (password !== confirmPassword) { setError('Passwords do not match'); return; }
       if (strength.score < 3) { setError('Password is too weak. Use 8+ chars with upper/lower/numbers/symbols'); return; }
       if (!agreeTerms) { setError('Please accept the Terms of Service to continue'); return; }
+      // Optional phone step still available; registration hits the API after OTP or skip.
       setStep('phone');
       return;
     }
+
     if (mode === 'forgot-password') {
       setLoading(true);
-      setTimeout(() => { setLoading(false); setSuccess(true); setTimeout(() => goBack(), 1500); }, 2000);
+      try {
+        await authApi.sendPasswordResetEmail(email);
+        setSuccess(true);
+        setTimeout(() => goBack(), 1500);
+      } catch (err) {
+        const msg = err instanceof ApiError ? (err.body.message || err.code) : 'Could not send reset email';
+        setError(String(msg));
+      } finally {
+        setLoading(false);
+      }
       return;
     }
-    // Login on web: no biometric step, go straight to success (matches what
-    // the native biometric-confirm handler used to do once authenticated).
-    finishWithSuccess(1800);
+
+    // Live login
+    setLoading(true);
+    try {
+      await login(email, password);
+      setSuccess(true);
+      setTimeout(() => switchTab('home'), 800);
+    } catch (err) {
+      const msg = err instanceof ApiError
+        ? (err.code === 'invalid_credentials' ? 'Invalid email or password' : (err.body.message || err.code))
+        : 'Login failed — is the API running?';
+      setError(String(msg));
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handlePhoneSubmit = () => {
+  const completeSignup = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      await register(email, password);
+      setSuccess(true);
+      setTimeout(() => switchTab('home'), 800);
+    } catch (err) {
+      const msg = err instanceof ApiError
+        ? (err.code === 'username_taken' ? 'That username is taken — try another email' : (err.body.message || err.code))
+        : 'Registration failed — is the API running?';
+      setError(String(msg));
+      setStep('credentials');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePhoneSubmit = async () => {
     if (!phone || phone.length < 8) { setError('Please enter a valid phone number'); return; }
     setError('');
-    setStep('otp');
+    setLoading(true);
+    try {
+      await authApi.sendPhoneOtp(phone);
+      setStep('otp');
+    } catch (err) {
+      // If phone OTP is not configured on the backend, fall through to email registration.
+      if (err instanceof ApiError && (err.status === 501 || err.status === 503)) {
+        await completeSignup();
+        return;
+      }
+      // Still allow signup without phone verification when provider is down
+      await completeSignup();
+      return;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleOtpSubmit = () => {
+  const handleOtpSubmit = async () => {
     if (otp.some((d) => !d)) { setError('Please enter all 6 digits'); return; }
     setError('');
-    finishWithSuccess(2000);
+    setLoading(true);
+    try {
+      // Prefer completing email registration (backend register is the primary path).
+      // Phone verify-otp creates sessions for phone-first users; we still register email account.
+      await completeSignup();
+    } catch (err) {
+      const msg = err instanceof ApiError ? (err.body.message || err.code) : 'Verification failed';
+      setError(String(msg));
+      setLoading(false);
+    }
   };
 
   const titles = { login: 'Welcome Back', signup: 'Create Account', 'forgot-password': 'Reset Password' };

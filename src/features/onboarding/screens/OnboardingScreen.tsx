@@ -5,6 +5,7 @@ import type { Screen } from '../../../shared/data/mockData';
 import { ConviaLogo } from '../../../shared/components/ConviaLogo';
 import { ParticleField, GridOverlay } from '../components/BackgroundEffects';
 import { ONBOARDING_SLIDES, OrbitalIcon, SlideStatBadge } from '../components/OnboardingSlide';
+import { markOnboardingSeen } from '../../../shared/utils/firstVisit';
 
 // Native device-PIN setup (`PinSetupFlow`) intentionally not imported here —
 // see the comment at the top of `../components/PinSetupFlow.tsx` for why.
@@ -31,6 +32,7 @@ export function OnboardingScreen({ navigate }: OnboardingScreenProps) {
       setDirection(1);
       setSlide(slide + 1);
     } else {
+      markOnboardingSeen();
       navigate('signup');
     }
   };
@@ -120,11 +122,11 @@ export function OnboardingScreen({ navigate }: OnboardingScreenProps) {
 
               {slide === ONBOARDING_SLIDES.length - 1 && (
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="flex flex-col items-center gap-2.5">
-                  <button onClick={() => navigate('login')} className="flex items-center gap-1.5" style={{ color: 'var(--foreground)', fontSize: 14, fontWeight: 600 }}>
+                  <button onClick={() => { markOnboardingSeen(); navigate('login'); }} className="flex items-center gap-1.5" style={{ color: 'var(--foreground)', fontSize: 14, fontWeight: 600 }}>
                     I already have an account
                     <ArrowRight size={13} />
                   </button>
-                  <button onClick={() => navigate('signup')} style={{ color: 'var(--muted-foreground)', fontSize: 14, fontWeight: 500 }}>
+                  <button onClick={() => { markOnboardingSeen(); navigate('signup'); }} style={{ color: 'var(--muted-foreground)', fontSize: 14, fontWeight: 500 }}>
                     I don't have an account — Sign up
                   </button>
                 </motion.div>
