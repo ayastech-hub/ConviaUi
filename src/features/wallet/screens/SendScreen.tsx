@@ -15,6 +15,14 @@ import { SendConfirmStep } from '../components/send/SendConfirmStep';
 import { SendSendingStep } from '../components/send/SendSendingStep';
 import { SendSuccessStep } from '../components/send/SendSuccessStep';
 import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
+import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
+import { useAuth } from '../../../shared/context/AuthContext';
+import { withdrawCrypto } from '../../../shared/api/wallet';
+import { sendToUsername } from '../../../shared/api/payments';
+import { resolveChain } from '../../../shared/utils/chains';
+import { ApiError } from '../../../shared/api/types';
+import { usePortfolio } from '../../../shared/hooks/usePortfolio';
+import { holdingToAsset } from '../../../shared/utils/mapApiToUi';
 
 interface SendScreenProps {
   navigate: (s: Screen) => void;
@@ -27,6 +35,11 @@ const genHash = () => '0x' + Array.from({ length: 64 }, () => '0123456789abcdef'
 const shortenHash = (h: string) => `${h.slice(0, 10)}…${h.slice(-8)}`;
 
 export function SendScreen({ navigate, goBack }: SendScreenProps) {
+  const { userId } = useAuth();
+  const { data: portfolioData } = usePortfolio();
+  const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
+  const liveAssets = (portfolioData?.holdings || []).map(holdingToAsset);
+  const assetOptions = liveAssets.length ? liveAssets : cryptoAssets;
   const { format, currency } = useCurrency();
 
   const [step, setStep] = useState<Step>('select');
@@ -75,31 +88,89 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
     return n > 0 && selectedAsset.price > 0 ? n / selectedAsset.price : 0;
   }, [amount, selectedAsset]);
 
-  // Sending animation stages: 0=submit, 1=queued, 2=confirming, 3=finalized
+  // Live broadcast: payments/send (username) or crypto/withdraw (address)
   useEffect(() => {
     if (step !== 'sending') return;
+    let cancelled = false;
     setSendingStage(0);
-    const t1 = setTimeout(() => setSendingStage(1), 600);
-    const t2 = setTimeout(() => setSendingStage(2), 1400);
-    const t3 = setTimeout(() => {
-      setSendingStage(3);
-      const hash = genHash();
-      setTxHash(hash);
-      setReceiptTx({
-        id: 'tx-' + Date.now(),
-        type: 'send',
-        asset: selectedAsset.symbol,
-        amount: cryptoAmount.toFixed(6),
-        valueUSD: Number(amount),
-        status: 'confirmed',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        hash,
-        address: recipient,
-        username: selectedContact?.username ?? undefined,
-      });
-    }, 2400);
-    const t4 = setTimeout(() => setStep('success'), 3200);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
+    setApiError(null);
+
+    const run = async () => {
+      const stageTimers = [
+        setTimeout(() => { if (!cancelled) setSendingStage(1); }, 400),
+        setTimeout(() => { if (!cancelled) setSendingStage(2); }, 900),
+      ];
+      try {
+        if (!userId) throw new ApiError(401, { code: 'unauthorized', message: 'Sign in required' });
+
+        const chain = resolveChain(selectedAsset.chains[0] || 'Ethereum');
+        const amountAsset = cryptoAmount > 0 ? cryptoAmount.toFixed(8) : String(amount);
+        let hash: string | undefined;
+
+        const looksLikeAddress =
+          /^(0x[a-fA-F0-9]{40}|[1-9A-HJ-NP-Za-km-z]{32,44}|bc1[a-z0-9]{25,90}|T[a-zA-Z0-9]{33})$/.test(
+            recipient.trim(),
+          );
+
+        if (selectedContact || (!looksLikeAddress && recipient.trim().length >= 3)) {
+          const username = (selectedContact?.username || recipient).replace(/^@/, '');
+          const res = (await sendToUsername({
+            senderId: userId,
+            recipientUsername: username,
+            asset: selectedAsset.symbol,
+            amount: amountAsset,
+            chainKey: chain.chainKey,
+            chainFamily: chain.chainFamily,
+          })) as { txHash?: string; [k: string]: unknown };
+          hash = res.txHash || (res as { hash?: string }).hash;
+        } else {
+          const res = (await withdrawCrypto({
+            userId,
+            destinationAddress: recipient.trim(),
+            asset: selectedAsset.symbol,
+            amount: amountAsset,
+            chainKey: chain.chainKey,
+            chainFamily: chain.chainFamily,
+          })) as { txHash?: string; [k: string]: unknown };
+          hash = res.txHash;
+        }
+
+        if (cancelled) return;
+        stageTimers.forEach(clearTimeout);
+        setSendingStage(3);
+        const finalHash = hash || genHash();
+        setTxHash(finalHash);
+        setReceiptTx({
+          id: 'tx-' + Date.now(),
+          type: 'send',
+          asset: selectedAsset.symbol,
+          amount: Number(amountAsset),
+          valueUSD: Number(amount) || Number(amountAsset) * selectedAsset.price,
+          status: 'confirmed',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          hash: finalHash,
+          address: recipient,
+          username: selectedContact?.username ?? undefined,
+        });
+        setTimeout(() => { if (!cancelled) setStep('success'); }, 600);
+      } catch (err) {
+        stageTimers.forEach(clearTimeout);
+        if (cancelled) return;
+        if (err instanceof ApiError) {
+          setApiError({ code: err.code, message: err.body.message || err.message });
+        } else {
+          setApiError({ message: 'Send failed — check API / network' });
+        }
+        setStep('confirm');
+        setConfirmProgress(0);
+        setHolding(false);
+      }
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
@@ -114,7 +185,8 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
     const n = Number(val);
     if (val === '') { setError(''); return; }
     if (Number.isNaN(n) || n < 0) { setError('Enter a valid amount'); return; }
-    if (n > selectedAsset.valueUSD) { setError(`Insufficient balance. Max: ${format(selectedAsset.valueUSD)}`); return; }
+    const maxUsd = selectedAsset.valueUSD || 0;
+    if (maxUsd > 0 && n > maxUsd) { setError(`Insufficient balance. Max: ${format(maxUsd)}`); return; }
     setError('');
   }, [selectedAsset, format]);
 
@@ -182,6 +254,9 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
     <div className="flex flex-col h-full relative overflow-hidden" style={{ background: 'var(--background)' }}>
       <div className="px-5 pt-12">
         <WalletFeatureBanner feature="transfer" />
+        {apiError && (
+          <FeatureAlert reason={mapApiCodeToReason(apiError.code)} message={apiError.message} detail={apiError.code} />
+        )}
       </div>
       <div className="flex items-center gap-3 px-5 pt-3 pb-2" style={{ height: 56 }}>
         <motion.button

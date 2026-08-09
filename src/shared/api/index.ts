@@ -9,3 +9,4 @@ export * as securityApi from './security';
 export * as fiatApi from './fiat';
 export * as paymentsApi from './payments';
 export * as complianceApi from './compliance';
+export * as tokensApi from './tokens';

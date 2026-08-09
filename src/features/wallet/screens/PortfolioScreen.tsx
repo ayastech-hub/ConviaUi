@@ -5,7 +5,9 @@ import {
   AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
   PieChart, Pie, Cell,
 } from 'recharts';
-import { cryptoAssets, portfolioChartData, portfolio, type Screen } from '../../../shared/data/mockData';
+import { cryptoAssets, portfolioChartData } from '../../../shared/data/mockData';
+import { usePortfolio } from '../../../shared/hooks/usePortfolio';
+import { holdingToAsset } from '../../../shared/utils/mapApiToUi';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { AssetIcon } from '../../../shared/components/AssetIcon';
 
@@ -19,6 +21,10 @@ const periods = ['1D', '1W', '1M', '3M', 'YTD', 'All'];
 export function PortfolioScreen({ goBack }: PortfolioScreenProps) {
   const { format } = useCurrency();
   const [period, setPeriod] = useState('1M');
+  const { data, source } = usePortfolio();
+  const totalUSD = data ? Number(data.totalValueUsd) || 0 : 0;
+  const assets = (data?.holdings || []).map(holdingToAsset);
+  const list = assets.length ? assets : cryptoAssets;
 
   const chartData = portfolioChartData.slice(period === '1D' ? 28 : period === '1W' ? 23 : 0);
 
@@ -38,15 +44,15 @@ export function PortfolioScreen({ goBack }: PortfolioScreenProps) {
         <div className="rounded-[20px] p-5 mb-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
           <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginBottom: 4 }}>Total Value</p>
           <p style={{ color: 'var(--foreground)', fontSize: 36, fontWeight: 900, letterSpacing: -1.5, lineHeight: 1.1 }}>
-            {format(portfolio.totalUSD)}
+            {format(totalUSD)}
           </p>
           <div className="flex items-center gap-3 mt-2 mb-4">
             <div className="flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'var(--muted)' }}>
               <TrendingUp size={12} style={{ color: 'var(--positive)' }} />
-              <span style={{ color: 'var(--positive)', fontSize: 12, fontWeight: 700 }}>+{format(portfolio.change24hUSD)} (24h)</span>
+              <span style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }}>{source === 'live' ? 'Live ledger total' : 'Connect API for live total'}</span>
             </div>
             <div className="flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'var(--muted)' }}>
-              <span style={{ color: 'var(--positive)', fontSize: 12, fontWeight: 700 }}>+{portfolio.allTimeGainPct}% all-time</span>
+
             </div>
           </div>
 
@@ -94,19 +100,19 @@ export function PortfolioScreen({ goBack }: PortfolioScreenProps) {
             <div style={{ width: 120, height: 120 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={cryptoAssets.map(a => ({ name: a.symbol, value: a.valueUSD }))} cx="50%" cy="50%" innerRadius={35} outerRadius={58} dataKey="value" strokeWidth={0}>
-                    {cryptoAssets.map((_, i) => <Cell key={i} fill={COLORS[i] ?? '#64748B'} />)}
+                  <Pie data={list.map(a => ({ name: a.symbol, value: a.valueUSD }))} cx="50%" cy="50%" innerRadius={35} outerRadius={58} dataKey="value" strokeWidth={0}>
+                    {list.map((_, i) => <Cell key={i} fill={COLORS[i] ?? '#64748B'} />)}
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
             </div>
             <div className="flex-1 space-y-2">
-              {cryptoAssets.map((a, i) => (
+              {list.map((a, i) => (
                 <div key={a.symbol} className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: COLORS[i] }} />
                   <span style={{ color: 'var(--foreground)', fontSize: 12, flex: 1 }}>{a.symbol}</span>
                   <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
-                    {((a.valueUSD / portfolio.totalUSD) * 100).toFixed(1)}%
+                    {((a.valueUSD / (totalUSD || 1)) * 100).toFixed(1)}%
                   </span>
                   <span style={{ color: 'var(--foreground)', fontSize: 12, fontWeight: 600, width: 70, textAlign: 'right' }}>
                     {format(a.valueUSD)}
@@ -121,7 +127,7 @@ export function PortfolioScreen({ goBack }: PortfolioScreenProps) {
         <div className="mb-4">
           <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 15, marginBottom: 10 }}>Performance</p>
           <div className="rounded-[20px] overflow-hidden" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-            {cryptoAssets.map((asset, i) => {
+            {list.map((asset, i) => {
               const pnl = asset.valueUSD * (asset.change24h / 100);
               return (
                 <div key={asset.id} className="flex items-center gap-3 px-4 py-3.5" style={{ borderBottom: i < cryptoAssets.length - 1 ? '1px solid var(--border)' : 'none' }}>
@@ -146,7 +152,7 @@ export function PortfolioScreen({ goBack }: PortfolioScreenProps) {
                       <div
                         className="h-full rounded-full"
                         style={{
-                          width: `${(asset.valueUSD / portfolio.totalUSD) * 100}%`,
+                          width: `${(asset.valueUSD / (totalUSD || 1)) * 100}%`,
                           background: COLORS[i],
                         }}
                       />

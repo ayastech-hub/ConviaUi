@@ -20,6 +20,7 @@ export function OffRampScreen({ goBack, navigate }: OffRampScreenProps) {
   const { currency, format } = useCurrency();
   const { bankAccounts } = usePaymentMethods();
   const { userId } = useAuth();
+  const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
   const [eligibility, setEligibility] = useState<{ canOfframp?: boolean; kycStatus?: string; action?: string } | null>(null);
   useEffect(() => {
     if (!userId) return;
@@ -44,6 +45,9 @@ export function OffRampScreen({ goBack, navigate }: OffRampScreenProps) {
       <div style={{ height: 50 }} />
       <div className="px-5 pt-2">
         <WalletFeatureBanner feature="offramp" onGoKyc={() => navigate('kyc')} />
+        {apiError && (
+          <FeatureAlert reason={mapApiCodeToReason(apiError.code)} message={apiError.message} detail={apiError.code} />
+        )}
         {eligibility && eligibility.action === 'complete_kyc' && (
           <FeatureAlert reason="kyc_required" message="Off-ramp requires approved KYC and a bank account in your legal name." onAction={() => navigate('kyc')} actionLabel="Start KYC" />
         )}
@@ -80,7 +84,24 @@ export function OffRampScreen({ goBack, navigate }: OffRampScreenProps) {
             <OffRampReviewStep
               currency={currency} format={format} amount={amount} selectedAsset={selectedAsset}
               youGet={youGet} selectedAccount={selectedAccount} fee={fee}
-              onConfirm={() => { setStep('processing'); setTimeout(() => setStep('done'), 3000); }}
+              onConfirm={async () => {
+                if (!userId) return;
+                setStep('processing');
+                try {
+                  await fiatApi.offrampInitiate({
+                    userId,
+                    fromAsset: selectedAsset.symbol,
+                    cryptoAmount: String(amount),
+                    bankAccountId: selectedAccountId,
+                  });
+                  setStep('done');
+                } catch (err) {
+                  if (err instanceof ApiError) {
+                    setApiError({ code: err.code, message: err.body.message || err.message });
+                  }
+                  setStep('review');
+                }
+              }}
             />
           )}
 

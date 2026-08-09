@@ -11,12 +11,18 @@ import { OnRampInstructionsStep } from '../components/onramp/OnRampInstructionsS
 import { OnRampProcessingStep, OnRampDoneStep } from '../components/onramp/OnRampStatusSteps';
 import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
+import { useAuth } from '../../../shared/context/AuthContext';
+import * as fiatApi from '../../../shared/api/fiat';
+import { ApiError } from '../../../shared/api/types';
 
 interface OnRampScreenProps {
   goBack: () => void;
 }
 
 export function OnRampScreen({ goBack }: OnRampScreenProps) {
+  const { userId } = useAuth();
+  const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
+
   const { currency, format } = useCurrency();
   const { cards, addCard } = usePaymentMethods();
   const [selectedAsset, setSelectedAsset] = useState(cryptoAssets.find((a) => a.id === 'usdt')!);
@@ -53,7 +59,10 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
       <div style={{ height: 50 }} />
-      <div className="px-5 pt-2"><WalletFeatureBanner feature="onramp" /></div>
+      <div className="px-5 pt-2">
+        <WalletFeatureBanner feature="onramp" />
+        {apiError && <FeatureAlert reason={mapApiCodeToReason(apiError.code)} message={apiError.message} detail={apiError.code} />}
+      </div>
 
       <div className="flex items-center gap-3 px-5 mb-5">
         <motion.button whileTap={{ scale: 0.9 }} onClick={step === 'form' ? goBack : () => setStep('form')} className="w-10 h-10 rounded-2xl flex items-center justify-center glass-card" style={{ border: '1px solid var(--border)' }}>
@@ -91,7 +100,25 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
             <OnRampInstructionsStep
               currency={currency} amount={amount} paymentMethod={paymentMethod}
               copied={copied} onCopy={copyAccount}
-              onPaid={() => { setStep('processing'); setTimeout(() => setStep('done'), 3000); }}
+              onPaid={async () => {
+                if (!userId) { setApiError({ message: 'Sign in required' }); return; }
+                setStep('processing');
+                setApiError(null);
+                try {
+                  await fiatApi.onrampOrder({
+                    userId,
+                    fiatCurrency: currency.code || 'NGN',
+                    fiatAmount: String(amount),
+                    toAsset: selectedAsset.symbol,
+                    paymentMethod: paymentMethod === 'card' ? 'card' : 'bank_transfer',
+                  });
+                  setStep('done');
+                } catch (err) {
+                  if (err instanceof ApiError) setApiError({ code: err.code, message: err.body.message || err.message });
+                  else setApiError({ message: 'On-ramp order failed' });
+                  setStep('payment-instructions');
+                }
+              }}
             />
           )}
 

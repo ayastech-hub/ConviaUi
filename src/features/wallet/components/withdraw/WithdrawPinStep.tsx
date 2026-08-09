@@ -39,7 +39,7 @@ export function WithdrawPinStep({ pin, onPinChange, error, onCancel }: WithdrawP
           ))}
         </div>
         {error && <p style={{ color: 'var(--destructive)', fontSize: 13, marginBottom: 16 }}>{error}</p>}
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 11, marginBottom: 24 }}>Demo PIN: 1234</p>
+        
         <motion.button whileTap={{ scale: 0.97 }} onClick={onCancel} className="w-full py-3.5 rounded-[16px]" style={{ background: 'var(--muted)', color: 'var(--foreground)', fontWeight: 600, fontSize: 15 }}>
           Cancel
         </motion.button>
