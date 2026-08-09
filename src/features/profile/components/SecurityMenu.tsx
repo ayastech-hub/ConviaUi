@@ -5,6 +5,9 @@ import { ListSection } from '../../../shared/components/ListSection';
 import { ListRow } from '../../../shared/components/ListRow';
 import { ToggleSwitch } from '../../../shared/components/ToggleSwitch';
 import type { SecurityStep } from './types';
+import { useEffect, useState } from 'react';
+import { useAuth } from '../../../shared/context/AuthContext';
+import * as securityApi from '../../../shared/api/security';
 
 interface SecurityMenuProps {
   goBack: () => void;
@@ -28,6 +31,13 @@ export function SecurityMenu({
   loginAlerts, setLoginAlerts, txAlerts, setTxAlerts,
   hideBalance, setHideBalance,
 }: SecurityMenuProps) {
+  const { userId } = useAuth();
+  const [antiPhishing, setAntiPhishing] = useState('');
+  useEffect(() => {
+    if (!userId) return;
+    securityApi.getAntiPhishingCode(userId).then((r) => setAntiPhishing(r.code)).catch(() => {});
+  }, [userId]);
+
   const toggles = [
     { icon: Fingerprint, label: 'Biometric Login', desc: 'Face ID / Fingerprint', value: biometric, onChange: () => setBiometric(!biometric) },
     { icon: Shield, label: '2FA Authentication', desc: 'Google Authenticator', value: twoFA, onChange: () => setTwoFA(!twoFA) },
@@ -37,8 +47,8 @@ export function SecurityMenu({
   ];
 
   const actions: { icon: typeof Lock; label: string; desc: string; step: SecurityStep }[] = [
-    { icon: Lock, label: 'Change PIN', desc: 'Update your 4-digit PIN', step: 'pin' },
-    { icon: KeyRound, label: 'Recovery Phrase', desc: 'View your 12-word seed', step: 'recovery' },
+    { icon: Lock, label: 'Change PIN', desc: 'Update your 6-digit transaction PIN', step: 'pin' },
+    { icon: KeyRound, label: 'Recovery Phrase', desc: 'View your BIP39 seed', step: 'recovery' },
     { icon: Smartphone, label: 'Active Sessions', desc: 'Manage logged-in devices', step: 'devices' },
     { icon: Shield, label: 'Address Whitelist', desc: 'Restrict withdrawals', step: 'whitelist' },
   ];
@@ -64,7 +74,14 @@ export function SecurityMenu({
           </div>
         </div>
 
-        <ListSection title="PROTECTION">
+        {antiPhishing ? (
+        <div className="rounded-[16px] p-4 mb-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 600, marginBottom: 4 }}>ANTI-PHISHING CODE</p>
+          <p style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 18, letterSpacing: 2 }}>{antiPhishing}</p>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 11, marginTop: 6 }}>Convia emails include this code — ignore messages without it.</p>
+        </div>
+      ) : null}
+      <ListSection title="PROTECTION">
           {toggles.map((t) => (
             <ListRow key={t.label} icon={t.icon} label={t.label} desc={t.desc} trailing={<ToggleSwitch checked={t.value} onChange={t.onChange} />} />
           ))}

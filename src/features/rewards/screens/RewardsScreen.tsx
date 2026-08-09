@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft } from 'lucide-react';
 import { ReferralModal } from '../../../shared/components/ReferralModal';
@@ -6,6 +6,8 @@ import { initialBadges, initialTasks, type RedeemState } from '../components/rew
 import { PointsCard, StreakCard } from '../components/PointsAndStreakCards';
 import { OverviewTab, TasksTab, BadgesTab } from '../components/RewardsTabs';
 import { RedeemModal } from '../components/RedeemModal';
+import { useAuth } from '../../../shared/context/AuthContext';
+import * as rewardsApi from '../../../shared/api/rewards';
 
 interface RewardsScreenProps {
   goBack: () => void;
@@ -14,7 +16,16 @@ interface RewardsScreenProps {
 export function RewardsScreen({ goBack }: RewardsScreenProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'tasks' | 'badges'>('overview');
   const [showReferral, setShowReferral] = useState(false);
+  const { userId } = useAuth();
   const [points, setPoints] = useState(2450);
+
+  useEffect(() => {
+    if (!userId) return;
+    rewardsApi.getRewardsProfile(userId).then((p) => {
+      const pts = Number((p as { points?: number; balance?: number }).points ?? (p as { balance?: number }).balance ?? 0);
+      if (pts) setPoints(pts);
+    }).catch(() => {});
+  }, [userId]);
   const [tasks, setTasks] = useState(initialTasks);
   const [toast, setToast] = useState<string | null>(null);
   const [redeemState, setRedeemState] = useState<RedeemState>('idle');

@@ -1,8 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, Plus, Building, CreditCard, Trash2, Check, X, Phone, Shield, User } from 'lucide-react';
 import { useCurrency, CURRENCIES } from '../../../shared/context/CurrencyContext';
 import { usePaymentMethods } from '../../../shared/context/PaymentMethodsContext';
+import { useAuth } from '../../../shared/context/AuthContext';
+import * as banksApi from '../../../shared/api/banks';
+import type { BankAccount } from '../../../shared/api/banks';
+import { ApiError } from '../../../shared/api/types';
+import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 
 interface PaymentMethodsScreenProps {
   goBack: () => void;
@@ -10,17 +15,58 @@ interface PaymentMethodsScreenProps {
 
 export function PaymentMethodsScreen({ goBack }: PaymentMethodsScreenProps) {
   const { currency } = useCurrency();
-  const { bankAccounts, cards, kycName, addBankAccount, removeBankAccount, addCard, removeCard } = usePaymentMethods();
+  const { userId } = useAuth();
+  const { cards, kycName, addCard, removeCard } = usePaymentMethods();
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [showAddBank, setShowAddBank] = useState(false);
   const [showAddCard, setShowAddCard] = useState(false);
-  const [newBank, setNewBank] = useState({ bankName: '', accountNumber: '', currency: currency.code, type: 'bank' as 'bank' | 'mobile' });
+  const [newBank, setNewBank] = useState({ bankName: '', bankCode: '', accountNumber: '', country: 'NG', currency: currency.code, type: 'bank' as 'bank' | 'mobile' });
   const [newCard, setNewCard] = useState({ number: '', expiry: '', cvc: '' });
+  const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
+  const [loadingBanks, setLoadingBanks] = useState(false);
 
-  const handleAddBank = () => {
-    if (!newBank.bankName || !newBank.accountNumber) return;
-    addBankAccount(newBank);
-    setNewBank({ bankName: '', accountNumber: '', currency: currency.code, type: 'bank' });
-    setShowAddBank(false);
+  const loadBanks = async () => {
+    if (!userId) { setBankAccounts([]); return; }
+    setLoadingBanks(true);
+    try {
+      const list = await banksApi.listBankAccounts(userId);
+      setBankAccounts(Array.isArray(list) ? list : []);
+    } catch {
+      setBankAccounts([]);
+    } finally {
+      setLoadingBanks(false);
+    }
+  };
+
+  useEffect(() => { void loadBanks(); }, [userId]);
+
+  const handleAddBank = async () => {
+    if (!userId) { setApiError({ message: 'Sign in required' }); return; }
+    if (!newBank.bankCode || !newBank.accountNumber) return;
+    setApiError(null);
+    try {
+      await banksApi.addBankAccount(userId, {
+        country: newBank.country,
+        bankCode: newBank.bankCode,
+        accountNumber: newBank.accountNumber,
+      });
+      setNewBank({ bankName: '', bankCode: '', accountNumber: '', country: 'NG', currency: currency.code, type: 'bank' });
+      setShowAddBank(false);
+      await loadBanks();
+    } catch (err) {
+      if (err instanceof ApiError) setApiError({ code: err.code, message: err.body.message || err.message });
+      else setApiError({ message: 'Could not add bank account' });
+    }
+  };
+
+  const handleRemoveBank = async (id: string) => {
+    if (!userId) return;
+    try {
+      await banksApi.removeBankAccount(userId, id);
+      await loadBanks();
+    } catch (err) {
+      if (err instanceof ApiError) setApiError({ code: err.code, message: err.message });
+    }
   };
 
   const handleAddCard = () => {
@@ -34,6 +80,11 @@ export function PaymentMethodsScreen({ goBack }: PaymentMethodsScreenProps) {
   return (
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
       <div style={{ height: 50 }} />
+      {apiError && (
+        <div className="px-5">
+          <FeatureAlert reason={mapApiCodeToReason(apiError.code)} message={apiError.message} detail={apiError.code} />
+        </div>
+      )}
 
       <div className="flex items-center gap-3 px-5 mb-6">
         <motion.button whileTap={{ scale: 0.9 }} onClick={goBack} className="w-10 h-10 rounded-2xl flex items-center justify-center glass-card" style={{ border: '1px solid var(--border)' }}>
@@ -102,11 +153,11 @@ export function PaymentMethodsScreen({ goBack }: PaymentMethodsScreenProps) {
                 {account.type === 'bank' ? <Building size={18} style={{ color: 'var(--foreground)' }} /> : <Phone size={18} style={{ color: 'var(--foreground)' }} />}
               </div>
               <div className="flex-1">
-                <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>{account.bankName}</p>
-                <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>{account.accountNumber} · {account.currency}</p>
+                <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>{account.bankName || account.bankCode || "Bank"}</p>
+                <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>{account.accountNumber || (account.last4 ? `•••• ${account.last4}` : "—")} · {account.currency}</p>
                 <p style={{ color: 'var(--muted-foreground)', fontSize: 10 }}>{account.accountName}</p>
               </div>
-              <motion.button whileTap={{ scale: 0.9 }} onClick={() => removeBankAccount(account.id)} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--muted)' }}>
+              <motion.button whileTap={{ scale: 0.9 }} onClick={() => void handleRemoveBank(account.id)} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--muted)' }}>
                 <Trash2 size={14} style={{ color: 'var(--destructive)' }} />
               </motion.button>
             </div>

@@ -65,3 +65,8 @@ export function submitKyc(
 ) {
   return api.post(`/compliance/${userId}/kyc/submit`, body);
 }
+
+
+export function getAntiPhishingCode(userId: string) {
+  return api.get<{ code: string }>(`/security/${userId}/anti-phishing-code`);
+}

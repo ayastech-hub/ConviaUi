@@ -36,3 +36,15 @@ Username is stored on register in the local session (backend login does not retu
 | **Rewards points badge on Profile row** | `GET /rewards/:userId` exists; Profile list badge still hard-coded until Rewards screen is wired |
 
 Prefer route source code over backend README when extending.
+
+
+## Updated (profile continuation + services)
+
+Also wired:
+- Anti-phishing code on Security menu
+- Settings push/email prefs → notification preferences API
+- Currency picker → preferredCurrency on profile
+- Payment methods bank list/add/remove
+- Services bills billers + pay
+- Notifications inbox
+- Rewards points from GET /rewards/:userId

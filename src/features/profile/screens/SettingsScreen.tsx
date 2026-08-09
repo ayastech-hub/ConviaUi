@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell, Globe, Moon, Sun } from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
@@ -9,6 +9,9 @@ import { ListRow } from '../../../shared/components/ListRow';
 import { ToggleSwitch } from '../../../shared/components/ToggleSwitch';
 import { CurrencyPickerView } from '../components/CurrencyPickerView';
 import { SignOutButton } from '../components/SignOutButton';
+import { useAuth } from '../../../shared/context/AuthContext';
+import * as notifApi from '../../../shared/api/notifications';
+import * as profileApi from '../../../shared/api/profile';
 
 interface SettingsScreenProps {
   goBack: () => void;
@@ -21,15 +24,40 @@ export function SettingsScreen({ goBack }: SettingsScreenProps) {
   const { currency, setCurrency } = useCurrency();
   const [darkMode, setDarkMode] = useState(true);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const { userId } = useAuth();
   const [notifications, setNotifications] = useState(true);
   const [emailNotifs, setEmailNotifs] = useState(false);
   const [priceAlerts, setPriceAlerts] = useState(true);
+
+  useEffect(() => {
+    if (!userId) return;
+    notifApi.getNotificationPreferences(userId).then((prefs) => {
+      const list = Array.isArray(prefs) ? prefs : [];
+      for (const p of list) {
+        if (p.channel === 'push' || p.channel === 'in_app') setNotifications(Boolean(p.enabled));
+        if (p.channel === 'email') setEmailNotifs(Boolean(p.enabled));
+      }
+    }).catch(() => {});
+  }, [userId]);
+
+  const togglePush = (v: boolean) => {
+    setNotifications(v);
+    if (userId) void notifApi.setNotificationPreference(userId, 'push', v);
+  };
+  const toggleEmail = (v: boolean) => {
+    setEmailNotifs(v);
+    if (userId) void notifApi.setNotificationPreference(userId, 'email', v);
+  };
 
   if (showCurrencyPicker) {
     return (
       <CurrencyPickerView
         currentCode={currency.code}
-        onSelect={(c) => { setCurrency(c); setShowCurrencyPicker(false); }}
+        onSelect={(c) => {
+          setCurrency(c);
+          setShowCurrencyPicker(false);
+          if (userId) void profileApi.updateMyProfile({ preferredCurrency: c.code });
+        }}
         onBack={() => setShowCurrencyPicker(false)}
       />
     );
@@ -70,13 +98,13 @@ export function SettingsScreen({ goBack }: SettingsScreenProps) {
             icon={Bell}
             label="Push Notifications"
             desc="Transaction & security alerts"
-            trailing={<ToggleSwitch checked={notifications} onChange={() => setNotifications(!notifications)} />}
+            trailing={<ToggleSwitch checked={notifications} onChange={() => togglePush(!notifications)} />}
           />
           <ListRow
             icon={Bell}
             label="Email Notifications"
             desc="Weekly summary & alerts"
-            trailing={<ToggleSwitch checked={emailNotifs} onChange={() => setEmailNotifs(!emailNotifs)} />}
+            trailing={<ToggleSwitch checked={emailNotifs} onChange={() => toggleEmail(!emailNotifs)} />}
           />
           <ListRow
             icon={Bell}

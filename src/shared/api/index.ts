@@ -12,3 +12,6 @@ export * as complianceApi from './compliance';
 export * as tokensApi from './tokens';
 export * as profileApi from './profile';
 export * as rewardsApi from './rewards';
+export * as banksApi from './banks';
+export * as billsApi from './bills';
+export * as notificationsApi from './notifications';
