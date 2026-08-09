@@ -53,28 +53,6 @@ export function postMessage(caseId: string, body: string, attachments?: SupportA
   return api.post<SupportMessage>(`/support/cases/${caseId}/messages`, { body, attachments });
 }
 
-export function adminListCases(status?: string) {
-  const q = status ? `?status=${encodeURIComponent(status)}` : '';
-  return api.get<{ cases: SupportCase[] }>(`/admin/support/cases${q}`);
-}
-
-export function adminGetCase(caseId: string) {
-  return api.get<SupportCase>(`/admin/support/cases/${caseId}`);
-}
-
-export function adminReply(caseId: string, body: string, attachments?: SupportAttachment[]) {
-  return api.post<SupportMessage>(`/admin/support/cases/${caseId}/messages`, { body, attachments });
-}
-
-export function adminCloseCase(caseId: string) {
-  return api.post<SupportCase>(`/admin/support/cases/${caseId}/close`, {});
-}
-
-export function adminReopenCase(caseId: string) {
-  return api.post<SupportCase>(`/admin/support/cases/${caseId}/reopen`, {});
-}
-
-/** Read file as attachment meta (data URL), max ~400KB. */
 export function fileToAttachment(file: File): Promise<SupportAttachment> {
   return new Promise((resolve, reject) => {
     if (file.size > 400_000) {

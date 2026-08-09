@@ -24,7 +24,6 @@ interface ProfileScreenProps {
 const SUPPORT_ITEMS = [
   { label: 'Help Center', icon: HelpCircle, screen: 'help-center' as Screen, desc: 'FAQs & guides' },
   { label: 'Support Centre', icon: HelpCircle, screen: 'support-center' as Screen, desc: 'Cases & live chat with agents' },
-  { label: 'Support Desk', icon: Settings, screen: 'support-desk' as Screen, desc: 'Agent console (admin)' },
   { label: 'About Convia', icon: Settings, screen: 'about' as Screen, desc: 'Terms, privacy, licenses' },
 ];
 

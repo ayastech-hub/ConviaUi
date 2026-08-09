@@ -5,7 +5,7 @@ export type Screen =
   | 'deposit' | 'withdraw' | 'swap' | 'offramp' | 'onramp'
   | 'send' | 'receive' | 'notifications' | 'rewards'
   | 'settings' | 'security' | 'kyc' | 'chat' | 'portfolio'
-  | 'help-center' | 'about' | 'support-center' | 'support-desk' | 'payment-methods' | 'services' | 'edit-profile';
+  | 'help-center' | 'about' | 'support-center' | 'payment-methods' | 'services' | 'edit-profile';
 
 export interface Asset {
   id: string;
