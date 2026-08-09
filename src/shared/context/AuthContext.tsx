@@ -1,3 +1,4 @@
+import { queryClient } from '../query/queryClient';
 import {
   createContext,
   useCallback,
@@ -121,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } finally {
       cacheInvalidate();
+      queryClient.clear();
       setSession(null);
     }
   }, [session?.sessionId, setSession]);

@@ -1,77 +1,50 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { fetchKyc, type KycRecord } from '../api/compliance';
 import { ApiError } from '../api/types';
-import { cacheGet, cacheSet, cacheInvalidate } from '../cache/queryCache';
+import { queryKeys } from '../query/queryClient';
 
-/**
- * Live KYC status from GET /compliance/:userId/kyc.
- * Cached briefly; always revalidated in background. Never invents "approved".
- */
 export function useKycStatus() {
   const { userId, status } = useAuth();
-  const cacheKey = userId ? `kyc:${userId}` : '';
-  const cached = cacheKey ? cacheGet<KycRecord | null>(cacheKey, 30_000) : undefined;
+  const qc = useQueryClient();
+  const enabled = status === 'authenticated' && !!userId;
 
-  const [kyc, setKyc] = useState<KycRecord | null>(cached !== undefined ? cached : null);
-  const [loading, setLoading] = useState(status === 'authenticated' && cached === undefined);
-  const [fetched, setFetched] = useState(cached !== undefined);
-
-  const refresh = useCallback(async () => {
-    if (!userId || status !== 'authenticated') {
-      setKyc(null);
-      setLoading(false);
-      setFetched(true);
-      return;
-    }
-    const key = `kyc:${userId}`;
-    const existing = cacheGet<KycRecord | null>(key, 30_000);
-    if (existing !== undefined) {
-      setKyc(existing);
-      setLoading(false);
-      setFetched(true);
-    } else if (!fetched) {
-      setLoading(true);
-    }
-
-    try {
-      const data = await fetchKyc(userId);
-      cacheSet(key, data);
-      setKyc(data);
-    } catch (err) {
-      // 404 / none → no KYC record
-      if (err instanceof ApiError && (err.status === 404 || err.code === 'not_found')) {
-        cacheSet(key, null);
-        setKyc(null);
+  const q = useQuery({
+    queryKey: queryKeys.kyc(userId || '_'),
+    queryFn: async (): Promise<KycRecord | null> => {
+      try {
+        return await fetchKyc(userId!);
+      } catch (err) {
+        if (err instanceof ApiError && (err.status === 404 || err.code === 'not_found')) {
+          return null;
+        }
+        throw err;
       }
-      // keep prior on network errors
-    } finally {
-      setLoading(false);
-      setFetched(true);
-    }
-  }, [userId, status, fetched]);
+    },
+    enabled,
+    staleTime: 15_000,
+  });
 
-  useEffect(() => {
-    if (status === 'loading') return;
-    void refresh();
-  }, [status, userId]); // eslint-disable-line react-hooks/exhaustive-deps
-
+  const kyc = q.data ?? null;
   const raw = (kyc?.status || 'none').toString().toLowerCase();
-  const isApproved = raw === 'approved' || raw === 'verified' || raw === 'complete' || raw === 'completed';
+  const isApproved =
+    raw === 'approved' || raw === 'verified' || raw === 'complete' || raw === 'completed';
   const isPending =
-    raw === 'pending' || raw === 'in_review' || raw === 'submitted' || raw === 'processing' || raw === 'under_review';
-  const needsKyc = status === 'authenticated' && fetched && !isApproved;
+    raw === 'pending' || raw === 'in_review' || raw === 'submitted' || raw === 'processing';
+  const isRejected = raw === 'rejected' || raw === 'failed' || raw === 'denied';
 
   return {
     kyc,
-    loading: status === 'authenticated' && !fetched,
-    refresh,
+    kycStatus: raw,
+    loading: enabled && q.isLoading,
+    fetched: !enabled || q.isFetched,
     isApproved,
     isPending,
-    needsKyc,
-    kycStatus: raw,
+    isRejected,
+    isFetching: q.isFetching,
+    refresh: () => q.refetch(),
     invalidate: () => {
-      if (userId) cacheInvalidate(`kyc:${userId}`);
+      if (userId) void qc.invalidateQueries({ queryKey: queryKeys.kyc(userId) });
     },
   };
 }

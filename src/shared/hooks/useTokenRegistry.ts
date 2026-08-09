@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { Asset } from '../data/mockData';
 import {
   fetchTokenCatalog,
@@ -6,10 +7,7 @@ import {
   type RegistryToken,
   type RegistryChain,
 } from '../api/registry';
-import { cacheGet, cacheSet } from '../cache/queryCache';
-
-const TOKENS_KEY = 'registry:tokens';
-const CHAINS_KEY = 'registry:chains';
+import { queryKeys } from '../query/queryClient';
 
 function tokenToAsset(t: RegistryToken): Asset {
   const chainLabels = (t.chains || [])
@@ -31,74 +29,42 @@ function tokenToAsset(t: RegistryToken): Asset {
   };
 }
 
-type State = {
-  tokens: RegistryToken[];
-  chains: RegistryChain[];
-  assets: Asset[];
-  loading: boolean;
-  error: string | null;
-  source: 'live' | 'none';
-};
-
 export function useTokenRegistry() {
-  const cachedTokens = cacheGet<RegistryToken[]>(TOKENS_KEY, 5 * 60_000);
-  const cachedChains = cacheGet<RegistryChain[]>(CHAINS_KEY, 5 * 60_000);
-
-  const [state, setState] = useState<State>({
-    tokens: cachedTokens || [],
-    chains: cachedChains || [],
-    assets: (cachedTokens || []).map(tokenToAsset),
-    loading: !cachedTokens,
-    error: null,
-    source: cachedTokens ? 'live' : 'none',
+  const tokensQ = useQuery({
+    queryKey: queryKeys.tokens(),
+    queryFn: async () => {
+      const res = await fetchTokenCatalog();
+      return res.tokens || [];
+    },
+    staleTime: 5 * 60_000,
   });
 
-  const refresh = useCallback(async () => {
-    setState((s) => ({
-      ...s,
-      loading: s.assets.length === 0,
-    }));
-    try {
-      const [tokRes, chainRes] = await Promise.all([
-        fetchTokenCatalog(),
-        fetchChainCatalog().catch(() => ({ chains: [] as RegistryChain[] })),
-      ]);
-      const tokens = tokRes.tokens || [];
-      const chains = chainRes.chains || [];
-      cacheSet(TOKENS_KEY, tokens);
-      cacheSet(CHAINS_KEY, chains);
-      setState({
-        tokens,
-        chains,
-        assets: tokens.map(tokenToAsset),
-        loading: false,
-        error: null,
-        source: 'live',
-      });
-    } catch (err) {
-      setState((s) => ({
-        ...s,
-        loading: false,
-        error: 'registry_unavailable',
-        source: s.assets.length ? 'live' : 'none',
-      }));
-    }
-  }, []);
+  const chainsQ = useQuery({
+    queryKey: queryKeys.chains(),
+    queryFn: async () => {
+      try {
+        const res = await fetchChainCatalog();
+        return res.chains || [];
+      } catch {
+        return [] as RegistryChain[];
+      }
+    },
+    staleTime: 5 * 60_000,
+  });
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  const tokens = tokensQ.data || [];
+  const chains = chainsQ.data || [];
+  const assets = useMemo(() => tokens.map(tokenToAsset), [tokens]);
 
   const getAsset = useCallback(
     (symbol: string) =>
-      state.assets.find((a) => a.symbol.toUpperCase() === symbol.toUpperCase()) ||
-      state.assets[0],
-    [state.assets],
+      assets.find((a) => a.symbol.toUpperCase() === symbol.toUpperCase()) || assets[0],
+    [assets],
   );
 
   const chainKeysForSymbol = useCallback(
     (symbol: string, direction?: 'deposit' | 'withdraw') => {
-      const tok = state.tokens.find((t) => t.symbol.toUpperCase() === symbol.toUpperCase());
+      const tok = tokens.find((t) => t.symbol.toUpperCase() === symbol.toUpperCase());
       if (!tok) return [] as string[];
       return (tok.chains || [])
         .filter((c) => {
@@ -109,18 +75,25 @@ export function useTokenRegistry() {
         .map((c) => c.chainKey || c.key || c.chainName || c.name || '')
         .filter(Boolean);
     },
-    [state.tokens],
+    [tokens],
   );
 
   return {
-    ...state,
-    refresh,
+    tokens,
+    chains,
+    assets,
+    loading: tokensQ.isLoading,
+    error: tokensQ.error ? 'registry_unavailable' : null,
+    source: tokens.length ? ('live' as const) : ('none' as const),
+    isFetching: tokensQ.isFetching || chainsQ.isFetching,
+    refresh: async () => {
+      await Promise.all([tokensQ.refetch(), chainsQ.refetch()]);
+    },
     getAsset,
     chainKeysForSymbol,
   };
 }
 
-/** Resolve UI network label → API chainKey when possible. */
 export function chainLabelToKey(label: string, chains: RegistryChain[]): string {
   const n = label.toLowerCase().replace(/\s+/g, '');
   const hit = chains.find((c) => {
