@@ -8,6 +8,7 @@ import { OffRampFormStep } from '../components/offramp/OffRampFormStep';
 import { OffRampReviewStep, OffRampProcessingStep, OffRampDoneStep } from '../components/offramp/OffRampStatusSteps';
 import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
 import { useAuth } from '../../../shared/context/AuthContext';
+import { useKycStatus } from '../../../shared/hooks/useKycStatus';
 import * as fiatApi from '../../../shared/api/fiat';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
@@ -27,6 +28,7 @@ export function OffRampScreen({ goBack, navigate }: OffRampScreenProps) {
   const { currency, format } = useCurrency();
   const { bankAccounts } = usePaymentMethods();
   const { userId } = useAuth();
+  const { isApproved } = useKycStatus();
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
   const [eligibility, setEligibility] = useState<{ canOfframp?: boolean; kycStatus?: string; action?: string } | null>(null);
   useEffect(() => {
@@ -67,7 +69,7 @@ export function OffRampScreen({ goBack, navigate }: OffRampScreenProps) {
         {apiError && (
           <FeatureAlert reason={mapApiCodeToReason(apiError.code)} message={apiError.message} detail={apiError.code} />
         )}
-        {eligibility && eligibility.action === 'complete_kyc' && (
+        {eligibility && eligibility.action === 'complete_kyc' && !isApproved && (
           <FeatureAlert reason="kyc_required" message="Off-ramp requires approved KYC and a bank account in your legal name." onAction={() => navigate('kyc')} actionLabel="Start KYC" />
         )}
         {eligibility && eligibility.action === 'add_payment_details' && (

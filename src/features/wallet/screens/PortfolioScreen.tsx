@@ -5,7 +5,6 @@ import {
   AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
   PieChart, Pie, Cell,
 } from 'recharts';
-import { cryptoAssets, portfolioChartData } from '../../../shared/data/mockData';
 import { usePortfolio } from '../../../shared/hooks/usePortfolio';
 import { holdingToAsset } from '../../../shared/utils/mapApiToUi';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
@@ -24,9 +23,9 @@ export function PortfolioScreen({ goBack }: PortfolioScreenProps) {
   const { data, source } = usePortfolio();
   const totalUSD = data ? Number(data.totalValueUsd) || 0 : 0;
   const assets = (data?.holdings || []).map(holdingToAsset);
-  const list = assets.length ? assets : cryptoAssets;
+  const list = assets;
 
-  const chartData = portfolioChartData.slice(period === '1D' ? 28 : period === '1W' ? 23 : 0);
+  const chartData: { time: string; value: number }[] = []; // live history snapshots not exposed yet
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
@@ -130,7 +129,7 @@ export function PortfolioScreen({ goBack }: PortfolioScreenProps) {
             {list.map((asset, i) => {
               const pnl = asset.valueUSD * (asset.change24h / 100);
               return (
-                <div key={asset.id} className="flex items-center gap-3 px-4 py-3.5" style={{ borderBottom: i < cryptoAssets.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                <div key={asset.id} className="flex items-center gap-3 px-4 py-3.5" style={{ borderBottom: i < list.length - 1 ? '1px solid var(--border)' : 'none' }}>
                   <AssetIcon symbol={asset.symbol} size={36} />
                   <div className="flex-1">
                     <div className="flex justify-between mb-0.5">

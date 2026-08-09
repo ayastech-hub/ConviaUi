@@ -1,7 +1,7 @@
 import { motion } from 'motion/react';
 import { Eye, EyeOff, TrendingUp, Loader } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
-import { portfolioChartData } from '../../../shared/data/mockData';
+import { useMemo } from 'react';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { usePortfolio } from '../../../shared/hooks/usePortfolio';
 import { useAuth } from '../../../shared/context/AuthContext';
@@ -12,18 +12,25 @@ interface PortfolioHeroCardProps {
 }
 
 /**
- * Home hero balance. Prefers live GET /portfolio/:userId
- * (totalValueUsd + holdings from ledger). Falls back to empty $0 when
- * anonymous or API unreachable — never invents balances.
+ * Home hero balance from GET /portfolio/:userId only — no mock balances or mock charts.
  */
 export function PortfolioHeroCard({ balanceVisible, onToggleVisibility }: PortfolioHeroCardProps) {
-  const { format } = useCurrency();
+  const { format, currency } = useCurrency();
   const { status } = useAuth();
   const { data, loading, source } = usePortfolio();
 
   const totalUSD = data ? Number(data.totalValueUsd) || 0 : 0;
-  // NGN display is a soft estimate until FX endpoint is wired into CurrencyContext.
-  const totalNGN = totalUSD * 1600;
+  const rate = currency?.rate && currency.rate > 0 ? currency.rate : 1;
+  const localApprox = totalUSD * rate;
+
+  // Flat sparkline from live total only (no fabricated history)
+  const chartData = useMemo(
+    () =>
+      totalUSD > 0
+        ? Array.from({ length: 12 }, (_, i) => ({ i, value: totalUSD }))
+        : [],
+    [totalUSD],
+  );
 
   return (
     <div className="px-5 mb-5">
@@ -31,7 +38,11 @@ export function PortfolioHeroCard({ balanceVisible, onToggleVisibility }: Portfo
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="rounded-[24px] overflow-hidden p-5 glass-card glass-refraction"
-        style={{ background: 'var(--card)', boxShadow: '0 20px 60px var(--border)', border: '1px solid var(--muted)' }}
+        style={{
+          background: 'var(--card)',
+          boxShadow: '0 20px 60px var(--border)',
+          border: '1px solid var(--muted)',
+        }}
       >
         <div className="relative">
           <div className="flex items-center justify-between mb-1">
@@ -65,7 +76,13 @@ export function PortfolioHeroCard({ balanceVisible, onToggleVisibility }: Portfo
           )}
 
           <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginBottom: 12 }}>
-            {balanceVisible ? `≈ ₦${totalNGN.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '••••'}
+            {balanceVisible
+              ? currency?.code && currency.code !== 'USD'
+                ? `≈ ${currency.symbol || ''}${localApprox.toLocaleString(undefined, { maximumFractionDigits: 0 })} ${currency.code}`
+                : source === 'live'
+                  ? 'Ledger total'
+                  : '—'
+              : '••••'}
           </p>
 
           <div className="flex items-center gap-1.5 mb-3">
@@ -79,19 +96,21 @@ export function PortfolioHeroCard({ balanceVisible, onToggleVisibility }: Portfo
             </span>
           </div>
 
-          <div style={{ height: 56, marginLeft: -8, marginRight: -8 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={portfolioChartData}>
-                <defs>
-                  <linearGradient id="pfGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <Area type="monotone" dataKey="value" stroke="var(--primary)" fill="url(#pfGrad)" strokeWidth={2} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          {chartData.length > 0 && (
+            <div style={{ height: 56, marginLeft: -8, marginRight: -8 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="pfGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <Area type="monotone" dataKey="value" stroke="var(--primary)" fill="url(#pfGrad)" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       </motion.div>
     </div>

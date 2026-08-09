@@ -4,66 +4,72 @@ import { ChevronRight } from 'lucide-react';
 import { AssetIcon } from '../../../shared/components/AssetIcon';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { fetchTokensInfo, type TokenMarketInfo } from '../../../shared/api/tokens';
-import { marketData } from '../../../shared/data/mockData';
+import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
+import { cacheGet, cacheSet } from '../../../shared/cache/queryCache';
 
 interface MarketWatchlistProps {
   onSeeAll: () => void;
   onSelectAsset: (symbol: string) => void;
 }
 
-const DEFAULT_SYMBOLS = ['BTC', 'ETH', 'SOL', 'BNB'];
-
-/** Markets row — prefers GET /tokens/info, falls back to static list if API down. */
+/** Markets from GET /tokens/info for registry symbols — no mock marketData. */
 export function MarketWatchlist({ onSeeAll, onSelectAsset }: MarketWatchlistProps) {
   const { format } = useCurrency();
+  const { assets, loading: regLoading } = useTokenRegistry();
   const [rows, setRows] = useState<
-    Array<{ symbol: string; price: number; change: number; vol: string; live: boolean }>
+    Array<{ symbol: string; price: number; change: number; vol: string }>
   >([]);
-  const [source, setSource] = useState<'live' | 'fallback'>('fallback');
+  const [loading, setLoading] = useState(true);
+  const [live, setLive] = useState(false);
 
   useEffect(() => {
+    const symbols = (assets.length ? assets : []).map((a) => a.symbol).slice(0, 8);
+    if (!symbols.length) {
+      if (!regLoading) {
+        setRows([]);
+        setLoading(false);
+      }
+      return;
+    }
+    const key = `markets:${symbols.join(',')}`;
+    const cached = cacheGet<typeof rows>(key, 60_000);
+    if (cached) {
+      setRows(cached);
+      setLive(true);
+      setLoading(false);
+    }
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetchTokensInfo(DEFAULT_SYMBOLS);
+        const res = await fetchTokensInfo(symbols);
         const tokens = res.tokens || [];
-        if (!tokens.length) throw new Error('empty');
         if (cancelled) return;
-        setSource('live');
-        setRows(
-          tokens.slice(0, 4).map((t: TokenMarketInfo) => ({
-            symbol: String(t.symbol || '').toUpperCase(),
-            price: Number(t.priceUsd) || 0,
-            change: Number(t.change24h) || 0,
-            vol: t.volume24h != null ? String(t.volume24h) : '—',
-            live: true,
-          })),
-        );
+        const mapped = tokens.map((t: TokenMarketInfo) => ({
+          symbol: String(t.symbol || '').toUpperCase(),
+          price: Number(t.priceUsd) || 0,
+          change: Number(t.change24h) || 0,
+          vol: t.volume24h != null ? String(t.volume24h) : '—',
+        }));
+        cacheSet(key, mapped);
+        setRows(mapped.slice(0, 4));
+        setLive(true);
       } catch {
-        if (cancelled) return;
-        setSource('fallback');
-        setRows(
-          marketData.slice(0, 4).map((a) => ({
-            symbol: a.symbol,
-            price: a.price,
-            change: a.change,
-            vol: a.vol,
-            live: false,
-          })),
-        );
+        if (!cancelled && !cached) setRows([]);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [assets, regLoading]);
 
   return (
     <div className="px-5 mb-5">
       <div className="flex items-center justify-between mb-3">
         <h3 style={{ color: 'var(--foreground)', fontWeight: 700 }}>
           Markets
-          {source === 'live' && (
+          {live && (
             <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 600, color: 'var(--positive)' }}>LIVE</span>
           )}
         </h3>
@@ -75,6 +81,14 @@ export function MarketWatchlist({ onSeeAll, onSelectAsset }: MarketWatchlistProp
           See all <ChevronRight size={14} />
         </button>
       </div>
+      {loading && rows.length === 0 && (
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Loading markets…</p>
+      )}
+      {!loading && rows.length === 0 && (
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
+          No market data yet. Tokens appear when the registry and price API respond.
+        </p>
+      )}
       <div className="flex flex-col gap-2">
         {rows.map((asset, i) => (
           <motion.div

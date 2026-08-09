@@ -12,6 +12,7 @@ import { ProfileCard } from '../components/ProfileCard';
 import { ReferralBanner } from '../components/ReferralBanner';
 import { SignOutButton } from '../components/SignOutButton';
 import { useAuth } from '../../../shared/context/AuthContext';
+import { useKycStatus } from '../../../shared/hooks/useKycStatus';
 import * as rewardsApi from '../../../shared/api/rewards';
 
 interface ProfileScreenProps {
@@ -20,19 +21,6 @@ interface ProfileScreenProps {
   toggleDark: () => void;
 }
 
-const ACCOUNT_ITEMS = [
-  { label: 'Edit Profile', icon: User, screen: 'edit-profile' as Screen, desc: 'Name, username, email, phone' },
-  { label: 'Security Center', icon: Shield, screen: 'security' as Screen, desc: 'PIN, 2FA, devices' },
-  { label: 'Payment Methods', icon: CreditCard, screen: 'payment-methods' as Screen, desc: 'Cards & bank accounts' },
-  { label: 'KYC Verification', icon: FileCheck, screen: 'kyc' as Screen, desc: 'Identity verification' },
-];
-
-const ACTIVITY_ITEMS = [
-  { label: 'Rewards & Points', icon: Gift, screen: 'rewards' as Screen, badge: '2,450 pts', badgeColor: 'var(--muted-foreground)' },
-  { label: 'Portfolio', icon: TrendingUp, screen: 'portfolio' as Screen, badge: null, badgeColor: '' },
-  { label: 'Notifications', icon: Bell, screen: 'notifications' as Screen, badge: '2', badgeColor: 'var(--destructive)' },
-];
-
 const SUPPORT_ITEMS = [
   { label: 'Help Center', icon: HelpCircle, screen: 'help-center' as Screen, desc: 'FAQs & guides' },
   { label: 'About Convia', icon: Settings, screen: 'about' as Screen, desc: 'Terms, privacy, licenses' },
@@ -40,6 +28,23 @@ const SUPPORT_ITEMS = [
 
 export function ProfileScreen({ navigate, darkMode, toggleDark }: ProfileScreenProps) {
   const { userId, status } = useAuth();
+  const { isApproved, isPending, kycStatus } = useKycStatus();
+  const accountItems = [
+    { label: 'Edit Profile', icon: User, screen: 'edit-profile' as Screen, desc: 'Name, username, bio, country' },
+    { label: 'Security Center', icon: Shield, screen: 'security' as Screen, desc: 'PIN, sessions, whitelist' },
+    { label: 'Payment Methods', icon: CreditCard, screen: 'payment-methods' as Screen, desc: 'Bank accounts' },
+    {
+      label: 'KYC Verification',
+      icon: FileCheck,
+      screen: 'kyc' as Screen,
+      desc: isApproved ? 'Verified' : isPending ? `In review (${kycStatus})` : 'Identity verification',
+    },
+  ];
+  const activityItems = [
+    { label: 'Rewards & Points', icon: Gift, screen: 'rewards' as Screen, badge: null as string | null, badgeColor: '' },
+    { label: 'Portfolio', icon: TrendingUp, screen: 'portfolio' as Screen, badge: null as string | null, badgeColor: '' },
+    { label: 'Notifications', icon: Bell, screen: 'notifications' as Screen, badge: null as string | null, badgeColor: '' },
+  ];
   const [showReferral, setShowReferral] = useState(false);
   const [refCode, setRefCode] = useState('');
   const [shareUrl, setShareUrl] = useState('');
@@ -75,13 +80,13 @@ export function ProfileScreen({ navigate, darkMode, toggleDark }: ProfileScreenP
 
       <div className="px-5">
         <ListSection title="ACCOUNT">
-          {ACCOUNT_ITEMS.map((item) => (
+          {accountItems.map((item) => (
             <ListRow key={item.label} icon={item.icon} label={item.label} desc={item.desc} onClick={() => navigate(item.screen)} />
           ))}
         </ListSection>
 
         <ListSection title="ACTIVITY">
-          {ACTIVITY_ITEMS.map((item) => (
+          {activityItems.map((item) => (
             <ListRow
               key={item.label}
               icon={item.icon}

@@ -32,7 +32,7 @@ interface KYCScreenProps {
  */
 export function KYCScreen({ goBack }: KYCScreenProps) {
   const { userId } = useAuth();
-  const { isApproved, isPending, kycStatus, loading: kycLoading } = useKycStatus();
+  const { isApproved, isPending, kycStatus, loading: kycLoading, invalidate: invalidateKyc, refresh: refreshKyc } = useKycStatus();
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
 
   const [activeStep, setActiveStep] = useState(0);
@@ -129,6 +129,8 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
         selfieImageUrl: selfieUrl,
         declaredCountry: country?.code?.length === 2 ? country.code.toUpperCase() : undefined,
       });
+      invalidateKyc();
+      await refreshKyc();
       setSubmitted(true);
     } catch (err) {
       if (err instanceof ApiError) setApiError({ code: err.code, message: err.body.message || err.message });

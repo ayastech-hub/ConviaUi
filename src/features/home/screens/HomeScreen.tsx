@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AnimatePresence } from 'motion/react';
 import { QRScanner } from '../../../shared/components/QRScanner';
 import { parseQRPayload, setSendPrefill } from '../../../shared/utils/qrPayload';
@@ -10,6 +10,8 @@ import { KYCBanner } from '../components/KYCBanner';
 import { QuickActionsRow } from '../components/QuickActionsRow';
 import { MarketWatchlist } from '../components/MarketWatchlist';
 import { RecentTransactionsList } from '../components/RecentTransactionsList';
+import { useAuth } from '../../../shared/context/AuthContext';
+import * as notifApi from '../../../shared/api/notifications';
 
 interface HomeScreenProps {
   navigate: (s: Screen, param?: string) => void;
@@ -18,7 +20,19 @@ interface HomeScreenProps {
   notificationCount: number;
 }
 
-export function HomeScreen({ navigate, notificationCount }: HomeScreenProps) {
+export function HomeScreen({ navigate, notificationCount: notificationCountProp }: HomeScreenProps) {
+  const { userId, status } = useAuth();
+  const [unread, setUnread] = useState(0);
+  useEffect(() => {
+    if (status !== 'authenticated' || !userId) {
+      setUnread(0);
+      return;
+    }
+    notifApi.listNotifications(userId, 30).then((list) => {
+      setUnread((Array.isArray(list) ? list : []).filter((n) => !n.readAt).length);
+    }).catch(() => setUnread(0));
+  }, [userId, status]);
+  const notificationCount = unread || notificationCountProp || 0;
   const [balanceVisible, setBalanceVisible] = useState(true);
   const [showScanner, setShowScanner] = useState(false);
   const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);

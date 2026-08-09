@@ -5,8 +5,8 @@ import { useAuth } from '../context/AuthContext';
 type FeatureKey = 'withdraw' | 'transfer' | 'swap' | 'onramp' | 'offramp' | 'deposit';
 
 /**
- * Preemptive UI gate: shows KYC / sign-in banners on money features.
- * Backend still enforces; this matches server policy so users aren't surprised.
+ * Preemptive UI gate from live KYC status.
+ * Never shows KYC banners when status is approved.
  */
 export function WalletFeatureBanner({
   feature,
@@ -16,31 +16,37 @@ export function WalletFeatureBanner({
   onGoKyc?: () => void;
 }) {
   const { status } = useAuth();
-  const { needsKyc, isPending, isApproved } = useKycStatus();
+  const { needsKyc, isPending, isApproved, loading } = useKycStatus();
 
   if (status === 'anonymous') {
     return <FeatureAlert reason="generic" message="Sign in to use this feature against the live API." />;
   }
 
-  // Off-ramp / higher-risk surfaces require approved KYC (matches offramp eligibility).
-  if ((feature === 'offramp' || feature === 'withdraw') && needsKyc) {
+  if (loading || isApproved || !needsKyc) return null;
+
+  // Stricter surfaces
+  if (feature === 'offramp' || feature === 'withdraw') {
     return (
       <FeatureAlert
         reason={isPending ? 'kyc_pending' : 'kyc_required'}
         onAction={onGoKyc}
-        actionLabel="Complete verification"
+        actionLabel={isPending ? 'View status' : 'Complete verification'}
       />
     );
   }
 
-  if (!isApproved && (feature === 'onramp' || feature === 'transfer')) {
-    // Soft notice — some tiers may still work; backend remains source of truth
+  // Soft notice for other money features only when not verified
+  if (feature === 'onramp' || feature === 'transfer' || feature === 'swap' || feature === 'deposit') {
     return (
       <FeatureAlert
-        reason="kyc_required"
-        message="Higher limits and some fiat rails require KYC. The API will return kyc_required if this action is blocked."
+        reason={isPending ? 'kyc_pending' : 'kyc_required'}
+        message={
+          isPending
+            ? 'Verification is in review. Some limits may still apply.'
+            : 'Complete KYC for higher limits. The API enforces this server-side.'
+        }
         onAction={onGoKyc}
-        actionLabel="Verify identity"
+        actionLabel={isPending ? 'View status' : 'Verify identity'}
         compact
       />
     );
