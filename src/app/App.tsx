@@ -31,6 +31,8 @@ import { KYCScreen } from '../features/profile/screens/KYCScreen';
 import { HelpCenterScreen } from '../features/support/screens/HelpCenterScreen';
 import { AboutScreen } from '../features/support/screens/AboutScreen';
 import { ChatScreen } from '../features/support/screens/ChatScreen';
+import { SupportCenterScreen } from '../features/support/screens/SupportCenterScreen';
+import { SupportDeskScreen } from '../features/support/screens/SupportDeskScreen';
 
 import { NotificationsScreen } from '../features/notifications/screens/NotificationsScreen';
 import { RewardsScreen } from '../features/rewards/screens/RewardsScreen';
@@ -211,7 +213,19 @@ export default function App() {
       case 'chat':
         return (
           <motion.div key="chat" {...slideRight} className="absolute inset-0">
-            <ChatScreen goBack={goBack} />
+            <SupportCenterScreen goBack={goBack} />
+          </motion.div>
+        );
+      case 'support-center':
+        return (
+          <motion.div key="support-center" {...slideRight} className="absolute inset-0">
+            <SupportCenterScreen goBack={goBack} />
+          </motion.div>
+        );
+      case 'support-desk':
+        return (
+          <motion.div key="support-desk" {...slideRight} className="absolute inset-0">
+            <SupportDeskScreen goBack={goBack} />
           </motion.div>
         );
       case 'portfolio':
