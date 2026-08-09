@@ -6,6 +6,14 @@ export type ChatMessage = {
   status: 'sent' | 'read';
 };
 
+export const quickReplies = [
+  'How do I complete KYC?',
+  'How do I deposit crypto?',
+  'How do I add a bank?',
+  'How does swap work?',
+  'Supported countries?',
+];
+
 export const initialMessages: ChatMessage[] = [
   {
     id: 's0',
