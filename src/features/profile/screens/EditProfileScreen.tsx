@@ -5,6 +5,7 @@ import { ScreenHeader } from '../../../shared/components/ScreenHeader';
 import { ProfileFormField } from '../components/ProfileFormField';
 import { AvatarUploader } from '../components/AvatarUploader';
 import { useAuth } from '../../../shared/context/AuthContext';
+import { useSupportedCountries } from '../../../shared/hooks/useSupportedCountries';
 import * as profileApi from '../../../shared/api/profile';
 import { ApiError } from '../../../shared/api/types';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';

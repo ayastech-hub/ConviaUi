@@ -10,8 +10,8 @@ import { ServiceAmountInput } from '../components/ServiceAmountInput';
 import { PaymentSummaryCard } from '../components/PaymentSummaryCard';
 import { ServicePaymentSuccess, type ServiceSuccessInfo } from '../components/ServicePaymentSuccess';
 import { useAuth } from '../../../shared/context/AuthContext';
+import { useSupportedCountries } from '../../../shared/hooks/useSupportedCountries';
 import * as billsApi from '../../../shared/api/bills';
-import type { Biller } from '../../../shared/api/bills';
 import { ApiError } from '../../../shared/api/types';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
@@ -47,7 +47,11 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
   const [loadingBillers, setLoadingBillers] = useState(false);
   const [paying, setPaying] = useState(false);
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
-  const [country, setCountry] = useState('NG');
+  const { countries: marketCountries } = useSupportedCountries();
+  const [country, setCountry] = useState('');
+  useEffect(() => {
+    if (marketCountries.length && !country) setCountry(marketCountries[0].code);
+  }, [marketCountries, country]);
 
   const activeItem = SERVICE_GROUPS.flatMap((g) => g.items).find((i) => i.id === activeService);
 
@@ -219,7 +223,7 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
               className="w-full rounded-[12px] px-3 py-2.5"
               style={{ background: 'var(--muted)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
             >
-              {['NG', 'GH', 'KE', 'ZA', 'EG', 'MA', 'TZ'].map((c) => (
+              {(marketCountries.length ? marketCountries.map((c) => c.code) : []).map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>

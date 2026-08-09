@@ -277,7 +277,7 @@ export default function App() {
             <BottomNav
               activeTab={activeTab as Screen}
               onNavigate={switchTab}
-              onSwap={() => navigate('swap')}
+              onSwap={() => { navigate('swap'); }}
             />
           </div>
         )}

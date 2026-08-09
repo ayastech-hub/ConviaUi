@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, Zap, AlertTriangle } from 'lucide-react';
 import { type Asset, type Transaction } from '../../../shared/data/mockData';
@@ -14,6 +14,9 @@ import { SwapReviewSheet } from '../components/swap/SwapReviewSheet';
 import { SwapProcessingOverlay } from '../components/swap/SwapProcessingOverlay';
 import { SwapSuccessView } from '../components/swap/SwapSuccessView';
 import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
+import { useAuth } from '../../../shared/context/AuthContext';
+import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
+import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
 
 interface SwapScreenProps {
   goBack: () => void;

@@ -14,11 +14,26 @@ export type BankAccount = {
   [key: string]: unknown;
 };
 
+export type DirectoryBank = {
+  code: string;
+  name: string;
+};
+
+export type SupportedCountryRow = {
+  code: string;
+  name?: string;
+  currency?: string;
+  [key: string]: unknown;
+};
+
 export function listBankAccounts(userId: string) {
   return api.get<BankAccount[]>(`/users/${userId}/bank-accounts`);
 }
 
-export function addBankAccount(userId: string, body: { country: string; bankCode: string; accountNumber: string }) {
+export function addBankAccount(
+  userId: string,
+  body: { country: string; bankCode: string; accountNumber: string },
+) {
   return api.post<BankAccount>(`/users/${userId}/bank-accounts`, body);
 }
 
@@ -26,9 +41,30 @@ export function removeBankAccount(userId: string, id: string) {
   return api.delete<void>(`/users/${userId}/bank-accounts/${id}`);
 }
 
-export function listBanks(country: string) {
-  return api.get<{ banks?: Array<{ code: string; name: string; [k: string]: unknown }> } | Array<{ code: string; name: string }>>(
-    `/banks?country=${encodeURIComponent(country)}`,
+/** GET /banks/countries — supported operating markets (not hardcoded). */
+export async function listSupportedCountries(): Promise<SupportedCountryRow[]> {
+  const res = await api.get<{ countries?: SupportedCountryRow[] } | SupportedCountryRow[]>(
+    '/banks/countries',
     { auth: false },
   );
+  if (Array.isArray(res)) return res;
+  return res.countries || [];
+}
+
+/** GET /banks?country=XX — bank directory for that market. */
+export async function listBanks(country: string): Promise<{
+  country: string;
+  currency?: string;
+  banks: DirectoryBank[];
+}> {
+  const res = await api.get<{
+    country?: string;
+    currency?: string;
+    banks?: DirectoryBank[];
+  }>(`/banks?country=${encodeURIComponent(country)}`, { auth: false });
+  return {
+    country: res.country || country,
+    currency: res.currency,
+    banks: res.banks || [],
+  };
 }
