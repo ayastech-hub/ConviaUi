@@ -1,8 +1,8 @@
 export type Screen =
   | 'onboarding' | 'pin-setup'
   | 'login' | 'signup' | 'forgot-password'
-  | 'home' | 'wallet' | 'trade' | 'social' | 'profile'
-  | 'deposit' | 'withdraw' | 'swap' | 'offramp' | 'onramp' | 'otc'
+  | 'home' | 'wallet' | 'trade' | 'swap' | 'profile'
+  | 'deposit' | 'withdraw' | 'offramp' | 'onramp' | 'otc'
   | 'send' | 'receive' | 'notifications' | 'rewards'
   | 'settings' | 'security' | 'kyc' | 'chat' | 'portfolio'
   | 'help-center' | 'about' | 'payment-methods' | 'services' | 'edit-profile'

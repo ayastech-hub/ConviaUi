@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'motion/react';
 
 import type { Screen } from '../shared/data/mockData';
 import { BottomNav } from '../shared/components/BottomNav';
-import { ConviaLogo } from '../shared/components/ConviaLogo';
 import { AppProviders } from './providers/AppProviders';
 import { useNavigation } from './navigation';
 
@@ -26,8 +25,6 @@ import { TradeScreen } from '../features/trade/screens/TradeScreen';
 import { OTCScreen } from '../features/trade/screens/OTCScreen';
 import { TokenInfoScreen } from '../features/trade/screens/TokenInfoScreen';
 
-import { SocialScreen } from '../features/social/screens/SocialScreen';
-
 import { ProfileScreen } from '../features/profile/screens/ProfileScreen';
 import { EditProfileScreen } from '../features/profile/screens/EditProfileScreen';
 import { SettingsScreen } from '../features/profile/screens/SettingsScreen';
@@ -42,16 +39,10 @@ import { NotificationsScreen } from '../features/notifications/screens/Notificat
 import { RewardsScreen } from '../features/rewards/screens/RewardsScreen';
 import { ServicesScreen } from '../features/services/screens/ServicesScreen';
 
-const MAIN_TABS: Screen[] = ['home', 'wallet', 'social', 'trade', 'profile'];
+/** Bottom-nav main tabs (no social). */
+const MAIN_TABS: Screen[] = ['home', 'wallet', 'swap', 'profile'];
 
 const springTransition = { type: 'spring' as const, damping: 28, stiffness: 320 };
-
-const slideUp = {
-  initial: { y: '100%', opacity: 0 },
-  animate: { y: 0, opacity: 1 },
-  exit: { y: '100%', opacity: 0 },
-  transition: springTransition,
-};
 
 const slideRight = {
   initial: { x: '100%', opacity: 0 },
@@ -75,8 +66,6 @@ export default function App() {
   const activeTab = isMainTab ? current : MAIN_TABS[0];
 
   const renderScreen = () => {
-    const commonProps = { navigate, goBack };
-
     switch (current) {
       case 'onboarding':
         return (
@@ -96,16 +85,16 @@ export default function App() {
             <WalletScreen navigate={navigate} />
           </motion.div>
         );
+      case 'swap':
+        return (
+          <motion.div key="swap" {...fadeIn} className="absolute inset-0 flex flex-col" style={{ paddingBottom: 68 }}>
+            <SwapScreen />
+          </motion.div>
+        );
       case 'trade':
         return (
           <motion.div key="trade" {...fadeIn} className="absolute inset-0 flex flex-col" style={{ paddingBottom: 68 }}>
             <TradeScreen navigate={navigate} />
-          </motion.div>
-        );
-      case 'social':
-        return (
-          <motion.div key="social" {...fadeIn} className="absolute inset-0 flex flex-col" style={{ paddingBottom: 68 }}>
-            <SocialScreen navigate={navigate} />
           </motion.div>
         );
       case 'profile':
@@ -115,7 +104,7 @@ export default function App() {
           </motion.div>
         );
 
-      // Sub-screens (slide up)
+      // Sub-screens
       case 'send':
         return (
           <motion.div key="send" {...slideRight} className="absolute inset-0">
@@ -126,12 +115,6 @@ export default function App() {
         return (
           <motion.div key="receive" {...slideRight} className="absolute inset-0">
             <ReceiveScreen goBack={goBack} />
-          </motion.div>
-        );
-      case 'swap':
-        return (
-          <motion.div key="swap" {...slideRight} className="absolute inset-0">
-            <SwapScreen goBack={goBack} />
           </motion.div>
         );
       case 'offramp':
@@ -268,51 +251,21 @@ export default function App() {
   return (
     <div className={darkMode ? 'dark' : ''} style={{ width: '100%', height: '100%' }}>
       <AppProviders>
-      {/* Desktop wrapper with phone frame */}
-      <div
-        className="flex items-center justify-center"
-        style={{
-          minHeight: '100vh',
-          minWidth: '100vw',
-          background: darkMode ? '#050505' : '#F4F4F5',
-        }}
-      >
-        {/* Phone frame */}
+        {/* Full-viewport app shell (no phone frame) */}
         <div
           className="relative flex flex-col overflow-hidden"
           style={{
-            width: 390,
-            height: 844,
-            borderRadius: 44,
-            flexShrink: 0,
-            boxShadow: darkMode
-              ? '0 0 0 10px #1C1C1F, 0 0 0 12px #050505, 0 40px 120px rgba(0,0,0,0.9), 0 20px 80px rgba(0,0,0,0.8)'
-              : '0 0 0 10px #D4D4D8, 0 0 0 12px #A1A1AA, 0 40px 80px rgba(0,0,0,0.12)',
+            width: '100%',
+            height: '100%',
+            minHeight: '100vh',
+            minWidth: '100vw',
             background: 'var(--background)',
           }}
         >
-          {/* Dynamic Island */}
-          <div
-            className="absolute z-50"
-            style={{
-              top: 12,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              width: 120,
-              height: 34,
-              background: '#000',
-              borderRadius: 20,
-            }}
-          />
-
-          {/* Screen content */}
           <div className="relative flex-1 overflow-hidden" style={{ background: 'var(--background)' }}>
-            <AnimatePresence mode="wait">
-              {renderScreen()}
-            </AnimatePresence>
+            <AnimatePresence mode="wait">{renderScreen()}</AnimatePresence>
           </div>
 
-          {/* Bottom Nav */}
           {isMainTab && (
             <div className="absolute bottom-0 left-0 right-0 z-40">
               <BottomNav
@@ -323,18 +276,6 @@ export default function App() {
             </div>
           )}
         </div>
-
-        {/* Desktop label */}
-        <div
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full"
-          style={{ background: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', backdropFilter: 'blur(12px)', border: '1px solid var(--border)' }}
-        >
-          <ConviaLogo size={14} color="var(--primary)" />
-          <span style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 500 }}>
-            Convia — Africa's Financial Universe
-          </span>
-        </div>
-      </div>
       </AppProviders>
     </div>
   );

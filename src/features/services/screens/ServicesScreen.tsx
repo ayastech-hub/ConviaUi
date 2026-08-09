@@ -49,11 +49,10 @@ const serviceGroups: ServiceGroup[] = [
     ],
   },
   {
-    title: 'Rewards & Social',
-    subtitle: 'Earn and connect',
+    title: 'Rewards',
+    subtitle: 'Earn points and complete missions',
     items: [
       { id: 'rewards', label: 'Rewards', icon: Gift, description: 'Points & missions' },
-      { id: 'social', label: 'Community', icon: Users, description: 'Posts & feeds' },
     ],
   },
   {

@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Home, Wallet, User, MessageCircle, Grid3x3 } from 'lucide-react';
+import { Home, Wallet, User, ArrowLeftRight, Grid3x3 } from 'lucide-react';
 import type { Screen } from '../data/mockData';
 
 interface BottomNavProps {
@@ -11,7 +11,7 @@ interface BottomNavProps {
 const tabs = [
   { id: 'home' as Screen, label: 'Home', icon: Home },
   { id: 'wallet' as Screen, label: 'Wallet', icon: Wallet },
-  { id: 'social' as Screen, label: 'Social', icon: MessageCircle },
+  { id: 'swap' as Screen, label: 'Swap', icon: ArrowLeftRight },
   { id: 'profile' as Screen, label: 'Profile', icon: User },
 ];
 
@@ -19,7 +19,7 @@ export function BottomNav({ activeTab, onNavigate }: BottomNavProps) {
   const leftTabs = tabs.slice(0, 2);
   const rightTabs = tabs.slice(2);
 
-  const renderTab = (tab: typeof tabs[0]) => {
+  const renderTab = (tab: (typeof tabs)[0]) => {
     const Icon = tab.icon;
     const isActive = activeTab === tab.id;
     return (
@@ -61,7 +61,10 @@ export function BottomNav({ activeTab, onNavigate }: BottomNavProps) {
   };
 
   return (
-    <div className="flex items-stretch h-[68px] px-2 relative glass-nav" style={{ borderTop: '1px solid var(--border)' }}>
+    <div
+      className="flex items-stretch h-[68px] px-2 relative glass-nav"
+      style={{ borderTop: '1px solid var(--border)' }}
+    >
       {leftTabs.map(renderTab)}
 
       {/* Center Services Button */}
@@ -78,7 +81,12 @@ export function BottomNav({ activeTab, onNavigate }: BottomNavProps) {
         >
           <Grid3x3 size={20} strokeWidth={2} />
         </motion.button>
-        <span className="text-[10px] tracking-wide mt-0.5" style={{ color: 'var(--muted-foreground)', fontWeight: 400 }}>Services</span>
+        <span
+          className="text-[10px] tracking-wide mt-0.5"
+          style={{ color: 'var(--muted-foreground)', fontWeight: 400 }}
+        >
+          Services
+        </span>
       </div>
 
       {rightTabs.map(renderTab)}

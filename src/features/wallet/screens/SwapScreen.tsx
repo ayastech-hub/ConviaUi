@@ -25,7 +25,8 @@ import { AssetPicker } from '../../../shared/components/AssetPicker';
 import { TransactionReceipt } from '../../../shared/components/TransactionReceipt';
 
 interface SwapScreenProps {
-  goBack: () => void;
+  /** When omitted, Swap is shown as a root bottom-nav tab (no back button). */
+  goBack?: () => void;
 }
 
 type SwapPhase = 'idle' | 'review' | 'swapping' | 'success';
@@ -355,7 +356,7 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
           </div>
           <motion.button
             whileTap={{ scale: 0.97 }}
-            onClick={goBack}
+            onClick={() => (goBack ? goBack() : resetSwap())}
             className="w-full py-3.5 rounded-[16px] text-white flex items-center justify-center gap-2 mt-3"
             style={{ background: 'var(--primary)', fontWeight: 700, fontSize: 15, boxShadow: 'none' }}
           >
@@ -373,16 +374,18 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
       <div style={{ height: 50 }} />
 
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 mb-5">
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={goBack}
-          aria-label="Go back"
-          className="w-10 h-10 rounded-2xl flex items-center justify-center"
-          style={{ background: 'var(--muted)' }}
-        >
-          <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
-        </motion.button>
+      <div className="flex items-center gap-3 px-5 mb-5" style={{ paddingTop: goBack ? 0 : 12 }}>
+        {goBack ? (
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={goBack}
+            aria-label="Go back"
+            className="w-10 h-10 rounded-2xl flex items-center justify-center"
+            style={{ background: 'var(--muted)' }}
+          >
+            <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
+          </motion.button>
+        ) : null}
         <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20 }}>Swap</h2>
         <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1.5 rounded-full" style={{ background: 'var(--muted)' }}>
           <Zap size={12} style={{ color: 'var(--foreground)' }} />
