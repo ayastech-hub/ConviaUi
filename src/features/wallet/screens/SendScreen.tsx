@@ -133,15 +133,14 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
 
         if (selectedContact || (!looksLikeAddress && recipient.trim().length >= 3)) {
           const username = (selectedContact?.username || recipient).replace(/^@/, '');
-          const res = (await sendToUsername({
+          // Omnibus: internal transfer is ledger-only (no chain / tx hash).
+          const res = await sendToUsername({
             senderId: userId,
             recipientUsername: username,
             asset: selectedAsset.symbol,
             amount: amountAsset,
-            chainKey: chain.chainKey,
-            chainFamily: chain.chainFamily,
-          })) as { txHash?: string; [k: string]: unknown };
-          hash = res.txHash || (res as { hash?: string }).hash;
+          });
+          hash = res.ledgerTransactionId || res.txHash || `internal:${Date.now()}`;
         } else {
           const res = (await withdrawCrypto({
             userId,
