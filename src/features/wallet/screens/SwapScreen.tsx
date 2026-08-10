@@ -13,6 +13,7 @@ import { SwapRouteSummary } from '../components/swap/SwapRouteSummary';
 import { SwapReviewSheet } from '../components/swap/SwapReviewSheet';
 import { SwapProcessingOverlay } from '../components/swap/SwapProcessingOverlay';
 import { SwapSuccessView } from '../components/swap/SwapSuccessView';
+import { EmptyCatalogBanner } from '../../../shared/components/EmptyCatalogBanner';
 import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
@@ -247,6 +248,7 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
         </div>
       </div>
       <div className="px-5 mb-3">
+        {!registryLoading && cryptoAssets.length === 0 && <EmptyCatalogBanner />}
         <WalletFeatureBanner feature="swap" />
         {apiBlock && <FeatureAlert reason={mapApiCodeToReason(apiBlock.code)} message={apiBlock.message} detail={apiBlock.code} />}
       </div>
