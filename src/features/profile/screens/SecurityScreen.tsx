@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { SecurityMenu } from '../components/SecurityMenu';
 import { ChangePinFlow } from '../components/ChangePinFlow';
-import { RecoveryPhraseView } from '../components/RecoveryPhraseView';
 import { ActiveSessionsView } from '../components/ActiveSessionsView';
 import { AddressWhitelistView } from '../components/AddressWhitelistView';
 import type { SecurityStep } from '../components/types';
@@ -11,9 +10,9 @@ interface SecurityScreenProps {
 }
 
 /**
- * Security Center. Acts as a small local router between the menu and its
- * four sub-flows (PIN change, recovery phrase, active sessions, whitelist),
- * each implemented as its own component in `../components`.
+ * Security Center. Seed / recovery-phrase reveal is intentionally not offered:
+ * this is custodial app-controlled balances; exporting keys lets users drain
+ * on-chain funds while the ledger still shows spendable balance.
  */
 export function SecurityScreen({ goBack }: SecurityScreenProps) {
   const [step, setStep] = useState<SecurityStep>('menu');
@@ -27,25 +26,33 @@ export function SecurityScreen({ goBack }: SecurityScreenProps) {
   if (step === 'pin') {
     return <ChangePinFlow onBack={() => setStep('menu')} onComplete={() => setStep('menu')} />;
   }
-  if (step === 'recovery') {
-    return <RecoveryPhraseView onBack={() => setStep('menu')} />;
-  }
   if (step === 'devices') {
     return <ActiveSessionsView onBack={() => setStep('menu')} />;
   }
   if (step === 'whitelist') {
-    return <AddressWhitelistView onBack={() => setStep('menu')} enabled={whitelist} onToggle={() => setWhitelist(!whitelist)} />;
+    return (
+      <AddressWhitelistView
+        onBack={() => setStep('menu')}
+        enabled={whitelist}
+        onToggle={() => setWhitelist(!whitelist)}
+      />
+    );
   }
 
   return (
     <SecurityMenu
       goBack={goBack}
       onNavigate={setStep}
-      biometric={biometric} setBiometric={setBiometric}
-      twoFA={twoFA} setTwoFA={setTwoFA}
-      loginAlerts={loginAlerts} setLoginAlerts={setLoginAlerts}
-      txAlerts={txAlerts} setTxAlerts={setTxAlerts}
-      hideBalance={hideBalance} setHideBalance={setHideBalance}
+      biometric={biometric}
+      setBiometric={setBiometric}
+      twoFA={twoFA}
+      setTwoFA={setTwoFA}
+      loginAlerts={loginAlerts}
+      setLoginAlerts={setLoginAlerts}
+      txAlerts={txAlerts}
+      setTxAlerts={setTxAlerts}
+      hideBalance={hideBalance}
+      setHideBalance={setHideBalance}
     />
   );
 }

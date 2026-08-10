@@ -277,14 +277,14 @@ export const allArticles: HelpArticle[] = [
   },
   {
     id: 'seed',
-    title: 'Wallet seed / recovery material',
+    title: 'Wallet keys (not exportable)',
     category: 'Security',
     time: '3 min',
-    summary: 'Custodial wallets are provisioned by Convia. Seed reveal, if enabled, is highly sensitive.',
+    summary: 'Convia is custodial: deposit addresses are app-managed. Seed/private key export is disabled so balances stay consistent with the ledger.',
     steps: [
-      'Only reveal recovery material in a private place.',
-      'Convia support will never ask for your full seed in chat or email.',
-      'Losing control of seed material can mean permanent loss of unilateral recovery options.',
+      'Private keys and seed phrases are not available in the app.',
+      'To move funds out, use Withdraw or Send inside Convia so the ledger and chain stay aligned.',
+      'Convia support will never ask for a seed phrase.',
     ],
   },
   {

@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Shield, Fingerprint, Bell, Eye, EyeOff, Lock, KeyRound, Smartphone, ChevronLeft } from 'lucide-react';
+import { Shield, Fingerprint, Bell, Eye, EyeOff, Lock, Smartphone, ChevronLeft } from 'lucide-react';
 import { ScreenHeader } from '../../../shared/components/ScreenHeader';
 import { ListSection } from '../../../shared/components/ListSection';
 import { ListRow } from '../../../shared/components/ListRow';
@@ -48,7 +48,6 @@ export function SecurityMenu({
 
   const actions: { icon: typeof Lock; label: string; desc: string; step: SecurityStep }[] = [
     { icon: Lock, label: 'Change PIN', desc: 'Update your 6-digit transaction PIN', step: 'pin' },
-    { icon: KeyRound, label: 'Recovery Phrase', desc: 'View your BIP39 seed', step: 'recovery' },
     { icon: Smartphone, label: 'Active Sessions', desc: 'Manage logged-in devices', step: 'devices' },
     { icon: Shield, label: 'Address Whitelist', desc: 'Restrict withdrawals', step: 'whitelist' },
   ];
