@@ -27,6 +27,7 @@ export type SessionTokens = {
   displayName?: string | null;
   preferredCurrency?: string | null;
   country?: string | null;
+  email?: string | null;
 };
 
 export type RegisterResponse = SessionTokens & {

@@ -24,6 +24,7 @@ type AuthContextValue = {
   status: AuthStatus;
   session: SessionTokens | null;
   userId: string | null;
+  email: string | null;
   username: string | null;
   displayName: string | null;
   login: (email: string, password: string) => Promise<void>;
@@ -88,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         displayName: res.displayName,
         preferredCurrency: res.preferredCurrency,
         country: res.country,
+        email,
       });
     },
     [setSession],
@@ -107,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sessionId: res.sessionId,
         userId: res.userId,
         username: res.username || payload.username,
+        email,
       });
     },
     [setSession],
@@ -132,6 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status,
       session,
       userId: session?.userId ?? null,
+      email: session?.email ?? null,
       username: session?.username ?? null,
       displayName: session?.displayName ?? null,
       login,

@@ -1,15 +1,12 @@
 import { api } from './client';
 
-/** Omnibus internal transfer — ledger only, no chain required. */
+/** Omnibus internal transfer — ledger only, chain optional/ignored. */
 export function sendToUsername(body: {
   senderId: string;
   recipientUsername: string;
   asset: string;
   amount: string;
   note?: string;
-  /** Legacy optional — ignored by omnibus backend */
-  chainKey?: string;
-  chainFamily?: 'evm' | 'solana' | 'bitcoin' | 'tron';
 }) {
   return api.post<{
     model?: string;
@@ -17,6 +14,7 @@ export function sendToUsername(body: {
     status?: string;
     asset?: string;
     amount?: string;
-    txHash?: string;
+    recipientUserId?: string;
+    recipientUsername?: string;
   }>('/payments/send', body, { idempotent: true });
 }

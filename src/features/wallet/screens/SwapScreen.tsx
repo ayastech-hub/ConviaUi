@@ -18,6 +18,8 @@ import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
+import { executeSwap, getSwapQuote } from '../../../shared/api/swap';
+import { ApiError } from '../../../shared/api/types';
 
 interface SwapScreenProps {
   goBack: () => void;
@@ -167,34 +169,65 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
 
   const openReview = useCallback(() => { if (canSwap) setPhase('review'); }, [canSwap]);
 
-    const confirmSwap = useCallback(async () => {
+  const [quoteOut, setQuoteOut] = useState<string | null>(null);
+  const [quoteRate, setQuoteRate] = useState<string | null>(null);
+
+  // Live internal quote (omnibus) — no chain / bridge
+  useEffect(() => {
+    if (!fromNum || sameAsset || !fromAsset.symbol || !toAsset.symbol) {
+      setQuoteOut(null);
+      setQuoteRate(null);
+      return;
+    }
+    let cancelled = false;
+    const t = setTimeout(() => {
+      void getSwapQuote({
+        fromAsset: fromAsset.symbol,
+        toAsset: toAsset.symbol,
+        amount: String(fromNum),
+      })
+        .then((q) => {
+          if (cancelled) return;
+          setQuoteOut(q.toAmount);
+          setQuoteRate(q.rate);
+          setError('');
+        })
+        .catch((err) => {
+          if (cancelled) return;
+          if (err instanceof ApiError) {
+            setError(err.body.message || err.message || 'Quote unavailable');
+          }
+        });
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [fromNum, fromAsset.symbol, toAsset.symbol, sameAsset]);
+
+  const confirmSwap = useCallback(async () => {
     setApiBlock(null);
     setPhase('swapping');
     try {
-      if (userId) {
-        const from = resolveChain(fromAsset.chains[0] || 'Ethereum');
-        const to = resolveChain(toAsset.chains[0] || 'Ethereum');
-        await executeSwap({
-          userId,
-          fromAsset: fromAsset.symbol,
-          toAsset: toAsset.symbol,
-          amount: String(fromNum),
-          fromChain: from.chainKey,
-          toChain: to.chainKey,
-        });
-      }
-      const hash = '0x' + Array.from({ length: 16 }, () => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join('');
+      if (!userId) throw new ApiError(401, { code: 'unauthorized', message: 'Sign in required' });
+      const res = await executeSwap({
+        userId,
+        fromAsset: fromAsset.symbol,
+        toAsset: toAsset.symbol,
+        amount: String(fromNum),
+      });
+      const out = Number(res.amountOut || quoteOut || toAmount);
       setReceiptTx({
-        id: 'swap-' + Date.now(),
+        id: res.ledgerTransactionId || 'swap-' + Date.now(),
         type: 'swap',
         asset: fromAsset.symbol,
         assetTo: toAsset.symbol,
         amount: fromNum,
-        amountTo: toAmount,
+        amountTo: out,
         valueUSD: fromUSD,
         status: 'confirmed',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        hash,
+        hash: res.ledgerTransactionId || 'internal',
       });
       setPhase('success');
     } catch (err) {
@@ -205,7 +238,7 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
         setApiBlock({ message: 'Swap failed — is the API running?' });
       }
     }
-  }, [fromAsset, toAsset, fromNum, toAmount, fromUSD, userId]);
+  }, [fromAsset, toAsset, fromNum, toAmount, fromUSD, userId, quoteOut]);
 
   const resetSwap = useCallback(() => {
     setPhase('idle');

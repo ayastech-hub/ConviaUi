@@ -123,11 +123,22 @@ export function OffRampScreen({ goBack, navigate }: OffRampScreenProps) {
                 if (!userId) return;
                 setStep('processing');
                 try {
-                  await fiatApi.offrampInitiate({
+                  const acct = selectedAccount as {
+                    bankCode?: string;
+                    bank_code?: string;
+                    accountNumber?: string;
+                    account_number?: string;
+                    accountName?: string;
+                    bankName?: string;
+                  } | undefined;
+                  await fiatApi.localOfframp({
                     userId,
-                    fromAsset: selectedAsset.symbol,
-                    cryptoAmount: String(amount),
-                    bankAccountId: selectedAccountId,
+                    asset: selectedAsset.symbol,
+                    amount: String(amount),
+                    fiatCurrency: currency.code || 'NGN',
+                    bankCode: acct?.bankCode || acct?.bank_code || '000',
+                    accountNumber: acct?.accountNumber || acct?.account_number || selectedAccountId || '',
+                    accountName: acct?.accountName || acct?.bankName,
                   });
                   setStep('done');
                 } catch (err) {

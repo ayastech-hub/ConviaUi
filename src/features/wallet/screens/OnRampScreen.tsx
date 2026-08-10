@@ -27,7 +27,7 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
     if (!registryAssets.length) return;
     // Prefer stable default once catalog loads
   }, [registryAssets]);
-  const { userId } = useAuth();
+  const { userId, email: authEmail } = useAuth();
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
 
   const { currency, format } = useCurrency();
@@ -127,13 +127,23 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
                 setStep('processing');
                 setApiError(null);
                 try {
-                  await fiatApi.onrampOrder({
+                  const order = await fiatApi.localOnrampOrder({
                     userId,
+                    email: authEmail || `${userId}@users.convia.local`,
                     fiatCurrency: currency.code || 'NGN',
                     fiatAmount: String(amount),
                     toAsset: selectedAsset.symbol,
-                    paymentMethod: paymentMethod === 'card' ? 'card' : 'bank_transfer',
+                    method:
+                      paymentMethod === 'card'
+                        ? 'card'
+                        : paymentMethod === 'bank'
+                          ? 'bank_transfer'
+                          : 'dedicated_account',
                   });
+                  // Persist payment instructions for instructions step if returned
+                  if (order.payment?.checkoutUrl) {
+                    window.open(order.payment.checkoutUrl, '_blank', 'noopener');
+                  }
                   setStep('done');
                 } catch (err) {
                   if (err instanceof ApiError) setApiError({ code: err.code, message: err.body.message || err.message });
