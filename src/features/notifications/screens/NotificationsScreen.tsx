@@ -162,10 +162,26 @@ export function NotificationsScreen({ goBack }: NotificationsScreenProps) {
                     <Icon size={18} style={{ color: info.color }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13 }}>{title}</p>
+                    <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>{title}</p>
                     {body && (
-                      <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 2 }} className="line-clamp-2">
+                      <p
+                        style={{
+                          color: 'var(--muted-foreground)',
+                          fontSize: 13,
+                          marginTop: 4,
+                          lineHeight: 1.45,
+                          whiteSpace: 'pre-wrap',
+                        }}
+                      >
                         {body}
+                      </p>
+                    )}
+                    {notif.payload && (notif.payload as { amount?: string }).amount && (
+                      <p style={{ color: 'var(--primary)', fontSize: 12, fontWeight: 600, marginTop: 6 }}>
+                        {(notif.payload as { amount?: string; asset?: string }).amount}
+                        {(notif.payload as { asset?: string }).asset
+                          ? ` ${(notif.payload as { asset?: string }).asset}`
+                          : ''}
                       </p>
                     )}
                     <p style={{ color: 'var(--muted-foreground)', fontSize: 10, marginTop: 4 }}>
