@@ -36,15 +36,35 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
     setTimeout(() => setToast(null), 2500);
   };
 
-  const claimTask = (id: string) => {
-    setTasks((prev) => prev.map((t) => {
-      if (t.id === id && !t.done) {
-        setPoints((p) => p + t.points);
-        showToast(`+${t.points} points earned!`);
-        return { ...t, done: true };
-      }
-      return t;
-    }));
+  useEffect(() => {
+    if (!userId) return;
+    rewardsApi.listRewardTasks(userId).then((res) => {
+      const live = (res.tasks || []).map((t) => ({
+        id: t.id,
+        label: t.title,
+        points: t.points,
+        done: !!t.claimed,
+        // incomplete tasks still shown; claim only succeeds if backend says canClaim
+        icon: initialTasks[0]?.icon,
+      }));
+      if (live.length) setTasks(live as typeof initialTasks);
+    }).catch(() => {});
+  }, [userId]);
+
+  const claimTask = async (id: string) => {
+    if (!userId) {
+      showToast('Sign in to claim');
+      return;
+    }
+    try {
+      const res = await rewardsApi.claimRewardTask(userId, id);
+      setPoints((p) => p + (res.points || 0));
+      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: true, canClaim: false } : t)));
+      const extra = res.usdtCredited && Number(res.usdtCredited) > 0 ? ` · +${res.usdtCredited} USDT` : '';
+      showToast(`+${res.points} points claimed!${extra}`);
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Claim failed');
+    }
   };
 
   const startRedeem = () => {
