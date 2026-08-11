@@ -20,6 +20,9 @@ export type RegistryToken = {
   symbol: string;
   name: string;
   isStablecoin?: boolean;
+  swapEnabled?: boolean;
+  rampEnabled?: boolean;
+  billsEnabled?: boolean;
   chains: RegistryChain[];
 };
 

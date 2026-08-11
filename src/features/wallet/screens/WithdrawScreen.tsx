@@ -13,6 +13,7 @@ import { resolveChain } from '../../../shared/utils/chains';
 import { ApiError } from '../../../shared/api/types';
 import { usePortfolio } from '../../../shared/hooks/usePortfolio';
 import { holdingToAsset } from '../../../shared/utils/mapApiToUi';
+import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
 
 interface WithdrawScreenProps {
@@ -20,12 +21,12 @@ interface WithdrawScreenProps {
 }
 
 export function WithdrawScreen({ goBack }: WithdrawScreenProps) {
-  const { assets: registryAssets, loading: registryLoading } = useTokenRegistry();
-  const cryptoAssets = registryAssets.length ? registryAssets : [];
+  const { assets: cryptoAssets, loading: registryLoading, chainKeysForSymbol } = useWalletAssets();
+  const { chains } = useTokenRegistry();
   const { userId } = useAuth();
   const { data: portfolioData } = usePortfolio();
   const liveAssets = (portfolioData?.holdings || []).map(holdingToAsset);
-  const assets = liveAssets.length ? liveAssets : cryptoAssets;
+  const assets = cryptoAssets.length ? cryptoAssets : liveAssets;
 
   const [step, setStep] = useState<'select' | 'form' | 'pin' | 'processing' | 'success'>('select');
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);

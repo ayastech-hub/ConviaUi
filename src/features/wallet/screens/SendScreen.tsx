@@ -23,7 +23,7 @@ import { resolveChain } from '../../../shared/utils/chains';
 import { ApiError } from '../../../shared/api/types';
 import { usePortfolio } from '../../../shared/hooks/usePortfolio';
 import { holdingToAsset } from '../../../shared/utils/mapApiToUi';
-import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
+import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 
 interface SendScreenProps {
   navigate: (s: Screen) => void;
@@ -36,8 +36,7 @@ const genHash = () => '0x' + Array.from({ length: 64 }, () => '0123456789abcdef'
 const shortenHash = (h: string) => `${h.slice(0, 10)}…${h.slice(-8)}`;
 
 export function SendScreen({ navigate, goBack }: SendScreenProps) {
-  const { assets: registryAssets, loading: registryLoading } = useTokenRegistry();
-  const cryptoAssets = registryAssets.length ? registryAssets : [];
+  const { assets: cryptoAssets, loading: registryLoading } = useWalletAssets();
   useEffect(() => {
     if (!registryAssets.length) return;
     // Prefer stable default once catalog loads

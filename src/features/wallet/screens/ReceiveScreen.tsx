@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { ChevronLeft, Loader } from 'lucide-react';
 import { type Asset } from '../../../shared/data/mockData';
+import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { useAuth } from '../../../shared/context/AuthContext';
@@ -25,7 +26,8 @@ interface ReceiveScreenProps {
 
 export function ReceiveScreen({ goBack }: ReceiveScreenProps) {
   const { format } = useCurrency();
-  const { assets: tokenList, loading: regLoading } = useTokenRegistry();
+  const { assets: tokenList, loading: regLoading, chainKeysForSymbol } = useWalletAssets();
+  const { chains } = useTokenRegistry();
   const { userId, status } = useAuth();
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [asset, setAsset] = useState<Asset | null>(null);

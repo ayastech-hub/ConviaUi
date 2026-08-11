@@ -4,7 +4,7 @@ import { ChevronRight } from 'lucide-react';
 import { AssetIcon } from '../../../shared/components/AssetIcon';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { fetchTokensInfo, type TokenMarketInfo } from '../../../shared/api/tokens';
-import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
+import { useTokenRegistry, CANONICAL_ASSETS } from '../../../shared/hooks/useTokenRegistry';
 import { cacheGet, cacheSet } from '../../../shared/cache/queryCache';
 
 interface MarketWatchlistProps {
@@ -23,7 +23,7 @@ export function MarketWatchlist({ onSeeAll, onSelectAsset }: MarketWatchlistProp
   const [live, setLive] = useState(false);
 
   useEffect(() => {
-    const symbols = (assets.length ? assets : []).map((a) => a.symbol).slice(0, 8);
+    const symbols = (assets.length ? assets : CANONICAL_ASSETS.map((c) => ({ symbol: c.symbol }))).map((a) => a.symbol).slice(0, 12);
     if (!symbols.length) {
       if (!regLoading) {
         setRows([]);

@@ -15,6 +15,7 @@ import { useAuth } from '../../../shared/context/AuthContext';
 import { fetchDepositInfo, fetchAddresses } from '../../../shared/api/wallet';
 import { resolveChain } from '../../../shared/utils/chains';
 import { ApiError } from '../../../shared/api/types';
+import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
 
 interface DepositScreenProps {
@@ -23,8 +24,8 @@ interface DepositScreenProps {
 
 /** Deposit crypto to custodial address — same live source as Receive. */
 export function DepositScreen({ goBack }: DepositScreenProps) {
-  const { assets: registryAssets, loading: registryLoading } = useTokenRegistry();
-  const cryptoAssets = registryAssets.length ? registryAssets : [];
+  const { assets: cryptoAssets, loading: registryLoading, chainKeysForSymbol } = useWalletAssets();
+  const { chains } = useTokenRegistry();
   const { userId, status } = useAuth();
   const [asset, setAsset] = useState<Asset | null>(null);
   const [network, setNetwork] = useState<string>('');

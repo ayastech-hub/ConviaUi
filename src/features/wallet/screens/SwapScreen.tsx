@@ -14,7 +14,7 @@ import { SwapReviewSheet } from '../components/swap/SwapReviewSheet';
 import { SwapProcessingOverlay } from '../components/swap/SwapProcessingOverlay';
 import { SwapSuccessView } from '../components/swap/SwapSuccessView';
 import { EmptyCatalogBanner } from '../../../shared/components/EmptyCatalogBanner';
-import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
+import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
@@ -28,12 +28,10 @@ interface SwapScreenProps {
 type SwapPhase = 'idle' | 'review' | 'swapping' | 'success';
 
 export function SwapScreen({ goBack }: SwapScreenProps) {
-  const { assets: registryAssets, loading: registryLoading } = useTokenRegistry();
-  const cryptoAssets = registryAssets.length ? registryAssets : [];
+  const { swapAssets: cryptoAssets, loading: registryLoading } = useWalletAssets();
   useEffect(() => {
-    if (!registryAssets.length) return;
-    // Prefer stable default once catalog loads
-  }, [registryAssets]);
+    if (!cryptoAssets.length) return;
+  }, [cryptoAssets]);
   const { userId } = useAuth();
   const [apiBlock, setApiBlock] = useState<{ code?: string; message?: string } | null>(null);
   const { format, currency } = useCurrency();
