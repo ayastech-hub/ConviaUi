@@ -36,8 +36,38 @@ import { SupportCenterScreen } from '../features/support/screens/SupportCenterSc
 import { NotificationsScreen } from '../features/notifications/screens/NotificationsScreen';
 import { RewardsScreen } from '../features/rewards/screens/RewardsScreen';
 import { ServicesScreen } from '../features/services/screens/ServicesScreen';
+import { fetchPlatformStatus } from '../shared/api/platform';
 
 const MAIN_TABS: Screen[] = ['home', 'wallet', 'profile'];
+
+function MaintenanceBanner() {
+  const [msg, setMsg] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    const load = () => {
+      void fetchPlatformStatus().then((s) => {
+        if (!alive) return;
+        setMsg(s.maintenance ? s.message || 'Maintenance in progress.' : null);
+      });
+    };
+    load();
+    const id = window.setInterval(load, 60_000);
+    return () => {
+      alive = false;
+      window.clearInterval(id);
+    };
+  }, []);
+  if (!msg) return null;
+  return (
+    <div
+      role="status"
+      className="z-[100] w-full shrink-0 bg-amber-500 px-4 py-2.5 text-center text-sm font-medium text-black"
+    >
+      {msg}
+    </div>
+  );
+}
+
 
 const springTransition = { type: 'spring' as const, damping: 28, stiffness: 320 };
 
