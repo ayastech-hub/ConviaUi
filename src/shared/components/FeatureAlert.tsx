@@ -83,8 +83,9 @@ export function mapApiCodeToReason(code?: string): FeatureBlockReason {
 
 interface FeatureAlertProps {
   reason: FeatureBlockReason;
-  message?: string;
-  detail?: string;
+  /** string preferred — Error/unknown coerced to string to avoid React #31 */
+  message?: string | Error | unknown;
+  detail?: string | unknown;
   onAction?: () => void;
   actionLabel?: string;
   compact?: boolean;
@@ -101,6 +102,21 @@ export function FeatureAlert({
 }: FeatureAlertProps) {
   const meta = COPY[reason] || COPY.generic;
   const Icon = meta.icon;
+  // Never pass Error/objects as React children (React minified #31)
+  const safeMessage =
+    message == null
+      ? ''
+      : typeof message === 'string'
+        ? message
+        : typeof message === 'object' && message !== null && 'message' in (message as object)
+          ? String((message as { message: unknown }).message)
+          : String(message);
+  const safeDetail =
+    detail == null
+      ? ''
+      : typeof detail === 'string'
+        ? detail
+        : String(detail);
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
@@ -116,11 +132,11 @@ export function FeatureAlert({
       <div className="flex-1 min-w-0">
         <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 13 }}>{meta.title}</p>
         <p style={{ color: 'var(--muted-foreground)', fontSize: 12, lineHeight: 1.45, marginTop: 2 }}>
-          {message || meta.body}
+          {safeMessage || meta.body}
         </p>
-        {detail && (
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 11, marginTop: 4, opacity: 0.85 }}>{detail}</p>
-        )}
+        {safeDetail ? (
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 11, marginTop: 4, opacity: 0.85 }}>{safeDetail}</p>
+        ) : null}
         {onAction && (
           <button
             type="button"
