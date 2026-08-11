@@ -9,6 +9,7 @@ import { PortfolioHeroCard } from '../components/PortfolioHeroCard';
 import { KYCBanner } from '../components/KYCBanner';
 import { QuickActionsRow } from '../components/QuickActionsRow';
 import { MarketWatchlist } from '../components/MarketWatchlist';
+import { HomeHoldingsPreview } from '../components/HomeHoldingsPreview';
 import { RecentTransactionsList } from '../components/RecentTransactionsList';
 import { useAuth } from '../../../shared/context/AuthContext';
 import * as notifApi from '../../../shared/api/notifications';
@@ -52,6 +53,8 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
       <KYCBanner onClick={() => navigate('kyc')} />
 
       <QuickActionsRow onNavigate={navigate} />
+
+      <HomeHoldingsPreview onSeeAll={() => navigate('wallet')} />
 
       <MarketWatchlist onSeeAll={() => navigate('swap')} onSelectAsset={() => navigate('swap')} />
 

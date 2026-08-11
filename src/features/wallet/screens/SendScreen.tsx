@@ -38,14 +38,15 @@ const shortenHash = (h: string) => `${h.slice(0, 10)}…${h.slice(-8)}`;
 export function SendScreen({ navigate, goBack }: SendScreenProps) {
   const { assets: cryptoAssets, loading: registryLoading } = useWalletAssets();
   useEffect(() => {
-    if (!registryAssets.length) return;
+    if (!cryptoAssets.length) return;
     // Prefer stable default once catalog loads
-  }, [registryAssets]);
+  }, [cryptoAssets]);
   const { userId } = useAuth();
   const { data: portfolioData } = usePortfolio();
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
   const liveAssets = (portfolioData?.holdings || []).map(holdingToAsset);
-  const assetOptions = liveAssets.length ? liveAssets : cryptoAssets;
+  // Full catalog with balances; holdings-only was hiding zero-balance tokens and broke empty state
+  const assetOptions = cryptoAssets.length ? cryptoAssets : liveAssets;
   const { format, currency } = useCurrency();
 
   const [step, setStep] = useState<Step>('select');
@@ -64,6 +65,16 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
   chains: [],
   sparkline: [],
 } as Asset);
+
+  // When catalog arrives, ensure selected asset is real (not loading placeholder)
+  useEffect(() => {
+    if (!cryptoAssets.length) return;
+    setSelectedAsset((prev) => {
+      const hit = cryptoAssets.find((a) => a.symbol === prev.symbol);
+      if (hit) return { ...hit };
+      return cryptoAssets.find((a) => a.symbol === 'USDT') || cryptoAssets[0] || prev;
+    });
+  }, [cryptoAssets]);
   const [amount, setAmount] = useState('');
   const [search, setSearch] = useState('');
   const [showPicker, setShowPicker] = useState(false);
@@ -301,7 +312,7 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
       <div className="flex-1 overflow-y-auto px-5 pb-6">
         <AnimatePresence mode="wait">
           {step === 'select' && (
-            <SendTokenSelectStep assets={cryptoAssets} format={format} onSelect={(asset) => { setSelectedAsset(asset); setStep('recipient'); }} />
+            <SendTokenSelectStep assets={assetOptions} format={format} onSelect={(asset) => { setSelectedAsset(asset); setStep('recipient'); }} />
           )}
 
           {step === 'recipient' && (

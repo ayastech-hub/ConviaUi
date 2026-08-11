@@ -12,7 +12,7 @@ import { useAuth } from '../../../shared/context/AuthContext';
 import { useKycStatus } from '../../../shared/hooks/useKycStatus';
 import * as fiatApi from '../../../shared/api/fiat';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
-import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
+import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 
 interface OffRampScreenProps {
   goBack: () => void;
@@ -20,12 +20,10 @@ interface OffRampScreenProps {
 }
 
 export function OffRampScreen({ goBack, navigate }: OffRampScreenProps) {
-  const { assets: registryAssets, loading: registryLoading } = useTokenRegistry();
-  const cryptoAssets = registryAssets.length ? registryAssets : [];
+  const { assets: cryptoAssets, loading: registryLoading } = useWalletAssets();
   useEffect(() => {
-    if (!registryAssets.length) return;
-    // Prefer stable default once catalog loads
-  }, [registryAssets]);
+    if (!cryptoAssets.length) return;
+  }, [cryptoAssets]);
   const { currency, format } = useCurrency();
   const { userId } = useAuth();
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);

@@ -78,10 +78,10 @@ export function PortfolioHeroCard({ balanceVisible, onToggleVisibility }: Portfo
           <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginBottom: 12 }}>
             {balanceVisible
               ? currency?.code && currency.code !== 'USD'
-                ? `≈ ${currency.symbol || ''}${localApprox.toLocaleString(undefined, { maximumFractionDigits: 0 })} ${currency.code}`
-                : source === 'live'
-                  ? 'Ledger total'
-                  : '—'
+                ? `≈ ${currency.symbol || ''}${(localApprox || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} ${currency.code}`
+                : source === 'live' || status === 'authenticated'
+                  ? (totalUSD === 0 ? 'Ledger total · $0.00' : 'Ledger total')
+                  : 'Sign in for live balance'
               : '••••'}
           </p>
 
@@ -91,8 +91,10 @@ export function PortfolioHeroCard({ balanceVisible, onToggleVisibility }: Portfo
               {status === 'anonymous'
                 ? 'Sign in to see your live balance'
                 : source === 'live'
-                  ? `${data?.holdings?.length ?? 0} assets from ledger`
-                  : 'Connect API to load portfolio'}
+                  ? `${data?.holdings?.length ?? 0} funded assets · others show 0`
+                  : status === 'authenticated'
+                    ? '0 funded assets'
+                    : 'Connect API to load portfolio'}
             </span>
           </div>
 

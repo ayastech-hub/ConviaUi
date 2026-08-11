@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { ChevronLeft, Loader } from 'lucide-react';
 import { type Asset } from '../../../shared/data/mockData';
@@ -42,6 +42,14 @@ export function ReceiveScreen({ goBack }: ReceiveScreenProps) {
   const [loadingAddr, setLoadingAddr] = useState(false);
   const [error, setError] = useState<{ code?: string; message?: string } | null>(null);
 
+  // Prefer registry deposit chains; fall back to asset.chains labels
+  const depositNetworks = useMemo(() => {
+    if (!asset) return [] as string[];
+    const keys = chainKeysForSymbol(asset.symbol, 'deposit');
+    if (keys.length) return keys;
+    return (asset.chains || []).filter(Boolean);
+  }, [asset, chainKeysForSymbol]);
+
   const netInfo = NETWORKS[network] || {
     name: network || 'Network',
     label: network || '—',
@@ -83,8 +91,9 @@ export function ReceiveScreen({ goBack }: ReceiveScreenProps) {
 
   const handleAssetChange = useCallback((a: Asset) => {
     setAsset(a);
-    setNetwork(a.chains[0] || '');
-  }, []);
+    const keys = chainKeysForSymbol(a.symbol, 'deposit');
+    setNetwork(keys[0] || a.chains[0] || '');
+  }, [chainKeysForSymbol]);
 
   const handleCopy = useCallback(() => {
     if (!address) return;
@@ -126,7 +135,8 @@ export function ReceiveScreen({ goBack }: ReceiveScreenProps) {
         goBack={goBack}
         onSelect={(a) => {
           setAsset(a);
-          setNetwork(a.chains[0] || '');
+          const keys = chainKeysForSymbol(a.symbol, 'deposit');
+          setNetwork(keys[0] || a.chains[0] || '');
           setSelectedAsset(a);
         }}
       />
@@ -218,7 +228,7 @@ export function ReceiveScreen({ goBack }: ReceiveScreenProps) {
 
       <NetworkDropdown
         open={networkOpen}
-        networks={asset.chains}
+        networks={depositNetworks}
         selected={network}
         onSelect={setNetwork}
         onClose={() => setNetworkOpen(false)}

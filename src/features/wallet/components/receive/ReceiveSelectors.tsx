@@ -53,7 +53,7 @@ export function ReceiveSelectors({ asset, network, netInfo, onOpenAsset, onOpenN
         style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
       >
         <div style={{ width: 38, height: 38, borderRadius: 10, background: netInfo.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: network === 'BSC' || network === 'BASE' ? '#000' : '#FFF', fontWeight: 800, fontSize: 12, flexShrink: 0 }}>
-          {netInfo.label.slice(0, 3)}
+          {(netInfo.label || network || 'NET').slice(0, 3)}
         </div>
         <div style={{ flex: 1, textAlign: 'left' }}>
           <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14 }}>{netInfo.name}</p>

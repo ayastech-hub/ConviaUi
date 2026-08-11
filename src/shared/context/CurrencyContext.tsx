@@ -117,8 +117,10 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
 
   const format = useCallback(
     (usdAmount: number) => {
-      const converted = usdAmount * currency.rate;
-      const decimals = currency.rate > 100 ? 0 : 2;
+      const n = Number(usdAmount);
+      const safe = Number.isFinite(n) ? n : 0;
+      const converted = safe * (currency.rate || 1);
+      const decimals = (currency.rate || 1) > 100 ? 0 : 2;
       return `${currency.symbol}${converted.toLocaleString('en', {
         minimumFractionDigits: decimals,
         maximumFractionDigits: decimals,

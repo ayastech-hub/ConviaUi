@@ -14,19 +14,17 @@ import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/Fea
 import { useAuth } from '../../../shared/context/AuthContext';
 import * as fiatApi from '../../../shared/api/fiat';
 import { ApiError } from '../../../shared/api/types';
-import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
+import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 
 interface OnRampScreenProps {
   goBack: () => void;
 }
 
 export function OnRampScreen({ goBack }: OnRampScreenProps) {
-  const { assets: registryAssets, loading: registryLoading } = useTokenRegistry();
-  const cryptoAssets = registryAssets.length ? registryAssets : [];
+  const { assets: cryptoAssets, loading: registryLoading } = useWalletAssets();
   useEffect(() => {
-    if (!registryAssets.length) return;
-    // Prefer stable default once catalog loads
-  }, [registryAssets]);
+    if (!cryptoAssets.length) return;
+  }, [cryptoAssets]);
   const { userId, email: authEmail } = useAuth();
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
 
