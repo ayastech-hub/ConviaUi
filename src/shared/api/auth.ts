@@ -5,6 +5,7 @@ export async function register(input: {
   email: string;
   password: string;
   username?: string;
+  referralCode?: string;
 }): Promise<RegisterResponse> {
   return api.post<RegisterResponse>('/auth/register', input, { auth: false });
 }

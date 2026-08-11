@@ -28,7 +28,7 @@ type AuthContextValue = {
   username: string | null;
   displayName: string | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, username?: string) => Promise<void>;
+  register: (email: string, password: string, username?: string, referralCode?: string) => Promise<void>;
   logout: () => Promise<void>;
   setSession: (s: SessionTokens | null) => void;
 };
@@ -96,11 +96,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const register = useCallback(
-    async (email: string, password: string, username?: string) => {
+    async (email: string, password: string, username?: string, referralCode?: string) => {
       // Empty / undefined username → backend derives from email
-      const payload: { email: string; password: string; username?: string } = { email, password };
+      const payload: { email: string; password: string; username?: string; referralCode?: string } = { email, password };
       if (username && username.trim().length >= 3) {
         payload.username = username.trim().toLowerCase();
+      }
+      if (referralCode && referralCode.trim().length >= 4) {
+        payload.referralCode = referralCode.trim().toUpperCase();
       }
       const res = await authApi.register(payload);
       setSession({

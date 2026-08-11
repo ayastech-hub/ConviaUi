@@ -28,6 +28,12 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
   const { login, register } = useAuth();
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
+  const [referralCode, setReferralCode] = useState(() => {
+    try {
+      const q = new URLSearchParams(window.location.search).get('ref');
+      return q || localStorage.getItem('convia_ref') || '';
+    } catch { return ''; }
+  });
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [phone, setPhone] = useState('');
@@ -99,7 +105,10 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
     setLoading(true);
     setError('');
     try {
-      await register(email, password, username.trim() || undefined);
+      if (referralCode.trim()) {
+        try { localStorage.setItem('convia_ref', referralCode.trim()); } catch { /* ignore */ }
+      }
+      await register(email, password, username.trim() || undefined, referralCode.trim() || undefined);
       setSuccess(true);
       setTimeout(() => switchTab('home'), 800);
     } catch (err) {
@@ -179,6 +188,7 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
               mode={mode}
               email={email} setEmail={setEmail}
               username={username} setUsername={setUsername}
+              referralCode={referralCode} setReferralCode={setReferralCode}
               password={password} setPassword={setPassword}
               confirmPassword={confirmPassword} setConfirmPassword={setConfirmPassword}
               showPassword={showPassword} setShowPassword={setShowPassword}
