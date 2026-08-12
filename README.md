@@ -1,4 +1,4 @@
-# Convia UI
+# Convia UI g
 
 Frontend for Convia — Africa's financial universe (crypto wallet, swap, fiat on/off-ramp, bills, rewards).
 
