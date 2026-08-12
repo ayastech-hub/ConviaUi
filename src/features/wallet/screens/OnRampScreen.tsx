@@ -112,7 +112,7 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
       cancelled = true;
       clearTimeout(t);
     };
-  }, [fiatAmount, fiatCurrency, selectedAsset.symbol, gates.canOnramp]);
+  }, [fiatAmount, fiatCurrency, selectedAsset.symbol, gates.canOnramp, amountMode]);
 
   const youGet = quote ? Number(quote.netCrypto) : 0;
   const usdAmount =
@@ -214,7 +214,6 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
               amountMode={amountMode}
               setAmountMode={setAmountMode}
               usdAmount={usdAmount}
-              usdAmount={Number(quote?.fiatAmount || amount) || 0}
               rampAssets={cryptoAssets}
               selectedAsset={selectedAsset}
               setSelectedAsset={setSelectedAsset}
