@@ -9,6 +9,9 @@ import { OffRampFormStep } from '../components/offramp/OffRampFormStep';
 import { OffRampReviewStep, OffRampProcessingStep, OffRampDoneStep } from '../components/offramp/OffRampStatusSteps';
 import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
 import { useAuth } from '../../../shared/context/AuthContext';
+import { useAccountGates } from '../../../shared/hooks/useAccountGates';
+import { GateHint } from '../../../shared/components/AccountStatusBanners';
+import { queryClient, queryKeys } from '../../../shared/query/queryClient';
 import { useKycStatus } from '../../../shared/hooks/useKycStatus';
 import * as fiatApi from '../../../shared/api/fiat';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
@@ -26,6 +29,7 @@ export function OffRampScreen({ goBack, navigate }: OffRampScreenProps) {
   }, [cryptoAssets]);
   const { currency, format } = useCurrency();
   const { userId } = useAuth();
+  const gates = useAccountGates();
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   useEffect(() => {
     if (!userId) {
@@ -77,6 +81,7 @@ export function OffRampScreen({ goBack, navigate }: OffRampScreenProps) {
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
       <div style={{ height: 50 }} />
       <div className="px-5 pt-2">
+        <GateHint mode="offramp" />
         <WalletFeatureBanner feature="offramp" onGoKyc={() => navigate('kyc')} />
         {apiError && (
           <FeatureAlert reason={mapApiCodeToReason(apiError.code)} message={apiError.message} detail={apiError.code} />
@@ -109,7 +114,7 @@ export function OffRampScreen({ goBack, navigate }: OffRampScreenProps) {
               showAccountDropdown={showAccountDropdown} setShowAccountDropdown={setShowAccountDropdown}
               onAddAccount={() => navigate('payment-methods')}
               fee={fee} youGet={youGet}
-              onPreview={() => { if (Number(amount) > 0 && selectedAccountId) setStep('review'); }}
+              onPreview={() => { if (!gates.canOfframp) return; if (Number(amount) > 0 && selectedAccountId) setStep('review'); }}
             />
           )}
 
@@ -138,6 +143,10 @@ export function OffRampScreen({ goBack, navigate }: OffRampScreenProps) {
                     accountNumber: acct?.accountNumber || acct?.account_number || selectedAccountId || '',
                     accountName: acct?.accountName || acct?.bankName,
                   });
+                  if (userId) {
+                    void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
+                    void queryClient.invalidateQueries({ queryKey: queryKeys.transactions(userId, 50) });
+                  }
                   setStep('done');
                 } catch (err) {
                   if (err instanceof ApiError) {

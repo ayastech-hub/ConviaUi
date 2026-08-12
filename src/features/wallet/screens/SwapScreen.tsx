@@ -16,6 +16,9 @@ import { SwapSuccessView } from '../components/swap/SwapSuccessView';
 import { EmptyCatalogBanner } from '../../../shared/components/EmptyCatalogBanner';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useAuth } from '../../../shared/context/AuthContext';
+import { useAccountGates } from '../../../shared/hooks/useAccountGates';
+import { GateHint } from '../../../shared/components/AccountStatusBanners';
+import { queryClient, queryKeys } from '../../../shared/query/queryClient';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
 import { executeSwap, getSwapQuote } from '../../../shared/api/swap';
@@ -33,6 +36,7 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
     if (!cryptoAssets.length) return;
   }, [cryptoAssets]);
   const { userId } = useAuth();
+  const gates = useAccountGates();
   const [apiBlock, setApiBlock] = useState<{ code?: string; message?: string } | null>(null);
   const { format, currency } = useCurrency();
 
@@ -165,10 +169,11 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
     setTimeout(() => setRateRefreshing(false), 700);
   }, []);
 
-  const openReview = useCallback(() => { if (canSwap) setPhase('review'); }, [canSwap]);
+  const openReview = useCallback(() => { if (canSwap && gates.canSwap) setPhase('review'); }, [canSwap, gates.canSwap]);
 
   const [quoteOut, setQuoteOut] = useState<string | null>(null);
   const [quoteRate, setQuoteRate] = useState<string | null>(null);
+
 
   // Live internal quote (omnibus) — no chain / bridge
   useEffect(() => {
@@ -227,6 +232,10 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         hash: res.ledgerTransactionId || 'internal',
       });
+      if (userId) {
+        void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.transactions(userId, 50) });
+      }
       setPhase('success');
     } catch (err) {
       setPhase('idle');
@@ -280,6 +289,7 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
       </div>
       <div className="px-5 mb-3">
         {!registryLoading && cryptoAssets.length === 0 && <EmptyCatalogBanner />}
+        <GateHint mode="swap" />
         <WalletFeatureBanner feature="swap" />
         {apiBlock && <FeatureAlert reason={mapApiCodeToReason(apiBlock.code)} message={apiBlock.message} detail={apiBlock.code} />}
       </div>

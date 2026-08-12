@@ -1,35 +1,37 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { type Asset } from '../../../shared/data/mockData';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft } from 'lucide-react';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
-import { usePaymentMethods, type SavedCard } from '../../../shared/context/PaymentMethodsContext';
-import type { PaymentMethod, NewCardDraft } from '../components/onramp/PaymentMethodSelector';
 import { OnRampFormStep } from '../components/onramp/OnRampFormStep';
 import { OnRampReviewStep } from '../components/onramp/OnRampReviewStep';
 import { OnRampInstructionsStep } from '../components/onramp/OnRampInstructionsStep';
 import { OnRampProcessingStep, OnRampDoneStep } from '../components/onramp/OnRampStatusSteps';
 import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
+import { GateHint } from '../../../shared/components/AccountStatusBanners';
 import { useAuth } from '../../../shared/context/AuthContext';
-import * as fiatApi from '../../../shared/api/fiat';
-import { ApiError } from '../../../shared/api/types';
+import { useAccountGates } from '../../../shared/hooks/useAccountGates';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
+import * as fiatApi from '../../../shared/api/fiat';
+import type { LocalOnrampOrder, LocalOnrampQuote } from '../../../shared/api/fiat';
+import { ApiError } from '../../../shared/api/types';
+import { queryClient, queryKeys } from '../../../shared/query/queryClient';
 
 interface OnRampScreenProps {
   goBack: () => void;
 }
 
+/**
+ * Live local on-ramp: quote → order (Paystack/Flutterwave by country) → bank details or checkout URL.
+ * No mock bank accounts.
+ */
 export function OnRampScreen({ goBack }: OnRampScreenProps) {
-  const { assets: cryptoAssets, loading: registryLoading } = useWalletAssets();
-  useEffect(() => {
-    if (!cryptoAssets.length) return;
-  }, [cryptoAssets]);
+  const { assets: cryptoAssets } = useWalletAssets();
   const { userId, email: authEmail } = useAuth();
-  const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
-
+  const gates = useAccountGates();
   const { currency, format } = useCurrency();
-  const { cards, addCard } = usePaymentMethods();
+
   const [selectedAsset, setSelectedAsset] = useState<Asset>(
     cryptoAssets.find((a) => a.symbol === 'USDT') ||
       cryptoAssets[0] || {
@@ -44,122 +46,235 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
         bgColor: 'rgba(38,161,123,0.15)',
         chains: [],
         sparkline: [],
-      }
+      },
   );
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('bank');
-  const [selectedCardId, setSelectedCardId] = useState<string | null>(cards[0]?.id ?? null);
-  const [showNewCard, setShowNewCard] = useState(false);
-  const [newCard, setNewCard] = useState<NewCardDraft>({ number: '', expiry: '', cvc: '' });
+  const [paymentMethod, setPaymentMethod] = useState<'bank' | 'card'>('bank');
   const [amount, setAmount] = useState('');
-  const [step, setStep] = useState<'form' | 'review' | 'payment-instructions' | 'processing' | 'done'>('form');
+  const [step, setStep] = useState<'form' | 'review' | 'payment-instructions' | 'processing' | 'done'>(
+    'form',
+  );
   const [showTokenDropdown, setShowTokenDropdown] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
+  const [quote, setQuote] = useState<LocalOnrampQuote | null>(null);
+  const [order, setOrder] = useState<LocalOnrampOrder | null>(null);
+  const [quoting, setQuoting] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const rampAssets = cryptoAssets;
+  const fiatCurrency = (currency.code || 'NGN').toUpperCase();
+  const fiatAmount = amount.trim();
 
-  const usdAmount = Number(amount) / currency.rate;
-  const fee = usdAmount * 0.015;
-  const youGet = (usdAmount - fee) / selectedAsset.price;
+  // Live quote when amount changes
+  useEffect(() => {
+    if (!fiatAmount || Number(fiatAmount) <= 0 || !gates.canOnramp) {
+      setQuote(null);
+      return;
+    }
+    let cancelled = false;
+    setQuoting(true);
+    const t = setTimeout(() => {
+      void fiatApi
+        .localOnrampQuote({
+          fiatCurrency,
+          fiatAmount,
+          toAsset: selectedAsset.symbol,
+        })
+        .then((q) => {
+          if (!cancelled) {
+            setQuote(q);
+            setApiError(null);
+          }
+        })
+        .catch((err) => {
+          if (cancelled) return;
+          if (err instanceof ApiError) {
+            setApiError({ code: err.code, message: err.body.message || err.message });
+            setQuote(null);
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setQuoting(false);
+        });
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [fiatAmount, fiatCurrency, selectedAsset.symbol, gates.canOnramp]);
 
-  const handleAddCard = () => {
-    if (!newCard.number || !newCard.expiry || !newCard.cvc) return;
-    const last4 = newCard.number.replace(/\s/g, '').slice(-4);
-    const card: Omit<SavedCard, 'id'> = { brand: 'Visa', last4, expiry: newCard.expiry, color: 'var(--card)' };
-    addCard(card);
-    setNewCard({ number: '', expiry: '', cvc: '' });
-    setShowNewCard(false);
-  };
+  const youGet = quote ? Number(quote.netCrypto) : 0;
+  const feeDisplay = quote ? Number(quote.feeAmount) : 0;
 
   const copyAccount = (text: string) => {
-    try { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* ignore */ }
+    try {
+      navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* ignore */
+    }
   };
 
-  const selectedCard = cards.find((c) => c.id === selectedCardId);
+  const placeOrder = async () => {
+    if (!userId || !gates.canOnramp) return;
+    setSubmitting(true);
+    setApiError(null);
+    try {
+      const res = await fiatApi.localOnrampOrder({
+        userId,
+        email: authEmail || `${userId}@users.convia.app`,
+        fiatCurrency,
+        fiatAmount,
+        toAsset: selectedAsset.symbol,
+        method: paymentMethod === 'card' ? 'card' : 'bank_transfer',
+      });
+      setOrder(res);
+      if (res.payment?.checkoutUrl && paymentMethod === 'card') {
+        window.open(res.payment.checkoutUrl, '_blank', 'noopener,noreferrer');
+      }
+      setStep('payment-instructions');
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setApiError({ code: err.code, message: err.body.message || err.message });
+      } else {
+        setApiError({ message: 'Could not create on-ramp order' });
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const instructionRows = () => {
+    const p = order?.payment;
+    if (!p) return [];
+    const rows: { label: string; value: string }[] = [];
+    if (p.bankName) rows.push({ label: 'Bank', value: p.bankName });
+    if (p.accountName) rows.push({ label: 'Account name', value: p.accountName });
+    if (p.accountNumber) rows.push({ label: 'Account number', value: p.accountNumber });
+    if (p.reference) rows.push({ label: 'Reference', value: p.reference });
+    if (p.amount) rows.push({ label: 'Amount', value: `${p.currency || fiatCurrency} ${p.amount}` });
+    if (p.checkoutUrl) rows.push({ label: 'Checkout', value: p.checkoutUrl });
+    if (!rows.length && p.externalId) rows.push({ label: 'Payment id', value: p.externalId });
+    return rows;
+  };
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
       <div style={{ height: 50 }} />
       <div className="px-5 pt-2">
         <WalletFeatureBanner feature="onramp" />
-        {apiError && <FeatureAlert reason={mapApiCodeToReason(apiError.code)} message={apiError.message} detail={apiError.code} />}
+        <GateHint mode="onramp" />
+        {apiError && (
+          <FeatureAlert
+            reason={mapApiCodeToReason(apiError.code)}
+            message={apiError.message}
+            detail={apiError.code}
+          />
+        )}
       </div>
 
       <div className="flex items-center gap-3 px-5 mb-5">
-        <motion.button whileTap={{ scale: 0.9 }} onClick={step === 'form' ? goBack : () => setStep('form')} className="w-10 h-10 rounded-2xl flex items-center justify-center glass-card" style={{ border: '1px solid var(--border)' }}>
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={step === 'form' ? goBack : () => setStep('form')}
+          className="w-10 h-10 rounded-2xl flex items-center justify-center glass-card"
+          style={{ border: '1px solid var(--border)' }}
+        >
           <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
         </motion.button>
-        <h2 style={{ color: 'var(--foreground)', fontWeight: 800 }}>On-Ramp from Cash</h2>
+        <h2 style={{ color: 'var(--foreground)', fontWeight: 800 }}>Buy crypto</h2>
       </div>
 
       <div className="flex-1 overflow-y-auto px-5">
         <AnimatePresence mode="wait">
           {step === 'form' && (
             <OnRampFormStep
-              currency={currency} format={format}
-              amount={amount} setAmount={setAmount} usdAmount={usdAmount}
-              rampAssets={rampAssets} selectedAsset={selectedAsset} setSelectedAsset={setSelectedAsset}
-              showTokenDropdown={showTokenDropdown} setShowTokenDropdown={setShowTokenDropdown}
-              paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod}
-              cards={cards} selectedCardId={selectedCardId} setSelectedCardId={setSelectedCardId}
-              showNewCard={showNewCard} setShowNewCard={setShowNewCard}
-              newCard={newCard} setNewCard={setNewCard} onAddCard={handleAddCard}
-              fee={fee} youGet={youGet}
-              onPreview={() => { if (Number(amount) > 0) setStep('review'); }}
+              currency={currency}
+              format={format}
+              amount={amount}
+              setAmount={setAmount}
+              usdAmount={Number(quote?.fiatAmount || amount) || 0}
+              rampAssets={cryptoAssets}
+              selectedAsset={selectedAsset}
+              setSelectedAsset={setSelectedAsset}
+              showTokenDropdown={showTokenDropdown}
+              setShowTokenDropdown={setShowTokenDropdown}
+              paymentMethod={paymentMethod === 'card' ? 'card' : 'bank'}
+              setPaymentMethod={(m) => setPaymentMethod(m === 'card' ? 'card' : 'bank')}
+              cards={[]}
+              selectedCardId={null}
+              setSelectedCardId={() => {}}
+              showNewCard={false}
+              setShowNewCard={() => {}}
+              newCard={{ number: '', expiry: '', cvc: '' }}
+              setNewCard={() => {}}
+              onAddCard={() => {}}
+              fee={feeDisplay}
+              youGet={youGet}
+              onPreview={() => {
+                if (!gates.canOnramp) return;
+                if (!quote || Number(amount) <= 0) return;
+                setStep('review');
+              }}
             />
           )}
 
           {step === 'review' && (
             <OnRampReviewStep
-              currency={currency} format={format} amount={amount} selectedAsset={selectedAsset}
-              youGet={youGet} paymentMethod={paymentMethod} selectedCard={selectedCard} fee={fee}
-              onConfirm={() => setStep('payment-instructions')}
+              currency={currency}
+              format={format}
+              amount={amount}
+              selectedAsset={selectedAsset}
+              youGet={youGet}
+              fee={feeDisplay}
+              paymentMethod={paymentMethod === 'card' ? 'card' : 'bank'}
+              selectedCard={undefined}
+              onConfirm={() => {
+                if (!gates.canOnramp || submitting) return;
+                void placeOrder();
+              }}
             />
           )}
 
           {step === 'payment-instructions' && (
             <OnRampInstructionsStep
-              currency={currency} amount={amount} paymentMethod={paymentMethod}
-              copied={copied} onCopy={copyAccount}
-              onPaid={async () => {
-                if (!userId) { setApiError({ message: 'Sign in required' }); return; }
+              currency={currency}
+              amount={order?.payment?.amount || amount}
+              rows={instructionRows()}
+              copied={copied}
+              onCopy={copyAccount}
+              onPaid={() => {
                 setStep('processing');
-                setApiError(null);
-                try {
-                  const order = await fiatApi.localOnrampOrder({
-                    userId,
-                    email: authEmail || `${userId}@users.convia.local`,
-                    fiatCurrency: currency.code || 'NGN',
-                    fiatAmount: String(amount),
-                    toAsset: selectedAsset.symbol,
-                    method:
-                      paymentMethod === 'card'
-                        ? 'card'
-                        : paymentMethod === 'bank'
-                          ? 'bank_transfer'
-                          : 'dedicated_account',
-                  });
-                  // Persist payment instructions for instructions step if returned
-                  if (order.payment?.checkoutUrl) {
-                    window.open(order.payment.checkoutUrl, '_blank', 'noopener');
+                // Webhook credits ledger; refresh portfolio shortly then show done
+                setTimeout(() => {
+                  if (userId) {
+                    void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
+                    void queryClient.invalidateQueries({ queryKey: queryKeys.transactions(userId, 50) });
                   }
                   setStep('done');
-                } catch (err) {
-                  if (err instanceof ApiError) setApiError({ code: err.code, message: err.body.message || err.message });
-                  else setApiError({ message: 'On-ramp order failed' });
-                  setStep('payment-instructions');
-                }
+                }, 1500);
               }}
             />
           )}
 
           {step === 'processing' && (
-            <OnRampProcessingStep currency={currency} amount={amount} youGet={youGet} symbol={selectedAsset.symbol} />
+            <OnRampProcessingStep
+              currency={currency}
+              amount={amount}
+              youGet={youGet}
+              symbol={selectedAsset.symbol}
+            />
           )}
 
           {step === 'done' && (
             <OnRampDoneStep youGet={youGet} symbol={selectedAsset.symbol} onDone={goBack} />
           )}
         </AnimatePresence>
+        {quoting && step === 'form' && (
+          <p className="text-center text-xs mt-2" style={{ color: 'var(--muted-foreground)' }}>
+            Fetching live quote…
+          </p>
+        )}
       </div>
     </div>
   );

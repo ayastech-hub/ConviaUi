@@ -63,7 +63,7 @@ export function AccountStatusBanners({ onKyc }: { onKyc?: () => void }) {
 export function GateHint({
   mode,
 }: {
-  mode: 'withdraw' | 'external_send' | 'internal_send' | 'swap' | 'bills';
+  mode: 'withdraw' | 'external_send' | 'internal_send' | 'swap' | 'bills' | 'onramp' | 'offramp';
 }) {
   const g = useAccountGates();
   if (g.loading) return null;
@@ -74,9 +74,17 @@ export function GateHint({
       </p>
     );
   }
-  const needs =
-    (mode === 'withdraw' || mode === 'external_send' || mode === 'bills') && g.needsKyc;
-  if (needs) {
+  if (g.countryUnsupported) {
+    return (
+      <p className="text-center text-xs mt-2" style={{ color: '#D97706' }}>
+        Your country ({g.country || '—'}) is not supported for this feature.
+      </p>
+    );
+  }
+  const needsKyc =
+    (mode === 'withdraw' || mode === 'external_send' || mode === 'bills' || mode === 'offramp') &&
+    g.needsKyc;
+  if (needsKyc) {
     return (
       <p className="text-center text-xs mt-2" style={{ color: '#D97706' }}>
         {g.isPending ? 'KYC still in review — try again after approval.' : 'Complete identity verification to continue.'}

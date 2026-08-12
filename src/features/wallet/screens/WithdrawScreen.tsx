@@ -10,6 +10,7 @@ import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/Fea
 import { useAuth } from '../../../shared/context/AuthContext';
 import { withdrawCrypto } from '../../../shared/api/wallet';
 import { useAccountGates } from '../../../shared/hooks/useAccountGates';
+import { queryClient, queryKeys } from '../../../shared/query/queryClient';
 import { GateHint } from '../../../shared/components/AccountStatusBanners';
 import { resolveChain } from '../../../shared/utils/chains';
 import { ApiError } from '../../../shared/api/types';
@@ -115,6 +116,10 @@ export function WithdrawScreen({ goBack }: WithdrawScreenProps) {
         hash: hash || undefined,
         address,
       });
+      if (userId) {
+        void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.transactions(userId, 50) });
+      }
       setStep('success');
     } catch (err) {
       if (err instanceof ApiError) {
