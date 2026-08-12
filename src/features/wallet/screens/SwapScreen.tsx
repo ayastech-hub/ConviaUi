@@ -12,7 +12,7 @@ import { SlippageSelector } from '../components/swap/SlippageSelector';
 import { SwapRouteSummary } from '../components/swap/SwapRouteSummary';
 import { SwapReviewSheet } from '../components/swap/SwapReviewSheet';
 import { SwapProcessingOverlay } from '../components/swap/SwapProcessingOverlay';
-import { SwapSuccessView } from '../components/swap/SwapSuccessView';
+import { SwapSuccessView, type SwapSettlement } from '../components/swap/SwapSuccessView';
 import { EmptyCatalogBanner } from '../../../shared/components/EmptyCatalogBanner';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useAuth } from '../../../shared/context/AuthContext';
@@ -79,6 +79,7 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
   const [showToPicker, setShowToPicker] = useState(false);
   const [error, setError] = useState('');
   const [phase, setPhase] = useState<SwapPhase>('idle');
+  const [settlement, setSettlement] = useState<SwapSettlement | null>(null);
   const [rateRefreshing, setRateRefreshing] = useState(false);
   const [ratePulse, setRatePulse] = useState(0);
   const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);
@@ -234,7 +235,7 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
         .finally(() => {
           if (!cancelled) setQuoteLoading(false);
         });
-    }, 350);
+    }, 200);
     return () => {
       cancelled = true;
       clearTimeout(timer);
@@ -263,21 +264,36 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
         toAsset: toAsset.symbol,
         amount: String(fromNum),
       });
-      const out = Number(res.amountOut || quoteOut || receiveAmount || toAmount);
+      const amountIn = Number(res.amountIn ?? fromNum) || fromNum;
+      const amountOut = Number(res.amountOut ?? quoteOut ?? receiveAmount) || 0;
+      const apiRate = Number(res.rate ?? quoteRate) || 0;
+      const feeAmt = Number(res.fee ?? quoteFee) || 0;
+      const feeBps = quoteFeeBps ?? 0;
+      setSettlement({
+        fromSymbol: (res.fromAsset || fromAsset.symbol).toString().toUpperCase(),
+        toSymbol: (res.toAsset || toAsset.symbol).toString().toUpperCase(),
+        amountIn,
+        amountOut,
+        rate: apiRate,
+        fee: feeAmt,
+        feeBps,
+        feeAsset: (res.toAsset || toAsset.symbol).toString().toUpperCase(),
+      });
       setReceiptTx({
         id: res.ledgerTransactionId || 'swap-' + Date.now(),
         type: 'swap',
         asset: fromAsset.symbol,
         assetTo: toAsset.symbol,
-        amount: fromNum,
-        amountTo: out,
-        valueUSD: fromUSD,
+        amount: amountIn,
+        amountTo: amountOut,
+        valueUSD: 0,
         status: 'confirmed',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         hash: res.ledgerTransactionId || 'internal',
       });
+      // Success immediately — do not block UI on portfolio refetch (was ~20s)
+      setPhase('success');
       if (userId) {
-        // Optimistic: adjust cached portfolio so UI updates before round-trip
         queryClient.setQueryData(queryKeys.portfolio(userId), (prev: unknown) => {
           if (!prev || typeof prev !== 'object') return prev;
           const p = prev as {
@@ -290,29 +306,18 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
             if (i >= 0) {
               const qty = Math.max(0, (Number(holdings[i].quantity) || 0) + delta);
               const price = Number(holdings[i].priceUsd) || 0;
-              holdings[i] = {
-                ...holdings[i],
-                quantity: String(qty),
-                valueUsd: String(qty * price),
-              };
+              holdings[i] = { ...holdings[i], quantity: String(qty), valueUsd: String(qty * price) };
             } else if (delta > 0) {
-              holdings.push({
-                asset: sym.toUpperCase(),
-                quantity: String(delta),
-                priceUsd: '0',
-                valueUsd: '0',
-              });
+              holdings.push({ asset: sym.toUpperCase(), quantity: String(delta), priceUsd: '0', valueUsd: '0' });
             }
           };
-          bump(fromAsset.symbol, -fromNum);
-          bump(toAsset.symbol, out);
+          bump(fromAsset.symbol, -amountIn);
+          bump(toAsset.symbol, amountOut);
           return { ...p, holdings };
         });
-        await queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
-        await queryClient.refetchQueries({ queryKey: queryKeys.portfolio(userId) });
-        await queryClient.invalidateQueries({ queryKey: queryKeys.transactions(userId, 50) });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.transactions(userId, 50) });
       }
-      setPhase('success');
     } catch (err) {
       setPhase('idle');
       if (err instanceof ApiError) {
@@ -325,6 +330,7 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
 
   const resetSwap = useCallback(() => {
     setPhase('idle');
+    setSettlement(null);
     setFromAmount('');
     setError('');
     setRatePulse((p) => p + 1);
@@ -335,14 +341,16 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
   const setSlippagePreset = useCallback((v: string) => { setSlippage(v); setCustomSlippage(''); }, []);
   const setCustomSlippageValue = useCallback((v: string) => setCustomSlippage(v.replace(/[^0-9.]/g, '')), []);
 
-  if (phase === 'success') {
+  if (phase === 'success' && settlement) {
     return (
       <SwapSuccessView
-        fromAsset={fromAsset} toAsset={toAsset} fromNum={fromNum} toAmount={receiveAmount || Number(quoteOut) || toAmount}
-        rate={displayRate || rate} networkFeeUSD={platformFee} format={format}
-        receiptTx={receiptTx} showReceipt={showReceipt}
-        onShowReceipt={() => setShowReceipt(true)} onCloseReceipt={() => setShowReceipt(false)}
-        onSwapAgain={resetSwap} onDone={goBack}
+        settlement={settlement}
+        receiptTx={receiptTx}
+        showReceipt={showReceipt}
+        onShowReceipt={() => setShowReceipt(true)}
+        onCloseReceipt={() => setShowReceipt(false)}
+        onSwapAgain={resetSwap}
+        onDone={goBack}
       />
     );
   }
