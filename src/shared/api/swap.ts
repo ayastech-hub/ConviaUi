@@ -1,12 +1,13 @@
 import { api } from './client';
 
-/** Internal omnibus swap — no external bridge provider. */
+/** Internal omnibus swap — fee already applied in toAmount (net received). */
 export type SwapQuote = {
   provider: 'internal';
   model: 'omnibus';
   fromAsset: string;
   toAsset: string;
   fromAmount: string;
+  /** Net amount user receives after platform fee */
   toAmount: string;
   fee: string;
   feeBps: number;

@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/ref/:code", "destination": "/index.html" },
+    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+  ]
+}

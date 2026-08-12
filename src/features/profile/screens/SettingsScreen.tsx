@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Bell, Globe, Moon, Sun } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Bell, Globe, Moon, Sun, Mail, Smartphone, MessageSquare } from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
-import { ConviaLogo } from '../../../shared/components/ConviaLogo';
 import { ScreenHeader } from '../../../shared/components/ScreenHeader';
 import { ListSection } from '../../../shared/components/ListSection';
 import { ListRow } from '../../../shared/components/ListRow';
@@ -12,41 +11,75 @@ import { SignOutButton } from '../components/SignOutButton';
 import { useAuth } from '../../../shared/context/AuthContext';
 import * as notifApi from '../../../shared/api/notifications';
 import * as profileApi from '../../../shared/api/profile';
+import { FeatureAlert } from '../../../shared/components/FeatureAlert';
 
 interface SettingsScreenProps {
   goBack: () => void;
-  navigate: (s: Screen) => void;
+  navigate?: (s: Screen) => void;
   darkMode?: boolean;
   toggleDark?: () => void;
 }
 
-export function SettingsScreen({ goBack }: SettingsScreenProps) {
+type PrefChannel = 'in_app' | 'email' | 'sms' | 'push';
+
+export function SettingsScreen({ goBack, darkMode: darkProp, toggleDark }: SettingsScreenProps) {
   const { currency, setCurrency } = useCurrency();
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(darkProp ?? true);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const { userId } = useAuth();
-  const [notifications, setNotifications] = useState(true);
-  const [emailNotifs, setEmailNotifs] = useState(false);
-  const [priceAlerts, setPriceAlerts] = useState(true);
+  const [prefs, setPrefs] = useState<Record<PrefChannel, boolean>>({
+    in_app: true,
+    email: false,
+    sms: false,
+    push: true,
+  });
+  const [loadingPrefs, setLoadingPrefs] = useState(false);
+  const [prefError, setPrefError] = useState<string | null>(null);
+  const [saving, setSaving] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadPrefs = useCallback(async () => {
     if (!userId) return;
-    notifApi.getNotificationPreferences(userId).then((prefs) => {
-      const list = Array.isArray(prefs) ? prefs : [];
-      for (const p of list) {
-        if (p.channel === 'push' || p.channel === 'in_app') setNotifications(Boolean(p.enabled));
-        if (p.channel === 'email') setEmailNotifs(Boolean(p.enabled));
-      }
-    }).catch(() => {});
+    setLoadingPrefs(true);
+    setPrefError(null);
+    try {
+      const raw = await notifApi.getNotificationPreferences(userId);
+      const list = Array.isArray(raw) ? raw : [];
+      setPrefs((prev) => {
+        const next = { ...prev };
+        for (const p of list) {
+          const ch = p.channel as PrefChannel;
+          if (ch in next) next[ch] = Boolean(p.enabled);
+        }
+        return next;
+      });
+    } catch {
+      setPrefError('Could not load notification preferences');
+    } finally {
+      setLoadingPrefs(false);
+    }
   }, [userId]);
 
-  const togglePush = (v: boolean) => {
-    setNotifications(v);
-    if (userId) void notifApi.setNotificationPreference(userId, 'push', v);
-  };
-  const toggleEmail = (v: boolean) => {
-    setEmailNotifs(v);
-    if (userId) void notifApi.setNotificationPreference(userId, 'email', v);
+  useEffect(() => {
+    void loadPrefs();
+  }, [loadPrefs]);
+
+  const setChannel = async (channel: PrefChannel, enabled: boolean) => {
+    setPrefs((p) => ({ ...p, [channel]: enabled }));
+    if (!userId) return;
+    setSaving(channel);
+    setPrefError(null);
+    try {
+      await notifApi.setNotificationPreference(userId, channel, enabled);
+      if (channel === 'push') {
+        await notifApi.setNotificationPreference(userId, 'in_app', enabled);
+        setPrefs((p) => ({ ...p, in_app: enabled }));
+      }
+    } catch {
+      setPrefError(`Could not save ${channel} preference`);
+      void loadPrefs();
+    } finally {
+      setSaving(null);
+    }
   };
 
   if (showCurrencyPicker) {
@@ -68,59 +101,77 @@ export function SettingsScreen({ goBack }: SettingsScreenProps) {
       <div style={{ height: 50 }} />
       <ScreenHeader title="Settings" onBack={goBack} />
 
-      <div className="flex-1 overflow-y-auto px-5">
-        <div className="rounded-[20px] p-5 mb-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-          <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'var(--primary)' }}>
-              <ConviaLogo size={28} color="#FFFFFF" />
-            </div>
-            <div className="flex-1">
-              <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 16 }}>Convia Finance</p>
-              <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>Africa's Financial Universe</p>
-            </div>
-          </div>
-        </div>
+      <div className="flex-1 overflow-y-auto px-5 pb-28">
+        {prefError && <FeatureAlert reason="generic" message={prefError} />}
 
-        <ListSection title="PREFERENCES">
-          <ListRow
-            icon={Globe}
-            label="Currency"
-            desc={`${currency.code} · ${currency.name}`}
-            onClick={() => setShowCurrencyPicker(true)}
-          />
+        <ListSection title="Appearance">
           <ListRow
             icon={darkMode ? Moon : Sun}
-            label="Dark Mode"
-            desc={darkMode ? 'On' : 'Off'}
-            trailing={<ToggleSwitch checked={darkMode} onChange={() => setDarkMode(!darkMode)} />}
+            label="Dark mode"
+            trailing={
+              <ToggleSwitch
+                checked={darkMode}
+                onChange={() => {
+                  setDarkMode((d) => !d);
+                  toggleDark?.();
+                }}
+              />
+            }
           />
           <ListRow
-            icon={Bell}
-            label="Push Notifications"
-            desc="Transaction & security alerts"
-            trailing={<ToggleSwitch checked={notifications} onChange={() => togglePush(!notifications)} />}
-          />
-          <ListRow
-            icon={Bell}
-            label="Email Notifications"
-            desc="Weekly summary & alerts"
-            trailing={<ToggleSwitch checked={emailNotifs} onChange={() => toggleEmail(!emailNotifs)} />}
-          />
-          <ListRow
-            icon={Bell}
-            label="Price Alerts"
-            desc="Crypto price movements"
-            trailing={<ToggleSwitch checked={priceAlerts} onChange={() => setPriceAlerts(!priceAlerts)} />}
+            icon={Globe}
+            label="Display currency"
+            desc={currency.code}
+            onClick={() => setShowCurrencyPicker(true)}
           />
         </ListSection>
 
-        <div className="mb-4">
+        <ListSection title="Notifications">
+          {loadingPrefs && (
+            <p className="text-xs px-1 mb-2" style={{ color: 'var(--muted-foreground)' }}>
+              Loading preferences…
+            </p>
+          )}
+          <ListRow
+            icon={Bell}
+            label="In-app alerts"
+            desc={saving === 'in_app' ? 'Saving…' : 'Inbox inside the app'}
+            trailing={
+              <ToggleSwitch
+                checked={prefs.in_app}
+                onChange={() => void setChannel('in_app', !prefs.in_app)}
+              />
+            }
+          />
+          <ListRow
+            icon={Smartphone}
+            label="Push"
+            desc={saving === 'push' ? 'Saving…' : 'Device push notifications'}
+            trailing={
+              <ToggleSwitch checked={prefs.push} onChange={() => void setChannel('push', !prefs.push)} />
+            }
+          />
+          <ListRow
+            icon={Mail}
+            label="Email"
+            desc={saving === 'email' ? 'Saving…' : 'Receipts and security'}
+            trailing={
+              <ToggleSwitch checked={prefs.email} onChange={() => void setChannel('email', !prefs.email)} />
+            }
+          />
+          <ListRow
+            icon={MessageSquare}
+            label="SMS"
+            desc={saving === 'sms' ? 'Saving…' : 'Optional text alerts'}
+            trailing={
+              <ToggleSwitch checked={prefs.sms} onChange={() => void setChannel('sms', !prefs.sms)} />
+            }
+          />
+        </ListSection>
+
+        <div className="mt-6">
           <SignOutButton />
         </div>
-
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 11, textAlign: 'center', marginBottom: 20 }}>
-          Convia Finance v2.4.1 · Built for Africa
-        </p>
       </div>
     </div>
   );

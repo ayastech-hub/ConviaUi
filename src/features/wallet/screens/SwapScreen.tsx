@@ -169,21 +169,26 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
     setTimeout(() => setRateRefreshing(false), 700);
   }, []);
 
-  const openReview = useCallback(() => { if (canSwap && gates.canSwap) setPhase('review'); }, [canSwap, gates.canSwap]);
 
   const [quoteOut, setQuoteOut] = useState<string | null>(null);
   const [quoteRate, setQuoteRate] = useState<string | null>(null);
+  const [quoteFee, setQuoteFee] = useState<string | null>(null);
+  const [quoteFeeBps, setQuoteFeeBps] = useState<number | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
 
 
-  // Live internal quote (omnibus) — no chain / bridge
+  // Live quote — toAmount is NET after platform fee (do not re-apply fee on UI)
   useEffect(() => {
     if (!fromNum || sameAsset || !fromAsset.symbol || !toAsset.symbol) {
       setQuoteOut(null);
       setQuoteRate(null);
+      setQuoteFee(null);
+      setQuoteFeeBps(null);
       return;
     }
     let cancelled = false;
-    const t = setTimeout(() => {
+    setQuoteLoading(true);
+    const timer = setTimeout(() => {
       void getSwapQuote({
         fromAsset: fromAsset.symbol,
         toAsset: toAsset.symbol,
@@ -193,20 +198,40 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
           if (cancelled) return;
           setQuoteOut(q.toAmount);
           setQuoteRate(q.rate);
+          setQuoteFee(q.fee);
+          setQuoteFeeBps(typeof q.feeBps === 'number' ? q.feeBps : null);
           setError('');
         })
         .catch((err) => {
           if (cancelled) return;
+          setQuoteOut(null);
+          setQuoteFee(null);
           if (err instanceof ApiError) {
             setError(err.body.message || err.message || 'Quote unavailable');
+          } else {
+            setError('Quote unavailable');
           }
+        })
+        .finally(() => {
+          if (!cancelled) setQuoteLoading(false);
         });
     }, 350);
     return () => {
       cancelled = true;
-      clearTimeout(t);
+      clearTimeout(timer);
+      setQuoteLoading(false);
     };
   }, [fromNum, fromAsset.symbol, toAsset.symbol, sameAsset]);
+
+  /** Amount user receives — always from API quote (fee already deducted). */
+  const receiveAmount = quoteOut != null && Number(quoteOut) > 0 ? Number(quoteOut) : 0;
+  const receiveUSD = receiveAmount * (toAsset.price || 0);
+  const displayRate = quoteRate != null && Number(quoteRate) > 0 ? Number(quoteRate) : rate;
+  const platformFee = quoteFee != null ? Number(quoteFee) : 0;
+  const canConfirmSwap = canSwap && receiveAmount > 0 && !quoteLoading && gates.canSwap;
+  const openReview = useCallback(() => {
+    if (canConfirmSwap) setPhase('review');
+  }, [canConfirmSwap]);
 
   const confirmSwap = useCallback(async () => {
     setApiBlock(null);
@@ -219,7 +244,7 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
         toAsset: toAsset.symbol,
         amount: String(fromNum),
       });
-      const out = Number(res.amountOut || quoteOut || toAmount);
+      const out = Number(res.amountOut || quoteOut || receiveAmount || toAmount);
       setReceiptTx({
         id: res.ledgerTransactionId || 'swap-' + Date.now(),
         type: 'swap',
@@ -245,7 +270,7 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
         setApiBlock({ message: 'Swap failed — is the API running?' });
       }
     }
-  }, [fromAsset, toAsset, fromNum, toAmount, fromUSD, userId, quoteOut]);
+  }, [fromAsset, toAsset, fromNum, toAmount, fromUSD, userId, quoteOut, receiveAmount]);
 
   const resetSwap = useCallback(() => {
     setPhase('idle');
@@ -262,8 +287,8 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
   if (phase === 'success') {
     return (
       <SwapSuccessView
-        fromAsset={fromAsset} toAsset={toAsset} fromNum={fromNum} toAmount={toAmount}
-        rate={rate} networkFeeUSD={networkFeeUSD} format={format}
+        fromAsset={fromAsset} toAsset={toAsset} fromNum={fromNum} toAmount={receiveAmount || Number(quoteOut) || toAmount}
+        rate={displayRate || rate} networkFeeUSD={platformFee} format={format}
         receiptTx={receiptTx} showReceipt={showReceipt}
         onShowReceipt={() => setShowReceipt(true)} onCloseReceipt={() => setShowReceipt(false)}
         onSwapAgain={resetSwap} onDone={goBack}
@@ -304,7 +329,7 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
         </div>
 
         <div className="mb-4 mt-3">
-          <SwapAssetCard variant="to" asset={toAsset} amount={toAmount} onOpenPicker={() => setShowToPicker(true)} usdValue={toUSD} format={format} />
+          <SwapAssetCard variant="to" asset={toAsset} amount={receiveAmount} onOpenPicker={() => setShowToPicker(true)} usdValue={receiveUSD} format={format} />
         </div>
 
         <AnimatePresence>
@@ -320,29 +345,56 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
 
         {hasInput && !error && (
           <>
-            <SwapRateRow fromAsset={fromAsset} toAsset={toAsset} rate={rate} ratePulse={ratePulse} rateRefreshing={rateRefreshing} onRefresh={refreshRate} />
-            <PriceImpactRow priceImpactPct={priceImpactPct} />
+            <SwapRateRow
+              fromAsset={fromAsset}
+              toAsset={toAsset}
+              rate={displayRate || rate}
+              ratePulse={ratePulse}
+              rateRefreshing={rateRefreshing || quoteLoading}
+              onRefresh={refreshRate}
+            />
+            {platformFee > 0 && (
+              <div className="flex justify-between items-center px-1 py-2 mb-1">
+                <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
+                  Platform fee{quoteFeeBps != null ? ` (${(quoteFeeBps / 100).toFixed(2)}%)` : ''}
+                </span>
+                <span style={{ color: 'var(--foreground)', fontSize: 12, fontWeight: 600 }}>
+                  {platformFee.toFixed(6)} {toAsset.symbol}
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between items-center px-1 py-2 mb-2">
+              <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>You receive</span>
+              <span style={{ color: 'var(--positive)', fontSize: 13, fontWeight: 700 }}>
+                {quoteLoading ? '…' : `${receiveAmount.toFixed(6)} ${toAsset.symbol}`}
+              </span>
+            </div>
           </>
         )}
 
-        <SlippageSelector
-          open={showSlippage} onToggle={() => setShowSlippage((s) => !s)}
-          effectiveSlippage={effectiveSlippage} slippage={slippage} customSlippage={customSlippage}
-          onSetPreset={setSlippagePreset} onSetCustom={setCustomSlippageValue}
-        />
-
-        {hasInput && !error && (
-          <SwapRouteSummary route={route} minReceived={minReceived} toAsset={toAsset} fromAsset={fromAsset} networkFeeUSD={networkFeeUSD} format={format} />
-        )}
-
         <motion.button
-          whileTap={{ scale: canSwap ? 0.97 : 1 }}
+          whileTap={{ scale: canConfirmSwap ? 0.97 : 1 }}
           onClick={openReview}
-          disabled={!canSwap}
+          disabled={!canConfirmSwap}
           className="w-full py-4 rounded-[16px] text-white flex items-center justify-center gap-2"
-          style={{ background: canSwap ? 'var(--primary)' : 'var(--muted)', color: canSwap ? '#FFF' : 'var(--muted-foreground)', fontWeight: 700, fontSize: 15 }}
+          style={{
+            background: canConfirmSwap ? 'var(--primary)' : 'var(--muted)',
+            color: canConfirmSwap ? '#FFF' : 'var(--muted-foreground)',
+            fontWeight: 700,
+            fontSize: 15,
+          }}
         >
-          {sameAsset ? 'Select different assets' : !hasInput ? 'Enter an amount' : insufficientBalance ? 'Insufficient balance' : 'Review Swap'}
+          {sameAsset
+            ? 'Select different assets'
+            : !hasInput
+              ? 'Enter an amount'
+              : insufficientBalance
+                ? 'Insufficient balance'
+                : quoteLoading
+                  ? 'Fetching quote…'
+                  : !receiveAmount
+                    ? 'Waiting for quote'
+                    : 'Review Swap'}
         </motion.button>
       </div>
 
@@ -352,10 +404,10 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
       <AnimatePresence>
         {phase === 'review' && (
           <SwapReviewSheet
-            fromAsset={fromAsset} toAsset={toAsset} fromNum={fromNum} toAmount={toAmount}
-            fromUSD={fromUSD} toUSD={toUSD} format={format} rate={rate}
-            priceImpactPct={priceImpactPct} effectiveSlippage={effectiveSlippage} minReceived={minReceived}
-            networkFeeUSD={networkFeeUSD} route={route}
+            fromAsset={fromAsset} toAsset={toAsset} fromNum={fromNum} toAmount={receiveAmount}
+            fromUSD={fromUSD} toUSD={receiveUSD} format={format} rate={displayRate}
+            priceImpactPct={0} effectiveSlippage={0} minReceived={receiveAmount}
+            networkFeeUSD={platformFee} route={[fromAsset.symbol, toAsset.symbol]}
             onClose={() => setPhase('idle')} onConfirm={confirmSwap}
           />
         )}
