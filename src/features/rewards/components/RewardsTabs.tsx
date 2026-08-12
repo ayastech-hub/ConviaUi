@@ -6,15 +6,16 @@ interface OverviewTabProps {
   points: number;
   onRedeem: () => void;
   onInvite: () => void;
+  referredCount?: number;
 }
 
 /** "Overview" tab: quick stats grid, redeem button, and invite-friends button. */
-export function OverviewTab({ points, onRedeem, onInvite }: OverviewTabProps) {
+export function OverviewTab({ points, onRedeem, onInvite, referredCount = 0 }: OverviewTabProps) {
   const stats = [
-    { label: 'Total Earned', value: '12,340 pts', icon: Trophy, color: 'var(--muted-foreground)' },
-    { label: 'This Month', value: `${points.toLocaleString()} pts`, icon: Star, color: 'var(--muted-foreground)' },
-    { label: 'Referrals', value: '3 friends', icon: Gift, color: 'var(--foreground)' },
-    { label: 'Redeemable', value: `$${(points / 1000).toFixed(2)}`, icon: Zap, color: 'var(--foreground)' },
+    { label: 'Points balance', value: `${points.toLocaleString()} pts`, icon: Trophy, color: 'var(--muted-foreground)' },
+    { label: 'This session', value: `${points.toLocaleString()} pts`, icon: Star, color: 'var(--muted-foreground)' },
+    { label: 'Referrals', value: `${referredCount} friends`, icon: Gift, color: 'var(--foreground)' },
+    { label: 'Est. value', value: `$${(points / 1000).toFixed(2)}`, icon: Zap, color: 'var(--foreground)' },
   ];
 
   return (
@@ -50,6 +51,13 @@ interface TasksTabProps {
 
 /** "Tasks" tab: claimable point-earning tasks. */
 export function TasksTab({ tasks, onClaim }: TasksTabProps) {
+  if (!tasks.length) {
+    return (
+      <p className="text-center py-8 text-sm" style={{ color: 'var(--muted-foreground)' }}>
+        No live tasks yet. Complete trades, swaps, or daily login when tasks are published.
+      </p>
+    );
+  }
   return (
     <div className="flex flex-col gap-2">
       {tasks.map((task) => {
@@ -81,6 +89,13 @@ export function TasksTab({ tasks, onClaim }: TasksTabProps) {
 
 /** "Badges" tab: earned/locked achievement badges. */
 export function BadgesTab({ badges }: { badges: Badge[] }) {
+  if (!badges.length) {
+    return (
+      <p className="text-center py-8 text-sm" style={{ color: 'var(--muted-foreground)' }}>
+        Achievements will appear here when earned (no mock badges).
+      </p>
+    );
+  }
   return (
     <div className="grid grid-cols-3 gap-3">
       {badges.map((badge) => {

@@ -7,23 +7,61 @@ interface ReferralModalProps {
   onClose: () => void;
   code: string;
   reward: string;
+  shareUrl?: string;
 }
 
-export function ReferralModal({ open, onClose, code, reward }: ReferralModalProps) {
+/** Live referral code from GET /referrals/:userId/code — no hardcoded codes. */
+export function ReferralModal({ open, onClose, code, reward, shareUrl }: ReferralModalProps) {
   const [copied, setCopied] = useState(false);
+  const link = shareUrl || (code && code !== '—' ? `https://convia.app/ref/${code}` : '');
 
-  const link = `https://convia.app/ref/${code}`;
+  const copyCode = async () => {
+    const text = code && code !== '—' ? code : link;
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* ignore */
+    }
+  };
 
-  const copyCode = () => {
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const copyLink = async () => {
+    if (!link) return;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* ignore */
+    }
   };
 
   const shareOptions = [
-    { icon: MessageCircle, label: 'WhatsApp', color: '#25D366' },
-    { icon: Twitter, label: 'Twitter', color: '#1DA1F2' },
-    { icon: Mail, label: 'Email', color: 'var(--foreground)' },
-    { icon: Share2, label: 'More', color: '#64748B' },
+    {
+      icon: MessageCircle,
+      label: 'WhatsApp',
+      color: '#25D366',
+      href: link ? `https://wa.me/?text=${encodeURIComponent(`Join Convia with my code ${code}: ${link}`)}` : undefined,
+    },
+    {
+      icon: Twitter,
+      label: 'Twitter',
+      color: '#1DA1F2',
+      href: link
+        ? `https://twitter.com/intent/tweet?text=${encodeURIComponent(`Join Convia — code ${code}`)}&url=${encodeURIComponent(link)}`
+        : undefined,
+    },
+    {
+      icon: Mail,
+      label: 'Email',
+      color: 'var(--foreground)',
+      href: link
+        ? `mailto:?subject=Join%20Convia&body=${encodeURIComponent(`Use my referral code ${code}: ${link}`)}`
+        : undefined,
+    },
+    { icon: Share2, label: 'Copy link', color: '#64748B', onClick: copyLink },
   ];
 
   return (
@@ -50,55 +88,105 @@ export function ReferralModal({ open, onClose, code, reward }: ReferralModalProp
 
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'var(--muted)' }}>
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center"
+                  style={{ background: 'var(--muted)' }}
+                >
                   <Gift size={18} style={{ color: 'var(--foreground)' }} />
                 </div>
                 <h3 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 18 }}>Refer & Earn</h3>
               </div>
-              <motion.button whileTap={{ scale: 0.9 }} onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'var(--muted)' }}>
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                type="button"
+                onClick={onClose}
+                className="w-8 h-8 rounded-full flex items-center justify-center"
+                style={{ background: 'var(--muted)' }}
+              >
                 <X size={16} style={{ color: 'var(--muted-foreground)' }} />
               </motion.button>
             </div>
 
-            <div className="rounded-[20px] p-5 mb-5 text-center" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-              <p style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 28 }}>{reward}</p>
-              <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>per friend you invite</p>
-            </div>
-
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginBottom: 8 }}>Your referral code</p>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="flex-1 px-4 py-3 rounded-[12px]" style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}>
-                <span style={{ color: 'var(--foreground)', fontSize: 18, fontWeight: 800, letterSpacing: 2 }}>{code}</span>
-              </div>
-              <motion.button whileTap={{ scale: 0.9 }} onClick={copyCode} className="w-12 h-12 rounded-[12px] flex items-center justify-center" style={{ background: 'var(--primary)' }}>
-                {copied ? <CheckCircle2 size={20} className="text-white" /> : <Copy size={18} className="text-white" />}
+            <div
+              className="rounded-[20px] p-5 mb-5 text-center"
+              style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+            >
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginBottom: 8 }}>{reward}</p>
+              <p
+                style={{
+                  color: 'var(--foreground)',
+                  fontWeight: 800,
+                  fontSize: 28,
+                  letterSpacing: 2,
+                  fontFamily: 'monospace',
+                }}
+              >
+                {code || '—'}
+              </p>
+              {link ? (
+                <p
+                  className="mt-2 truncate px-2"
+                  style={{ color: 'var(--muted-foreground)', fontSize: 11 }}
+                >
+                  {link}
+                </p>
+              ) : (
+                <p className="mt-2" style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
+                  Sign in to load your referral code
+                </p>
+              )}
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                type="button"
+                onClick={copyCode}
+                className="mt-4 px-4 py-2 rounded-xl text-sm font-bold"
+                style={{ background: 'var(--primary)', color: '#fff' }}
+              >
+                Copy code
               </motion.button>
             </div>
 
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginBottom: 8 }}>Referral link</p>
-            <div className="px-4 py-3 rounded-[12px] mb-5" style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}>
-              <p style={{ color: 'var(--muted-foreground)', fontSize: 12, wordBreak: 'break-all' }}>{link}</p>
-            </div>
-
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginBottom: 12 }}>Share via</p>
-            <div className="grid grid-cols-4 gap-3 mb-5">
-              {shareOptions.map(opt => {
+            <div className="grid grid-cols-4 gap-3 mb-4">
+              {shareOptions.map((opt) => {
                 const Icon = opt.icon;
-                return (
-                  <motion.button key={opt.label} whileTap={{ scale: 0.9 }} className="flex flex-col items-center gap-2">
-                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: `${opt.color}18` }}>
+                const inner = (
+                  <motion.div whileTap={{ scale: 0.9 }} className="flex flex-col items-center gap-2">
+                    <div
+                      className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                      style={{ background: `${opt.color}18` }}
+                    >
                       <Icon size={20} style={{ color: opt.color }} />
                     </div>
-                    <span style={{ color: 'var(--muted-foreground)', fontSize: 10, fontWeight: 500 }}>{opt.label}</span>
-                  </motion.button>
+                    <span style={{ color: 'var(--muted-foreground)', fontSize: 10, fontWeight: 500 }}>
+                      {opt.label}
+                    </span>
+                  </motion.div>
+                );
+                if (opt.href) {
+                  return (
+                    <a key={opt.label} href={opt.href} target="_blank" rel="noopener noreferrer">
+                      {inner}
+                    </a>
+                  );
+                }
+                return (
+                  <button key={opt.label} type="button" onClick={opt.onClick}>
+                    {inner}
+                  </button>
                 );
               })}
             </div>
 
             {copied && (
-              <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-center gap-2">
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center justify-center gap-2"
+              >
                 <CheckCircle2 size={14} style={{ color: 'var(--foreground)' }} />
-                <span style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: 600 }}>Code copied to clipboard!</span>
+                <span style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: 600 }}>
+                  Copied to clipboard
+                </span>
               </motion.div>
             )}
           </motion.div>

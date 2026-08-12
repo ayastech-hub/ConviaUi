@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft } from 'lucide-react';
-import { chatContacts, type Screen, type Asset, type ChatContact, type Transaction } from '../../../shared/data/mockData';
+import { type Screen, type Asset, type ChatContact, type Transaction } from '../../../shared/data/mockData';
+import { getPublicProfile } from '../../../shared/api/profile';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { AssetPicker } from '../../../shared/components/AssetPicker';
 import { QRScanner } from '../../../shared/components/QRScanner';
@@ -205,11 +206,54 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
-  const filteredContacts = useMemo(() => {
-    if (!search.trim()) return chatContacts;
-    const q = search.toLowerCase();
-    return chatContacts.filter((c) => c.name.toLowerCase().includes(q) || c.username.toLowerCase().includes(q));
+  const [lookupContacts, setLookupContacts] = useState<ChatContact[]>([]);
+  const [lookupLoading, setLookupLoading] = useState(false);
+
+  // Search by Convia username via GET /profiles/:username (no mock contacts)
+  useEffect(() => {
+    const q = search.trim().replace(/^@/, '');
+    if (q.length < 3) {
+      setLookupContacts([]);
+      return;
+    }
+    let cancelled = false;
+    setLookupLoading(true);
+    const timer = setTimeout(() => {
+      void getPublicProfile(q)
+        .then((p) => {
+          if (cancelled) return;
+          const username = p.username || q;
+          const name = p.displayName || username;
+          const initials = name
+            .split(/\s+/)
+            .map((w) => w[0])
+            .join('')
+            .slice(0, 2)
+            .toUpperCase();
+          setLookupContacts([
+            {
+              id: username,
+              name,
+              username,
+              initials,
+              color: 'var(--primary)',
+            } as ChatContact,
+          ]);
+        })
+        .catch(() => {
+          if (!cancelled) setLookupContacts([]);
+        })
+        .finally(() => {
+          if (!cancelled) setLookupLoading(false);
+        });
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [search]);
+
+  const filteredContacts = lookupContacts;
 
   const validateAmount = useCallback((val: string) => {
     setAmount(val);
