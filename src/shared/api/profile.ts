@@ -11,6 +11,9 @@ export type UserProfile = {
   themePreference?: string | null;
   profileVisibility?: string;
   socialLinks?: Record<string, string> | null;
+  email?: string | null;
+  isFrozen?: boolean;
+  frozenReason?: string | null;
   [key: string]: unknown;
 };
 

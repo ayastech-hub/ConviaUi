@@ -32,6 +32,8 @@ export function useKycStatus() {
   const isPending =
     raw === 'pending' || raw === 'in_review' || raw === 'submitted' || raw === 'processing';
   const isRejected = raw === 'rejected' || raw === 'failed' || raw === 'denied';
+  /** Show banners / lock high-risk actions when not fully approved. */
+  const needsKyc = enabled && !isApproved;
 
   return {
     kyc,
@@ -41,6 +43,7 @@ export function useKycStatus() {
     isApproved,
     isPending,
     isRejected,
+    needsKyc,
     isFetching: q.isFetching,
     refresh: () => q.refetch(),
     invalidate: () => {

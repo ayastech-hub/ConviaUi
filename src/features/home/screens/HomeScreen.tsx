@@ -6,7 +6,7 @@ import { TransactionReceipt } from '../../../shared/components/TransactionReceip
 import type { Screen, Transaction } from '../../../shared/data/mockData';
 import { HomeHeader } from '../components/HomeHeader';
 import { PortfolioHeroCard } from '../components/PortfolioHeroCard';
-import { KYCBanner } from '../components/KYCBanner';
+import { AccountStatusBanners } from '../../../shared/components/AccountStatusBanners';
 import { QuickActionsRow } from '../components/QuickActionsRow';
 import { MarketWatchlist } from '../components/MarketWatchlist';
 import { HomeHoldingsPreview } from '../components/HomeHoldingsPreview';
@@ -50,7 +50,7 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
 
       <PortfolioHeroCard balanceVisible={balanceVisible} onToggleVisibility={() => setBalanceVisible((v) => !v)} />
 
-      <KYCBanner onClick={() => navigate('kyc')} />
+      <AccountStatusBanners onKyc={() => navigate('kyc')} />
 
       <QuickActionsRow onNavigate={navigate} />
 

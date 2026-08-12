@@ -19,6 +19,8 @@ import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/Fea
 import { useAuth } from '../../../shared/context/AuthContext';
 import { withdrawCrypto } from '../../../shared/api/wallet';
 import { sendToUsername } from '../../../shared/api/payments';
+import { useAccountGates } from '../../../shared/hooks/useAccountGates';
+import { GateHint } from '../../../shared/components/AccountStatusBanners';
 import { resolveChain } from '../../../shared/utils/chains';
 import { ApiError } from '../../../shared/api/types';
 import { usePortfolio } from '../../../shared/hooks/usePortfolio';
@@ -42,6 +44,7 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
     // Prefer stable default once catalog loads
   }, [cryptoAssets]);
   const { userId } = useAuth();
+  const gates = useAccountGates();
   const { data: portfolioData } = usePortfolio();
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
   const liveAssets = (portfolioData?.holdings || []).map(holdingToAsset);
@@ -276,7 +279,10 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
     try { await navigator.clipboard.writeText(txHash); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* ignore */ }
   };
 
-  const canContinueAmount = Number(amount) > 0 && !error;
+  const isUsernameSend = Boolean(selectedContact) || (recipient.trim().length >= 3 && !/^0x[a-fA-F0-9]{40}$/.test(recipient.trim()));
+  const sendAllowed = isUsernameSend ? gates.canInternalSend : gates.canExternalSend;
+  const canContinueAmount = Number(amount) > 0 && !error && sendAllowed;
+
 
   return (
     <div className="flex flex-col h-full relative overflow-hidden" style={{ background: 'var(--background)' }}>
@@ -335,12 +341,15 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
           )}
 
           {step === 'confirm' && (
+            <>
             <SendConfirmStep
               format={format} selectedContact={selectedContact} recipient={recipient} amount={amount}
               cryptoAmount={cryptoAmount} selectedAsset={selectedAsset} fee={fee} total={total}
               onEdit={() => setStep('amount')} canConfirm={canContinueAmount}
               holding={holding} confirmProgress={confirmProgress} onHoldStart={startHold} onHoldEnd={cancelHold}
             />
+            <GateHint mode={isUsernameSend ? 'internal_send' : 'external_send'} />
+            </>
           )}
 
           {step === 'sending' && (

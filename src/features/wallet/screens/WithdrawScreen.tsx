@@ -9,6 +9,8 @@ import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBan
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { withdrawCrypto } from '../../../shared/api/wallet';
+import { useAccountGates } from '../../../shared/hooks/useAccountGates';
+import { GateHint } from '../../../shared/components/AccountStatusBanners';
 import { resolveChain } from '../../../shared/utils/chains';
 import { ApiError } from '../../../shared/api/types';
 import { usePortfolio } from '../../../shared/hooks/usePortfolio';
@@ -24,6 +26,7 @@ export function WithdrawScreen({ goBack }: WithdrawScreenProps) {
   const { assets: cryptoAssets, loading: registryLoading, chainKeysForSymbol } = useWalletAssets();
   const { chains } = useTokenRegistry();
   const { userId } = useAuth();
+  const gates = useAccountGates();
   const { data: portfolioData } = usePortfolio();
   const liveAssets = (portfolioData?.holdings || []).map(holdingToAsset);
   const assets = cryptoAssets.length ? cryptoAssets : liveAssets;
@@ -191,6 +194,8 @@ export function WithdrawScreen({ goBack }: WithdrawScreenProps) {
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
       <div className="px-5 pt-12">
         <WalletFeatureBanner feature="withdraw" />
+        <GateHint mode="withdraw" />
+
         {apiError && (
           <FeatureAlert reason={mapApiCodeToReason(apiError.code)} message={apiError.message} detail={apiError.code} />
         )}
@@ -209,6 +214,10 @@ export function WithdrawScreen({ goBack }: WithdrawScreenProps) {
         onChangeAsset={() => setStep('select')}
         onBack={() => setStep('select')}
         onContinue={() => {
+          if (!gates.canWithdraw) {
+            setError(gates.isFrozen ? 'Account frozen' : 'Complete KYC to withdraw');
+            return;
+          }
           setStep('pin');
           setError('');
           setPin(['', '', '', '']);
