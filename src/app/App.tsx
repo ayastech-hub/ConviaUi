@@ -212,7 +212,7 @@ export default function App() {
       case 'notifications':
         return (
           <motion.div key="notifications" {...slideRight} className="absolute inset-0">
-            <NotificationsScreen goBack={goBack} />
+            <NotificationsScreen goBack={goBack} navigate={navigate} />
           </motion.div>
         );
       case 'rewards':
