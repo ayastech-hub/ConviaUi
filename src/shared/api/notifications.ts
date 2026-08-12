@@ -46,3 +46,14 @@ export async function getNotificationPreferences(
 export function setNotificationPreference(userId: string, channel: 'in_app' | 'email' | 'sms' | 'push', enabled: boolean) {
   return api.put(`/notifications/${userId}/preferences`, { channel, enabled });
 }
+
+
+/** Alias used by NotificationsScreen */
+export const fetchNotifications = listNotifications;
+
+export async function markAllNotificationsRead(userId: string): Promise<void> {
+  const rows = await listNotifications(userId, 100);
+  await Promise.all(
+    rows.filter((n) => !n.readAt).map((n) => markNotificationRead(n.id).catch(() => undefined)),
+  );
+}

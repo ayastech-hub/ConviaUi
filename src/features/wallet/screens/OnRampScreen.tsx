@@ -50,6 +50,7 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
   );
   const [paymentMethod, setPaymentMethod] = useState<'bank' | 'card'>('bank');
   const [amount, setAmount] = useState('');
+  const [amountMode, setAmountMode] = useState<'fiat' | 'usd'>('fiat');
   const [step, setStep] = useState<'form' | 'review' | 'payment-instructions' | 'processing' | 'done'>(
     'form',
   );
@@ -62,7 +63,18 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
   const [submitting, setSubmitting] = useState(false);
 
   const fiatCurrency = (currency.code || 'NGN').toUpperCase();
-  const fiatAmount = amount.trim();
+  // Quote/order always in local fiat; USD mode converts via currency.rate (local per 1 USD)
+  const effectiveFiatAmount = (() => {
+    const n = Number(amount);
+    if (!(n > 0)) return '';
+    if (amountMode === 'usd') {
+      const rate = Number(currency.rate) || 0;
+      if (rate <= 0) return '';
+      return String(Number((n * rate).toFixed(2)));
+    }
+    return amount.trim();
+  })();
+  const fiatAmount = effectiveFiatAmount;
 
   // Live quote when amount changes
   useEffect(() => {
@@ -103,6 +115,12 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
   }, [fiatAmount, fiatCurrency, selectedAsset.symbol, gates.canOnramp]);
 
   const youGet = quote ? Number(quote.netCrypto) : 0;
+  const usdAmount =
+    amountMode === 'usd'
+      ? Number(amount) || 0
+      : Number(currency.rate) > 0
+        ? (Number(amount) || 0) / Number(currency.rate)
+        : 0;
   const feeDisplay = quote ? Number(quote.feeAmount) : 0;
 
   const copyAccount = (text: string) => {
@@ -193,6 +211,9 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
               format={format}
               amount={amount}
               setAmount={setAmount}
+              amountMode={amountMode}
+              setAmountMode={setAmountMode}
+              usdAmount={usdAmount}
               usdAmount={Number(quote?.fiatAmount || amount) || 0}
               rampAssets={cryptoAssets}
               selectedAsset={selectedAsset}
@@ -211,6 +232,8 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
               onAddCard={() => {}}
               fee={feeDisplay}
               youGet={youGet}
+              quote={quote}
+              quoting={quoting}
               onPreview={() => {
                 if (!gates.canOnramp) return;
                 if (!quote || Number(amount) <= 0) return;

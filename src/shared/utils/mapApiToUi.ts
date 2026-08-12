@@ -44,7 +44,7 @@ function mapType(t: ApiTransaction): Transaction['type'] {
   if (raw.includes('network_fee') || raw.includes('network fee')) return 'withdraw'; // should be filtered server-side
   if (raw.includes('swap')) return 'swap';
   if (raw.includes('withdraw') || raw.includes('withdrawal') || t.kind === 'withdrawal') return 'withdraw';
-  if (raw.includes('deposit') || raw === 'credit' || t.kind === 'deposit') return 'deposit';
+  if (raw.includes('deposit') || raw === 'credit' || t.kind === 'deposit' || t.type === 'deposit_request') return 'deposit';
   if (raw.includes('onramp') || raw === 'buy') return 'buy';
   if (raw.includes('offramp') || raw === 'sell') return 'sell';
   if (raw.includes('bill')) return 'sell';
