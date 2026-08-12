@@ -78,8 +78,9 @@ export function useBanksForCountry(country: string | null) {
   const q = useQuery({
     queryKey: queryKeys.banks(code || '_'),
     queryFn: async () => {
-      const banks = await listBanks(code);
-      return (Array.isArray(banks) ? banks : []) as DirectoryBank[];
+      const res = await listBanks(code);
+      if (Array.isArray(res)) return res as DirectoryBank[];
+      return (res.banks || []) as DirectoryBank[];
     },
     enabled: code.length >= 2,
     staleTime: 10 * 60_000,

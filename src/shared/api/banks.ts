@@ -57,14 +57,21 @@ export async function listBanks(country: string): Promise<{
   currency?: string;
   banks: DirectoryBank[];
 }> {
-  const res = await api.get<{
-    country?: string;
-    currency?: string;
-    banks?: DirectoryBank[];
-  }>(`/banks?country=${encodeURIComponent(country)}`, { auth: false });
+  const res = await api.get<
+    | DirectoryBank[]
+    | {
+        country?: string;
+        currency?: string;
+        banks?: DirectoryBank[];
+      }
+  >(`/banks?country=${encodeURIComponent(country)}`, { auth: false });
+  // Backend may return { banks } or a bare array
+  if (Array.isArray(res)) {
+    return { country, banks: res };
+  }
   return {
     country: res.country || country,
     currency: res.currency,
-    banks: res.banks || [],
+    banks: Array.isArray(res.banks) ? res.banks : [],
   };
 }
