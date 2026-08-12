@@ -36,3 +36,11 @@ export function getReferralCode(userId: string) {
 export function getReferralStats(userId: string) {
   return api.get<Record<string, unknown>>(`/referrals/${userId}/stats`);
 }
+
+/** Record daily login (points / streak). */
+export function recordDailyLogin(userId: string) {
+  return api.post<{ points?: number; streak?: number; alreadyClaimed?: boolean }>(
+    `/rewards/${userId}/daily-login`,
+    {},
+  );
+}
