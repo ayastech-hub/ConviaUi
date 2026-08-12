@@ -40,12 +40,14 @@ export function holdingToAsset(h: HoldingView): Asset {
 }
 
 function mapType(t: ApiTransaction): Transaction['type'] {
-  const raw = (t.type || t.kind || '').toLowerCase();
+  const raw = `${t.type || ''} ${t.title || ''} ${t.kind || ''}`.toLowerCase();
+  if (raw.includes('network_fee') || raw.includes('network fee')) return 'withdraw'; // should be filtered server-side
   if (raw.includes('swap')) return 'swap';
-  if (raw.includes('withdraw')) return 'withdraw';
-  if (raw.includes('deposit') || raw === 'credit') return 'deposit';
+  if (raw.includes('withdraw') || raw.includes('withdrawal') || t.kind === 'withdrawal') return 'withdraw';
+  if (raw.includes('deposit') || raw === 'credit' || t.kind === 'deposit') return 'deposit';
   if (raw.includes('onramp') || raw === 'buy') return 'buy';
   if (raw.includes('offramp') || raw === 'sell') return 'sell';
+  if (raw.includes('bill')) return 'sell';
   if (t.direction === 'credit') return 'receive';
   if (t.direction === 'debit') return 'send';
   return 'send';
@@ -77,16 +79,21 @@ function pickAmountTo(t: ApiTransaction): number | undefined {
 
 export function apiTxToUi(t: ApiTransaction): Transaction {
   const isSwap = mapType(t) === 'swap';
-  const amount = Number(t.amount) || 0;
+  // Prefer principal amount; ignore dust network-fee legs if any slip through
+  let amount = Number(t.amount) || 0;
+  if ((t.type || '').toLowerCase().includes('network_fee') && amount > 0 && amount < 1e-4) {
+    amount = 0;
+  }
   const amountTo = pickAmountTo(t);
   const assetTo = pickAssetTo(t);
   const created = t.createdAt ? new Date(t.createdAt) : new Date();
   const time = Number.isNaN(created.getTime())
     ? ''
     : created.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const mapped = mapType(t);
   return {
     id: t.id,
-    type: mapType(t),
+    type: mapped,
     asset: t.asset || '—',
     assetTo: isSwap ? assetTo || undefined : assetTo,
     amount,
@@ -96,4 +103,14 @@ export function apiTxToUi(t: ApiTransaction): Transaction {
     status: mapStatus(t.status),
     hash: t.txHash || undefined,
   };
+}
+
+/** Drop internal / dust rows the UI should never show */
+export function filterHistoryForUi(txs: Transaction[]): Transaction[] {
+  return txs.filter((tx) => {
+    if (tx.amount === 0 && tx.type !== 'swap') return false;
+    // Dust gas mistaken as send
+    if (tx.type === 'send' && tx.amount > 0 && tx.amount < 1e-5) return false;
+    return true;
+  });
 }

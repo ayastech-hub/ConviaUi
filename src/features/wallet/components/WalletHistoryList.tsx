@@ -4,7 +4,7 @@ import { ArrowUpRight, ArrowDownLeft, RefreshCw, Plus, Minus, TrendingUp, Trendi
 import type { Transaction } from '../../../shared/data/mockData';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { useTransactions } from '../../../shared/hooks/useTransactions';
-import { apiTxToUi } from '../../../shared/utils/mapApiToUi';
+import { apiTxToUi, filterHistoryForUi } from '../../../shared/utils/mapApiToUi';
 
 const TX_TYPE_INFO: Record<string, { label: string; icon: React.ElementType; color: string; sign: string }> = {
   receive: { label: 'Received', icon: ArrowDownLeft, color: 'var(--positive)', sign: '+' },
@@ -30,7 +30,7 @@ interface WalletHistoryListProps {
 export function WalletHistoryList({ onSelectTransaction }: WalletHistoryListProps) {
   const { format } = useCurrency();
   const { data, loading, source } = useTransactions(50);
-  const txs = data.map(apiTxToUi);
+  const txs = filterHistoryForUi(data.map(apiTxToUi));
 
   return (
     <div className="px-5">
@@ -77,7 +77,11 @@ export function WalletHistoryList({ onSelectTransaction }: WalletHistoryListProp
                   <p style={{ color: info.sign === '+' ? 'var(--positive)' : 'var(--foreground)', fontWeight: 600, fontSize: 13 }}>
                     {tx.type === 'swap'
                       ? `${tx.amount} ${tx.asset || ''} → ${tx.amountTo ?? '—'} ${tx.assetTo || ''}`
-                      : `${info.sign}${tx.amount} ${tx.asset || ''}`}
+                      : `${info.sign}${
+                      tx.amount >= 1
+                        ? tx.amount.toLocaleString(undefined, { maximumFractionDigits: 6 })
+                        : tx.amount.toLocaleString(undefined, { maximumFractionDigits: 8 })
+                    } ${tx.asset || ''}`}
                   </p>
                   <div className="flex items-center justify-end gap-1">
                     <div
