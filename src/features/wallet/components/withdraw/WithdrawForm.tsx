@@ -7,6 +7,9 @@ import { useCurrency } from '../../../../shared/context/CurrencyContext';
 interface WithdrawFormProps {
   asset: Asset;
   selectedChain: string;
+  /** Product chain keys: sepolia, ethereum, base, … */
+  availableChains?: string[];
+  chainLabels?: Record<string, string>;
   setSelectedChain: (c: string) => void;
   address: string;
   onAddressChange: (v: string) => void;
@@ -22,7 +25,7 @@ interface WithdrawFormProps {
 
 /** Withdraw form: network selector, destination address, amount, fee breakdown, and continue button. */
 export function WithdrawForm({
-  asset, selectedChain, setSelectedChain, address, onAddressChange, amount, onAmountChange,
+  asset, selectedChain, availableChains, chainLabels, setSelectedChain, address, onAddressChange, amount, onAmountChange,
   error, fee, feeUSD, onChangeAsset, onBack, onContinue,
 }: WithdrawFormProps) {
   const { format } = useCurrency();
@@ -50,7 +53,7 @@ export function WithdrawForm({
 
         <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginBottom: 6 }}>Network</p>
         <div className="flex gap-2 flex-wrap mb-4">
-          {asset.chains.map((chain) => (
+          {(availableChains?.length ? availableChains : asset.chains).map((chain) => (
             <motion.button
               key={chain}
               whileTap={{ scale: 0.93 }}
@@ -58,7 +61,7 @@ export function WithdrawForm({
               className="px-3 py-2 rounded-[12px]"
               style={{ background: selectedChain === chain ? 'var(--primary)' : 'var(--card)', color: selectedChain === chain ? '#FFF' : 'var(--foreground)', fontSize: 13, fontWeight: 600, border: `1px solid ${selectedChain === chain ? 'transparent' : 'var(--border)'}` }}
             >
-              {chain}
+              {(chainLabels && chainLabels[chain]) || chain}
             </motion.button>
           ))}
         </div>

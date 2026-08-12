@@ -104,7 +104,7 @@ export async function apiRequest<T>(path: string, opts: RequestOptions = {}): Pr
     ...(opts.headers || {}),
   };
   if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
-  if (opts.idempotent) headers['Idempotency-Key'] = newIdempotencyKey();
+  if (opts.idempotent && !headers['Idempotency-Key']) headers['Idempotency-Key'] = newIdempotencyKey();
 
   const attachAuth = (token: string | undefined) => {
     if (opts.auth !== false && token) headers.Authorization = `Bearer ${token}`;

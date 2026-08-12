@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { type Asset, type Transaction } from '../../../shared/data/mockData';
 import { WithdrawTokenList } from '../components/withdraw/WithdrawTokenList';
 import { WithdrawForm } from '../components/withdraw/WithdrawForm';
@@ -9,10 +9,11 @@ import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBan
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { withdrawCrypto } from '../../../shared/api/wallet';
+import { newIdempotencyKey } from '../../../shared/api/client';
 import { useAccountGates } from '../../../shared/hooks/useAccountGates';
 import { queryClient, queryKeys } from '../../../shared/query/queryClient';
 import { GateHint } from '../../../shared/components/AccountStatusBanners';
-import { resolveChain } from '../../../shared/utils/chains';
+import { resolveChain, chainFamilyForKey } from '../../../shared/utils/chains';
 import { ApiError } from '../../../shared/api/types';
 import { usePortfolio } from '../../../shared/hooks/usePortfolio';
 import { holdingToAsset } from '../../../shared/utils/mapApiToUi';
@@ -40,6 +41,8 @@ export function WithdrawScreen({ goBack }: WithdrawScreenProps) {
   const [error, setError] = useState('');
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
   const [pin, setPin] = useState(['', '', '', '']);
+  const idempotencyRef = useRef<string | null>(null);
+  const submittingRef = useRef(false);
   const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);
   const [showReceipt, setShowReceipt] = useState(false);
   const [txHash, setTxHash] = useState('');
@@ -53,9 +56,28 @@ export function WithdrawScreen({ goBack }: WithdrawScreenProps) {
     : 0;
   const feeUSD = selectedAsset ? fee * selectedAsset.price : 0;
 
+  const withdrawChainKeys = useMemo(() => {
+    if (!selectedAsset) return [] as string[];
+    const keys = chainKeysForSymbol(selectedAsset.symbol, 'withdraw');
+    if (keys.length) return keys;
+    // fallback labels from asset.chains → resolve to keys
+    return (selectedAsset.chains || []).map((c) => resolveChain(c).chainKey);
+  }, [selectedAsset, chainKeysForSymbol]);
+
+  const chainLabel = (key: string) => {
+    const hit = chains.find((c) => (c.key || c.chainKey) === key);
+    return hit?.name || hit?.chainName || key;
+  };
+
   const handleSelectAsset = (asset: Asset) => {
     setSelectedAsset(asset);
-    setSelectedChain(asset.chains[0] || 'Ethereum');
+    const keys = chainKeysForSymbol(asset.symbol, 'withdraw');
+    const first =
+      keys[0] ||
+      (asset.chains[0] ? resolveChain(asset.chains[0]).chainKey : 'ethereum');
+    setSelectedChain(first);
+    idempotencyRef.current = null;
+    submittingRef.current = false;
     setStep('form');
     setError('');
     setApiError(null);
@@ -90,28 +112,45 @@ export function WithdrawScreen({ goBack }: WithdrawScreenProps) {
       setStep('form');
       return;
     }
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setStep('processing');
     setApiError(null);
     try {
-      const chain = resolveChain(selectedChain || selectedAsset.chains[0] || 'Ethereum');
+      // selectedChain must be a product key (sepolia, ethereum, …) when set from form
+      const resolved = resolveChain(selectedChain || withdrawChainKeys[0] || 'ethereum');
+      if (!idempotencyRef.current) idempotencyRef.current = newIdempotencyKey();
       const res = (await withdrawCrypto({
         userId,
         destinationAddress: address.trim(),
         asset: selectedAsset.symbol,
         amount: String(amount),
-        chainKey: chain.chainKey,
-        chainFamily: chain.chainFamily,
-      })) as { txHash?: string; netAmount?: string; [k: string]: unknown };
+        chainKey: resolved.chainKey,
+        chainFamily: resolved.chainFamily || chainFamilyForKey(resolved.chainKey),
+        idempotencyKey: idempotencyRef.current,
+      })) as {
+        txHash?: string;
+        netAmount?: string;
+        status?: string;
+        withdrawalRequestId?: string;
+        [k: string]: unknown;
+      };
 
       const hash = res.txHash || '';
       setTxHash(hash);
+      const status =
+        res.status === 'completed' || hash
+          ? 'confirmed'
+          : res.status === 'pending_funding' || res.status === 'processing'
+            ? 'pending'
+            : 'pending';
       setReceiptTx({
-        id: 'wd-' + Date.now(),
+        id: String(res.withdrawalRequestId || 'wd-' + Date.now()),
         type: 'withdraw',
         asset: selectedAsset.symbol,
-        amount: Number(amount),
-        valueUSD: Number(amount) * selectedAsset.price,
-        status: 'confirmed',
+        amount: Number(res.netAmount || amount),
+        valueUSD: Number(res.netAmount || amount) * selectedAsset.price,
+        status,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         hash: hash || undefined,
         address,
@@ -208,6 +247,8 @@ export function WithdrawScreen({ goBack }: WithdrawScreenProps) {
       <WithdrawForm
         asset={selectedAsset}
         selectedChain={selectedChain}
+        availableChains={withdrawChainKeys}
+        chainLabels={Object.fromEntries(withdrawChainKeys.map((k) => [k, chainLabel(k)]))}
         setSelectedChain={setSelectedChain}
         address={address}
         onAddressChange={validateAddress}

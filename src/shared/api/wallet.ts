@@ -46,6 +46,12 @@ export function withdrawCrypto(body: {
   amount: string;
   chainKey: string;
   chainFamily: string;
+  /** Stable key for one user intent — prevents double rows on double-tap */
+  idempotencyKey?: string;
 }) {
-  return api.post('/crypto/withdraw', body, { idempotent: true });
+  const { idempotencyKey, ...payload } = body;
+  return api.post('/crypto/withdraw', payload, {
+    idempotent: true,
+    headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
+  });
 }

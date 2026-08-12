@@ -167,7 +167,7 @@ export function useTokenRegistry() {
           if (direction === 'withdraw') return c.withdrawalsEnabled !== false;
           return true;
         })
-        .map((c) => c.chainKey || c.key || c.chainName || c.name || '')
+        .map((c) => (c.chainKey || c.key || '').toLowerCase())
         .filter(Boolean);
     },
     [tokens],
