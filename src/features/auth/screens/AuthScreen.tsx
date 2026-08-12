@@ -30,9 +30,12 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
   const [username, setUsername] = useState('');
   const [referralCode, setReferralCode] = useState(() => {
     try {
+      const pathMatch = (window.location.pathname || '').match(/^\/ref\/([A-Za-z0-9_-]+)/i);
       const q = new URLSearchParams(window.location.search).get('ref');
-      return q || localStorage.getItem('convia_ref') || '';
-    } catch { return ''; }
+      return (pathMatch?.[1] || q || localStorage.getItem('convia_ref') || '').trim();
+    } catch {
+      return '';
+    }
   });
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
