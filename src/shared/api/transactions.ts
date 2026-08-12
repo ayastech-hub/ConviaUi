@@ -10,7 +10,10 @@ export type ApiTransaction = {
   createdAt: string;
   asset: string | null;
   amount: string | null;
+  assetTo?: string | null;
+  amountTo?: string | null;
   direction: 'credit' | 'debit' | string | null;
+  title?: string;
   txHash: string | null;
   chainKey: string | null;
   metadata?: Record<string, unknown>;

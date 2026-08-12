@@ -68,15 +68,16 @@ export function WalletHistoryList({ onSelectTransaction }: WalletHistoryListProp
                   </div>
                   <div className="text-left">
                     <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13 }}>
-                      {tx.type === 'swap' ? `${tx.asset} → ${tx.assetTo}` : `${info.label} ${tx.asset}`}
+                      {tx.type === 'swap' ? `${tx.asset || '—'} → ${tx.assetTo || '—'}` : `${info.label} ${tx.asset || '—'}`}
                     </p>
                     <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>{tx.time}</p>
                   </div>
                 </div>
                 <div className="text-right">
                   <p style={{ color: info.sign === '+' ? 'var(--positive)' : 'var(--foreground)', fontWeight: 600, fontSize: 13 }}>
-                    {info.sign}
-                    {tx.amount} {tx.asset}
+                    {tx.type === 'swap'
+                      ? `${tx.amount} ${tx.asset || ''} → ${tx.amountTo ?? '—'} ${tx.assetTo || ''}`
+                      : `${info.sign}${tx.amount} ${tx.asset || ''}`}
                   </p>
                   <div className="flex items-center justify-end gap-1">
                     <div

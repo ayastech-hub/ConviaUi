@@ -10,6 +10,8 @@ const ASSET_META: Record<string, { name: string; color: string; bgColor: string;
   USDT: { name: 'Tether USD', color: '#26A17B', bgColor: 'rgba(38,161,123,0.15)', chains: ['Ethereum', 'Tron'] },
   USDC: { name: 'USD Coin', color: '#2775CA', bgColor: 'rgba(39,117,202,0.15)', chains: ['Ethereum'] },
   BNB: { name: 'BNB', color: '#F3BA2F', bgColor: 'rgba(243,186,47,0.15)', chains: ['BSC'] },
+  TRX: { name: 'TRON', color: '#FF0013', bgColor: 'rgba(255,0,19,0.15)', chains: ['Tron'] },
+  POL: { name: 'Polygon', color: '#8247E5', bgColor: 'rgba(130,71,229,0.15)', chains: ['Polygon'] },
 };
 
 export function holdingToAsset(h: HoldingView): Asset {
@@ -56,8 +58,28 @@ function mapStatus(s: string): Transaction['status'] {
   return 'confirmed';
 }
 
+function pickAssetTo(t: ApiTransaction): string | undefined {
+  if (t.assetTo) return String(t.assetTo);
+  const meta = (t.metadata || {}) as Record<string, unknown>;
+  if (meta.to) return String(meta.to);
+  if (meta.toAsset) return String(meta.toAsset);
+  const credit = (t.entries || []).find((e) => e.direction === 'credit');
+  if (credit?.asset) return credit.asset;
+  return undefined;
+}
+
+function pickAmountTo(t: ApiTransaction): number | undefined {
+  if (t.amountTo != null && t.amountTo !== '') return Number(t.amountTo) || undefined;
+  const credit = (t.entries || []).find((e) => e.direction === 'credit');
+  if (credit?.amount) return Number(credit.amount) || undefined;
+  return undefined;
+}
+
 export function apiTxToUi(t: ApiTransaction): Transaction {
+  const isSwap = mapType(t) === 'swap';
   const amount = Number(t.amount) || 0;
+  const amountTo = pickAmountTo(t);
+  const assetTo = pickAssetTo(t);
   const created = t.createdAt ? new Date(t.createdAt) : new Date();
   const time = Number.isNaN(created.getTime())
     ? ''
@@ -66,8 +88,10 @@ export function apiTxToUi(t: ApiTransaction): Transaction {
     id: t.id,
     type: mapType(t),
     asset: t.asset || '—',
+    assetTo: isSwap ? assetTo || undefined : assetTo,
     amount,
-    valueUSD: amount, // exact USD unknown without price; UI still shows amount
+    amountTo: isSwap ? amountTo : amountTo,
+    valueUSD: amount,
     time,
     status: mapStatus(t.status),
     hash: t.txHash || undefined,
