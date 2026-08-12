@@ -36,6 +36,11 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
     if (!cryptoAssets.length) return;
   }, [cryptoAssets]);
   const { userId } = useAuth();
+  // Fresh balances every time user opens Swap
+  useEffect(() => {
+    if (!userId) return;
+    void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
+  }, [userId]);
   const gates = useAccountGates();
   const [apiBlock, setApiBlock] = useState<{ code?: string; message?: string } | null>(null);
   const { format, currency } = useCurrency();
@@ -89,6 +94,20 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
     const n = Number(fromAmount);
     return Number.isFinite(n) && n > 0 ? n : 0;
   }, [fromAmount]);
+
+
+  // Keep selected tokens' balances in sync with live portfolio (fixes zero balance on open)
+  useEffect(() => {
+    if (!cryptoAssets.length) return;
+    setFromAsset((prev) => {
+      const hit = cryptoAssets.find((a) => a.symbol === prev.symbol);
+      return hit ? { ...hit } : prev;
+    });
+    setToAsset((prev) => {
+      const hit = cryptoAssets.find((a) => a.symbol === prev.symbol);
+      return hit ? { ...hit } : prev;
+    });
+  }, [cryptoAssets]);
 
   const rate = useMemo(() => (toAsset.price === 0 ? 0 : fromAsset.price / toAsset.price), [fromAsset, toAsset]);
 
@@ -258,8 +277,40 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
         hash: res.ledgerTransactionId || 'internal',
       });
       if (userId) {
-        void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
-        void queryClient.invalidateQueries({ queryKey: queryKeys.transactions(userId, 50) });
+        // Optimistic: adjust cached portfolio so UI updates before round-trip
+        queryClient.setQueryData(queryKeys.portfolio(userId), (prev: unknown) => {
+          if (!prev || typeof prev !== 'object') return prev;
+          const p = prev as {
+            totalValueUsd?: string;
+            holdings?: Array<{ asset: string; quantity: string; priceUsd: string; valueUsd: string }>;
+          };
+          const holdings = [...(p.holdings || [])];
+          const bump = (sym: string, delta: number) => {
+            const i = holdings.findIndex((h) => h.asset.toUpperCase() === sym.toUpperCase());
+            if (i >= 0) {
+              const qty = Math.max(0, (Number(holdings[i].quantity) || 0) + delta);
+              const price = Number(holdings[i].priceUsd) || 0;
+              holdings[i] = {
+                ...holdings[i],
+                quantity: String(qty),
+                valueUsd: String(qty * price),
+              };
+            } else if (delta > 0) {
+              holdings.push({
+                asset: sym.toUpperCase(),
+                quantity: String(delta),
+                priceUsd: '0',
+                valueUsd: '0',
+              });
+            }
+          };
+          bump(fromAsset.symbol, -fromNum);
+          bump(toAsset.symbol, out);
+          return { ...p, holdings };
+        });
+        await queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
+        await queryClient.refetchQueries({ queryKey: queryKeys.portfolio(userId) });
+        await queryClient.invalidateQueries({ queryKey: queryKeys.transactions(userId, 50) });
       }
       setPhase('success');
     } catch (err) {

@@ -11,6 +11,9 @@ export function usePortfolio() {
     queryKey: queryKeys.portfolio(userId || '_'),
     queryFn: () => fetchPortfolio(userId!),
     enabled,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
   return {
