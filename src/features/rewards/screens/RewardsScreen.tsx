@@ -194,7 +194,7 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
             verifiedCount={verifiedCount}
             unverifiedCount={unverifiedCount}
             onInvite={() => setShowReferral(true)}
-            onRedeem={() => showToast('Redeem coming soon')}
+            onGoToTasks={() => setActiveTab('tasks')}
           />
         )}
         {activeTab === 'tasks' && (
@@ -222,8 +222,8 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="absolute bottom-24 left-5 right-5 py-3 px-4 rounded-2xl text-center text-sm font-semibold text-white z-50"
-            style={{ background: 'var(--foreground)' }}
+            className="absolute bottom-24 left-5 right-5 py-3 px-4 rounded-2xl text-center text-sm font-semibold z-50"
+            style={{ background: 'var(--primary)', color: '#ffffff' }}
           >
             {toast}
           </motion.div>
