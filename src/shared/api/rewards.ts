@@ -48,3 +48,16 @@ export function recordDailyLogin(userId: string) {
     {},
   );
 }
+
+
+export type LiveBadge = {
+  key: string;
+  name: string;
+  description: string;
+  category?: string;
+  earned: boolean;
+};
+
+export function listBadges(userId: string) {
+  return api.get<{ badges: LiveBadge[] }>(`/rewards/${userId}/badges`);
+}

@@ -1,8 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, Calendar, Send, RefreshCw, CheckCircle2, TrendingUp, type LucideIcon } from 'lucide-react';
+import {
+  ChevronLeft,
+  Calendar,
+  Send,
+  RefreshCw,
+  CheckCircle2,
+  TrendingUp,
+  Trophy,
+  Handshake,
+  Gem,
+  ShieldCheck,
+  type LucideIcon,
+} from 'lucide-react';
 import { ReferralModal } from '../../../shared/components/ReferralModal';
-import type { RewardTask } from '../components/rewardsData';
+import type { RewardTask, Badge } from '../components/rewardsData';
 import { PointsCard, StreakCard } from '../components/PointsAndStreakCards';
 import { OverviewTab, TasksTab, BadgesTab } from '../components/RewardsTabs';
 import { useAuth } from '../../../shared/context/AuthContext';
@@ -38,6 +50,7 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
   const [unverifiedCount, setUnverifiedCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [claimingId, setClaimingId] = useState<string | null>(null);
+  const [badges, setBadges] = useState<Badge[]>([])
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -48,9 +61,10 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
     if (!userId) return;
     setLoading(true);
     try {
-      const [profile, taskRes, codeRes, statsRes] = await Promise.all([
+      const [profile, taskRes, badgeRes, codeRes, statsRes] = await Promise.all([
         rewardsApi.getRewardsProfile(userId).catch(() => null),
         rewardsApi.listRewardTasks(userId).catch(() => ({ tasks: [] as rewardsApi.LiveRewardTask[] })),
+        rewardsApi.listBadges(userId).catch(() => ({ badges: [] as rewardsApi.LiveBadge[] })),
         rewardsApi.getReferralCode(userId).catch(() => null),
         rewardsApi.getReferralStats(userId).catch(() => null),
       ]);
@@ -78,6 +92,24 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
         };
       });
       setTasks(live);
+      if (badgeRes?.badges) {
+        const iconFor = (key: string): LucideIcon => {
+          if (key.includes('kyc')) return ShieldCheck;
+          if (key.includes('referral')) return Handshake;
+          if (key.includes('volume') || key.includes('trade') || key.includes('swap')) return TrendingUp;
+          if (key.includes('deposit')) return Gem;
+          return Trophy;
+        };
+        setBadges(
+          badgeRes.badges.map((b) => ({
+            name: b.name,
+            desc: b.description,
+            earned: !!b.earned,
+            icon: iconFor(b.key),
+          })),
+        );
+      }
+
       if (codeRes?.code) {
         setReferralCode(codeRes.code);
         setReferralShare(codeRes.shareUrl || `https://convia.app/ref/${codeRes.code}`);
@@ -200,7 +232,7 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
         {activeTab === 'tasks' && (
           <TasksTab tasks={tasks} onClaim={(id) => void claimTask(id)} claimingId={claimingId} />
         )}
-        {activeTab === 'badges' && <BadgesTab badges={[]} />}
+        {activeTab === 'badges' && <BadgesTab badges={badges} />}
         {!userId && (
           <p className="text-center text-sm mt-6" style={{ color: 'var(--muted-foreground)' }}>
             Sign in to load rewards and referral code.
