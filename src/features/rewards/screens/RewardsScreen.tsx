@@ -14,16 +14,18 @@ interface RewardsScreenProps {
 }
 
 const ICON_BY_TYPE: Record<string, LucideIcon> = {
-  daily_login: Calendar,
-  'daily-login': Calendar,
+  volume_usd: TrendingUp,
+  trade_count: TrendingUp,
   trade: TrendingUp,
-  send: Send,
+  referral: Send,
+  social: RefreshCw,
   swap: RefreshCw,
   kyc: CheckCircle2,
+  daily_login: Calendar,
 };
 
 export function RewardsScreen({ goBack }: RewardsScreenProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'tasks' | 'badges'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'tasks' | 'badges'>('tasks');
   const [showReferral, setShowReferral] = useState(false);
   const { userId } = useAuth();
   const [points, setPoints] = useState(0);
@@ -33,10 +35,11 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
   const [referralShare, setReferralShare] = useState('');
   const [referredCount, setReferredCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [claimingId, setClaimingId] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(null), 2500);
+    setTimeout(() => setToast(null), 2800);
   };
 
   const refresh = useCallback(async () => {
@@ -58,16 +61,20 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
         );
         setPoints(pts);
       }
-      const live: RewardTask[] = (taskRes.tasks || []).map((t) => ({
-        id: t.id,
-        label: t.title,
-        points: t.points,
-        // done = already claimed (credits applied). completed but unclaimed stays claimable.
-        done: !!t.claimed,
-        completed: !!t.completedAt,
-        canClaim: !!t.canClaim || (!!t.completedAt && !t.claimed),
-        icon: ICON_BY_TYPE[t.type] || ICON_BY_TYPE[t.id] || TrendingUp,
-      }));
+      const live: RewardTask[] = (taskRes.tasks || []).map((t) => {
+        const canClaim = !!t.canClaim;
+        return {
+          id: t.id,
+          label: t.title,
+          points: t.points,
+          done: !!t.claimed,
+          completed: !!t.completedAt,
+          canClaim,
+          expired: !!t.expired || t.status === 'expired',
+          status: t.status,
+          icon: ICON_BY_TYPE[t.type] || TrendingUp,
+        };
+      });
       setTasks(live);
       if (codeRes?.code) {
         setReferralCode(codeRes.code);
@@ -91,17 +98,31 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
     void refresh();
   }, [refresh]);
 
-
   const claimTask = async (id: string) => {
     if (!userId) {
       showToast('Sign in to claim');
       return;
     }
+    if (claimingId) return;
+    const task = tasks.find((x) => x.id === id);
+    if (task && !task.canClaim && !task.completed) {
+      showToast('Finish the task before claiming');
+      return;
+    }
+    if (task?.expired) {
+      showToast('Task expired — claim window closed');
+      return;
+    }
+    setClaimingId(id);
     try {
       const res = await rewardsApi.claimRewardTask(userId, id);
       setPoints((p) => p + (res.points || 0));
       setTasks((prev) =>
-        prev.map((t) => (t.id === id ? { ...t, done: true, canClaim: false, completed: true } : t)),
+        prev.map((t) =>
+          t.id === id
+            ? { ...t, done: true, canClaim: false, completed: true, status: 'claimed', expired: false }
+            : t,
+        ),
       );
       const usdt = res.usdtCredited && Number(res.usdtCredited) > 0 ? ` · +${res.usdtCredited} USDT` : '';
       showToast(`Claimed +${res.points || 0} pts${usdt}`);
@@ -109,21 +130,23 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
     } catch (e) {
       const msg =
         e instanceof ApiError
-          ? e.body?.message || e.message
+          ? String(e.body?.message || e.message || 'Claim failed')
           : e instanceof Error
             ? e.message
-            : 'Could not claim (not eligible yet)';
+            : 'Could not claim';
       showToast(msg);
+    } finally {
+      setClaimingId(null);
     }
   };
 
   return (
-    <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
+    <div className="flex flex-col h-full relative" style={{ background: 'var(--background)' }}>
       <div style={{ height: 50 }} />
-      <div className="flex items-center gap-3 px-5 mb-2">
+      <div className="flex items-center gap-3 px-5 mb-4">
         <motion.button
-          whileTap={{ scale: 0.9 }}
           type="button"
+          whileTap={{ scale: 0.9 }}
           onClick={goBack}
           className="w-10 h-10 rounded-2xl flex items-center justify-center"
           style={{ border: '1px solid var(--border)' }}
@@ -167,7 +190,9 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
             onRedeem={() => showToast('Redeem coming soon')}
           />
         )}
-        {activeTab === 'tasks' && <TasksTab tasks={tasks} onClaim={claimTask} />}
+        {activeTab === 'tasks' && (
+          <TasksTab tasks={tasks} onClaim={(id) => void claimTask(id)} claimingId={claimingId} />
+        )}
         {activeTab === 'badges' && <BadgesTab badges={[]} />}
         {!userId && (
           <p className="text-center text-sm mt-6" style={{ color: 'var(--muted-foreground)' }}>

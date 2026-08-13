@@ -16,6 +16,9 @@ export type LiveRewardTask = {
   completedAt?: string | null;
   claimed?: boolean;
   canClaim?: boolean;
+  expired?: boolean;
+  status?: string;
+  endsAt?: string | null;
 };
 
 export function listRewardTasks(userId: string) {
@@ -26,6 +29,7 @@ export function claimRewardTask(userId: string, taskId: string) {
   return api.post<{ taskId: string; points: number; usdtCredited?: string; claimed: boolean }>(
     `/rewards/${userId}/tasks/${taskId}/claim`,
     {},
+    { idempotent: true },
   );
 }
 

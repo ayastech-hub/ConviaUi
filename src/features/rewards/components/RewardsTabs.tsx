@@ -47,10 +47,11 @@ export function OverviewTab({ points, onRedeem, onInvite, referredCount = 0 }: O
 interface TasksTabProps {
   tasks: RewardTask[];
   onClaim: (id: string) => void;
+  claimingId?: string | null;
 }
 
 /** "Tasks" tab: claimable point-earning tasks. */
-export function TasksTab({ tasks, onClaim }: TasksTabProps) {
+export function TasksTab({ tasks, onClaim, claimingId }: TasksTabProps) {
   if (!tasks.length) {
     return (
       <p className="text-center py-8 text-sm" style={{ color: 'var(--muted-foreground)' }}>
@@ -79,12 +80,46 @@ export function TasksTab({ tasks, onClaim }: TasksTabProps) {
               <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: 'var(--secondary)' }}>
                 <CheckCircle2 size={14} className="text-white" />
               </div>
-            ) : task.canClaim || task.completed ? (
-              <motion.button whileTap={{ scale: 0.9 }} onClick={() => onClaim(task.id)} className="px-3 py-1.5 rounded-[10px]" style={{ background: 'var(--primary)', color: '#fff', fontSize: 12, fontWeight: 700 }}>
-                Claim
+            ) : task.expired ? (
+              <span style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 600 }}>Expired</span>
+            ) : task.canClaim ? (
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.9 }}
+                disabled={!!claimingId}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onClaim(task.id);
+                }}
+                className="px-3 py-1.5 rounded-[10px]"
+                style={{
+                  background: 'var(--primary)',
+                  color: '#fff',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  opacity: claimingId && claimingId !== task.id ? 0.5 : 1,
+                }}
+              >
+                {claimingId === task.id ? 'Claiming…' : 'Claim'}
+              </motion.button>
+            ) : task.completed ? (
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.9 }}
+                disabled={!!claimingId}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onClaim(task.id);
+                }}
+                className="px-3 py-1.5 rounded-[10px]"
+                style={{ background: 'var(--primary)', color: '#fff', fontSize: 12, fontWeight: 700 }}
+              >
+                {claimingId === task.id ? 'Claiming…' : 'Claim'}
               </motion.button>
             ) : (
-              <span style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 600 }}>Locked</span>
+              <span style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 600 }}>In progress</span>
             )}
           </div>
         );

@@ -1,4 +1,4 @@
-import { Trophy, Zap, Globe, Star, Handshake, Gem, TrendingUp, Send, RefreshCw, CheckCircle2, type LucideIcon } from 'lucide-react';
+import { Trophy, Zap, Globe, Star, Handshake, Gem, type LucideIcon } from 'lucide-react';
 
 export interface Badge {
   name: string;
@@ -20,15 +20,14 @@ export interface RewardTask {
   id: string;
   label: string;
   points: number;
-  /** true only after successful claim (credits applied) */
   done: boolean;
-  /** task progress finished; may still need claim */
   completed?: boolean;
   canClaim?: boolean;
+  expired?: boolean;
+  status?: string;
   icon: LucideIcon;
 }
 
-/** Empty seed — live tasks come from the API only (no mock daily login). */
 export const initialTasks: RewardTask[] = [];
 
 export type RedeemState = 'idle' | 'processing' | 'success';
