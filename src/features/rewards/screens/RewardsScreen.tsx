@@ -7,6 +7,7 @@ import { PointsCard, StreakCard } from '../components/PointsAndStreakCards';
 import { OverviewTab, TasksTab, BadgesTab } from '../components/RewardsTabs';
 import { useAuth } from '../../../shared/context/AuthContext';
 import * as rewardsApi from '../../../shared/api/rewards';
+import { ApiError } from '../../../shared/api/types';
 
 interface RewardsScreenProps {
   goBack: () => void;
@@ -61,7 +62,10 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
         id: t.id,
         label: t.title,
         points: t.points,
-        done: !!t.claimed || !!t.completedAt,
+        // done = already claimed (credits applied). completed but unclaimed stays claimable.
+        done: !!t.claimed,
+        completed: !!t.completedAt,
+        canClaim: !!t.canClaim || (!!t.completedAt && !t.claimed),
         icon: ICON_BY_TYPE[t.type] || ICON_BY_TYPE[t.id] || TrendingUp,
       }));
       setTasks(live);
@@ -87,19 +91,6 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
     void refresh();
   }, [refresh]);
 
-  useEffect(() => {
-    if (!userId) return;
-    void rewardsApi
-      .recordDailyLogin(userId)
-      .then((r) => {
-        if (r && !(r as { alreadyClaimed?: boolean }).alreadyClaimed) {
-          const pts = Number((r as { points?: number }).points ?? 0);
-          if (pts) showToast(`Daily login +${pts} pts`);
-          void refresh();
-        }
-      })
-      .catch(() => {});
-  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const claimTask = async (id: string) => {
     if (!userId) {
@@ -109,11 +100,20 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
     try {
       const res = await rewardsApi.claimRewardTask(userId, id);
       setPoints((p) => p + (res.points || 0));
-      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: true } : t)));
-      showToast(`Claimed +${res.points || 0} pts`);
+      setTasks((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, done: true, canClaim: false, completed: true } : t)),
+      );
+      const usdt = res.usdtCredited && Number(res.usdtCredited) > 0 ? ` · +${res.usdtCredited} USDT` : '';
+      showToast(`Claimed +${res.points || 0} pts${usdt}`);
       void refresh();
-    } catch {
-      showToast('Could not claim (not eligible yet)');
+    } catch (e) {
+      const msg =
+        e instanceof ApiError
+          ? e.body?.message || e.message
+          : e instanceof Error
+            ? e.message
+            : 'Could not claim (not eligible yet)';
+      showToast(msg);
     }
   };
 

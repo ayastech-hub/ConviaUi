@@ -1,4 +1,4 @@
-import { Trophy, Zap, Globe, Star, Handshake, Gem, Calendar, TrendingUp, Send, RefreshCw, CheckCircle2, type LucideIcon } from 'lucide-react';
+import { Trophy, Zap, Globe, Star, Handshake, Gem, TrendingUp, Send, RefreshCw, CheckCircle2, type LucideIcon } from 'lucide-react';
 
 export interface Badge {
   name: string;
@@ -8,9 +8,9 @@ export interface Badge {
 }
 
 export const initialBadges: Badge[] = [
-  { name: 'First Trade', icon: Trophy, desc: 'Completed first trade', earned: true },
-  { name: 'Speed Sender', icon: Zap, desc: 'Sent 10 payments', earned: true },
-  { name: 'DeFi Explorer', icon: Globe, desc: 'Used off-ramp 5 times', earned: true },
+  { name: 'First Trade', icon: Trophy, desc: 'Completed first trade', earned: false },
+  { name: 'Speed Sender', icon: Zap, desc: 'Sent 10 payments', earned: false },
+  { name: 'DeFi Explorer', icon: Globe, desc: 'Used off-ramp 5 times', earned: false },
   { name: 'Swap Master', icon: Star, desc: 'Completed 10 swaps', earned: false },
   { name: 'OTC Master', icon: Handshake, desc: 'Complete 50 OTC trades', earned: false },
   { name: 'Diamond Hands', icon: Gem, desc: 'Hold BTC for 90 days', earned: false },
@@ -20,16 +20,15 @@ export interface RewardTask {
   id: string;
   label: string;
   points: number;
+  /** true only after successful claim (credits applied) */
   done: boolean;
+  /** task progress finished; may still need claim */
+  completed?: boolean;
+  canClaim?: boolean;
   icon: LucideIcon;
 }
 
-export const initialTasks: RewardTask[] = [
-  { id: 'daily-login', label: 'Daily login', points: 10, done: true, icon: Calendar },
-  { id: 'complete-trade', label: 'Complete 1 trade', points: 25, done: true, icon: TrendingUp },
-  { id: 'send-friend', label: 'Send to 1 friend', points: 20, done: false, icon: Send },
-  { id: 'complete-swap', label: 'Complete a swap', points: 15, done: false, icon: RefreshCw },
-  { id: 'complete-kyc', label: 'Complete KYC', points: 100, done: true, icon: CheckCircle2 },
-];
+/** Empty seed — live tasks come from the API only (no mock daily login). */
+export const initialTasks: RewardTask[] = [];
 
 export type RedeemState = 'idle' | 'processing' | 'success';

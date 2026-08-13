@@ -54,7 +54,7 @@ export function TasksTab({ tasks, onClaim }: TasksTabProps) {
   if (!tasks.length) {
     return (
       <p className="text-center py-8 text-sm" style={{ color: 'var(--muted-foreground)' }}>
-        No live tasks yet. Complete trades, swaps, or daily login when tasks are published.
+        No live tasks yet. Complete trades, swaps, or referrals when tasks are published by admin.
       </p>
     );
   }
@@ -69,16 +69,22 @@ export function TasksTab({ tasks, onClaim }: TasksTabProps) {
             </div>
             <div className="flex-1">
               <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14, textDecoration: task.done ? 'line-through' : 'none' }}>{task.label}</p>
-              <p style={{ color: 'var(--foreground)', fontSize: 12, fontWeight: 600 }}>+{task.points} pts</p>
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }}>
+                +{task.points} pts
+                {task.completed && !task.done ? ' · ready to claim' : ''}
+                {!task.completed && !task.done ? ' · in progress' : ''}
+              </p>
             </div>
             {task.done ? (
               <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: 'var(--secondary)' }}>
                 <CheckCircle2 size={14} className="text-white" />
               </div>
-            ) : (
+            ) : task.canClaim || task.completed ? (
               <motion.button whileTap={{ scale: 0.9 }} onClick={() => onClaim(task.id)} className="px-3 py-1.5 rounded-[10px]" style={{ background: 'var(--primary)', color: '#fff', fontSize: 12, fontWeight: 700 }}>
                 Claim
               </motion.button>
+            ) : (
+              <span style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 600 }}>Locked</span>
             )}
           </div>
         );
