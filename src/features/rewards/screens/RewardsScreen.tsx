@@ -34,6 +34,8 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
   const [referralCode, setReferralCode] = useState('');
   const [referralShare, setReferralShare] = useState('');
   const [referredCount, setReferredCount] = useState(0);
+  const [verifiedCount, setVerifiedCount] = useState(0);
+  const [unverifiedCount, setUnverifiedCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [claimingId, setClaimingId] = useState<string | null>(null);
 
@@ -81,13 +83,16 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
         setReferralShare(codeRes.shareUrl || `https://convia.app/ref/${codeRes.code}`);
       }
       if (statsRes) {
-        setReferredCount(
-          Number(
-            (statsRes as { referredCount?: number }).referredCount ??
-              (statsRes as { count?: number }).count ??
-              0,
-          ),
-        );
+        const s = statsRes as {
+          referralCount?: number;
+          referredCount?: number;
+          verifiedCount?: number;
+          unverifiedCount?: number;
+          count?: number;
+        };
+        setReferredCount(Number(s.referralCount ?? s.referredCount ?? s.count ?? 0));
+        setVerifiedCount(Number(s.verifiedCount ?? 0));
+        setUnverifiedCount(Number(s.unverifiedCount ?? 0));
       }
     } finally {
       setLoading(false);
@@ -186,6 +191,8 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
           <OverviewTab
             points={points}
             referredCount={referredCount}
+            verifiedCount={verifiedCount}
+            unverifiedCount={unverifiedCount}
             onInvite={() => setShowReferral(true)}
             onRedeem={() => showToast('Redeem coming soon')}
           />

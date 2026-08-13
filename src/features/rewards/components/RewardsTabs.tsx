@@ -7,15 +7,24 @@ interface OverviewTabProps {
   onRedeem: () => void;
   onInvite: () => void;
   referredCount?: number;
+  verifiedCount?: number;
+  unverifiedCount?: number;
 }
 
 /** "Overview" tab: quick stats grid, redeem button, and invite-friends button. */
-export function OverviewTab({ points, onRedeem, onInvite, referredCount = 0 }: OverviewTabProps) {
+export function OverviewTab({
+  points,
+  onRedeem,
+  onInvite,
+  referredCount = 0,
+  verifiedCount = 0,
+  unverifiedCount = 0,
+}: OverviewTabProps) {
   const stats = [
     { label: 'Points balance', value: `${points.toLocaleString()} pts`, icon: Trophy, color: 'var(--muted-foreground)' },
-    { label: 'This session', value: `${points.toLocaleString()} pts`, icon: Star, color: 'var(--muted-foreground)' },
-    { label: 'Referrals', value: `${referredCount} friends`, icon: Gift, color: 'var(--foreground)' },
-    { label: 'Est. value', value: `$${(points / 1000).toFixed(2)}`, icon: Zap, color: 'var(--foreground)' },
+    { label: 'Total invites', value: `${referredCount}`, icon: Gift, color: 'var(--foreground)' },
+    { label: 'Verified (KYC)', value: `${verifiedCount}`, icon: Star, color: 'var(--positive, #22c55e)' },
+    { label: 'Pending KYC', value: `${unverifiedCount}`, icon: Zap, color: 'var(--muted-foreground)' },
   ];
 
   return (
