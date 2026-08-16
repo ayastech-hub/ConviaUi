@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft } from 'lucide-react';
 import { type Screen, type Asset, type ChatContact, type Transaction } from '../../../shared/data/mockData';
 import { getPublicProfile } from '../../../shared/api/profile';
+import { matchContacts, type ContactMatch } from '../../../shared/api/contacts';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { AssetPicker } from '../../../shared/components/AssetPicker';
 import { QRScanner } from '../../../shared/components/QRScanner';
@@ -208,6 +209,10 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
 
   const [lookupContacts, setLookupContacts] = useState<ChatContact[]>([]);
   const [lookupLoading, setLookupLoading] = useState(false);
+  const [deviceMatches, setDeviceMatches] = useState<ChatContact[]>([]);
+  const [deviceMatchLoading, setDeviceMatchLoading] = useState(false);
+  const [deviceMatchNote, setDeviceMatchNote] = useState<string | null>(null);
+
 
   // Search by Convia username via GET /profiles/:username (no mock contacts)
   useEffect(() => {
@@ -253,7 +258,12 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
     };
   }, [search]);
 
-  const filteredContacts = lookupContacts;
+  const filteredContacts = (() => {
+    const byUser = new Map<string, ChatContact>();
+    for (const c of deviceMatches) byUser.set(c.username.toLowerCase(), c);
+    for (const c of lookupContacts) byUser.set(c.username.toLowerCase(), c);
+    return [...byUser.values()];
+  })();
 
   const validateAmount = useCallback((val: string) => {
     setAmount(val);
@@ -273,6 +283,64 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
       if (text) { setRecipient(text.trim()); setSelectedContact(null); addressInputRef.current?.focus(); }
     } catch { /* clipboard not available — no-op */ }
   };
+
+
+  /** Device contacts → server match → Convia usernames only (never pay by phone). */
+  const findFriendsOnConvia = useCallback(async () => {
+    setDeviceMatchNote(null);
+    setDeviceMatchLoading(true);
+    try {
+      let phones: string[] = [];
+      const nav = navigator as Navigator & {
+        contacts?: { select: (props: string[], opts: { multiple: boolean }) => Promise<Array<{ tel?: string[]; name?: string[] }>> };
+      };
+      if (nav.contacts?.select) {
+        try {
+          const picked = await nav.contacts.select(['name', 'tel'], { multiple: true });
+          for (const c of picked) {
+            for (const tel of c.tel || []) phones.push(tel);
+          }
+        } catch {
+          setDeviceMatchNote('Contact access cancelled. You can still search by @username.');
+        }
+      } else {
+        setDeviceMatchNote(
+          'This browser cannot read the phone book. Search by @username, or use a supported mobile browser.',
+        );
+      }
+      if (!phones.length) {
+        setDeviceMatchLoading(false);
+        return;
+      }
+      const res = await matchContacts(phones);
+      const list: ChatContact[] = (res.matches || []).map((m: ContactMatch) => {
+        const name = m.displayName || m.username;
+        const initials = name
+          .split(/\s+/)
+          .map((w) => w[0])
+          .join('')
+          .slice(0, 2)
+          .toUpperCase();
+        return {
+          id: m.username,
+          name,
+          username: m.username,
+          initials,
+          color: 'var(--primary)',
+        } as ChatContact;
+      });
+      setDeviceMatches(list);
+      setDeviceMatchNote(
+        list.length
+          ? `${list.length} friend${list.length === 1 ? '' : 's'} on Convia — send uses @username, not phone.`
+          : 'None of those contacts are on Convia yet. Invite them to sign up.',
+      );
+    } catch {
+      setDeviceMatchNote('Could not match contacts. Try again or search by @username.');
+    } finally {
+      setDeviceMatchLoading(false);
+    }
+  }, []);
 
   const selectContact = (c: ChatContact) => {
     setSelectedContact(c);
@@ -372,6 +440,9 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
               addressInputRef={addressInputRef} onPaste={handlePaste} onScan={() => setScanning(true)}
               selectedAsset={selectedAsset} onOpenAssetPicker={() => setShowPicker(true)}
               onContinue={() => setStep('amount')}
+              onFindFriends={() => void findFriendsOnConvia()}
+              findFriendsLoading={deviceMatchLoading}
+              findFriendsNote={deviceMatchNote}
             />
           )}
 
