@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-import { useLanguage } from '../../../shared/context/LanguageContext';
   ChevronLeft,
   TrendingUp,
   Shield,
@@ -16,6 +15,7 @@ import { useLanguage } from '../../../shared/context/LanguageContext';
   CheckCheck,
   BellOff,
 } from 'lucide-react';
+import { useLanguage } from '../../../shared/context/LanguageContext';
 import { useAuth } from '../../../shared/context/AuthContext';
 import * as notifApi from '../../../shared/api/notifications';
 import type { NotificationRow } from '../../../shared/api/notifications';

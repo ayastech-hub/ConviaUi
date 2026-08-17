@@ -4,8 +4,8 @@ import {
   Shield, Gift, Settings, TrendingUp, Bell, Moon, Sun,
   CreditCard, HelpCircle, User, FileCheck, ChevronRight,
 } from 'lucide-react';
-import { useLanguage } from '../../../shared/context/LanguageContext';
 import type { Screen } from '../../../shared/data/mockData';
+import { useLanguage } from '../../../shared/context/LanguageContext';
 import { ReferralModal } from '../../../shared/components/ReferralModal';
 import { ListSection } from '../../../shared/components/ListSection';
 import { ListRow } from '../../../shared/components/ListRow';

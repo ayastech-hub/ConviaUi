@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { ChevronLeft, TrendingUp, TrendingDown } from 'lucide-react';
 import {
-import { useLanguage } from '../../../shared/context/LanguageContext';
   AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
   PieChart, Pie, Cell,
 } from 'recharts';
+import { useLanguage } from '../../../shared/context/LanguageContext';
 import { usePortfolio } from '../../../shared/hooks/usePortfolio';
 import { holdingToAsset } from '../../../shared/utils/mapApiToUi';
 import { useCurrency } from '../../../shared/context/CurrencyContext';

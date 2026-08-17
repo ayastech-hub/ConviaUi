@@ -15,10 +15,10 @@ import { SelfieVerificationStep } from '../components/kyc/SelfieVerificationStep
 import { ReviewStep } from '../components/kyc/ReviewStep';
 import { SuccessView } from '../components/kyc/SuccessView';
 import {
-import { useLanguage } from '../../../shared/context/LanguageContext';
   KYC_STEPS, DOC_TYPES, validatePersonalInfo,
   type Country, type DocType, type UploadedFile,
 } from '../components/kyc/types';
+import { useLanguage } from '../../../shared/context/LanguageContext';
 
 interface KYCScreenProps {
   goBack: () => void;
