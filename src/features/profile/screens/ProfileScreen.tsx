@@ -4,6 +4,7 @@ import {
   Shield, Gift, Settings, TrendingUp, Bell, Moon, Sun,
   CreditCard, HelpCircle, User, FileCheck, ChevronRight,
 } from 'lucide-react';
+import { useLanguage } from '../../../shared/context/LanguageContext';
 import type { Screen } from '../../../shared/data/mockData';
 import { ReferralModal } from '../../../shared/components/ReferralModal';
 import { ListSection } from '../../../shared/components/ListSection';
@@ -21,30 +22,31 @@ interface ProfileScreenProps {
   toggleDark: () => void;
 }
 
-const SUPPORT_ITEMS = [
-  { label: 'Help Center', icon: HelpCircle, screen: 'help-center' as Screen, desc: 'FAQs & guides' },
-  { label: 'Support Centre', icon: HelpCircle, screen: 'support-center' as Screen, desc: 'Cases & live chat with agents' },
-  { label: 'About Convia', icon: Settings, screen: 'about' as Screen, desc: 'Terms, privacy, licenses' },
-];
-
 export function ProfileScreen({ navigate, darkMode, toggleDark }: ProfileScreenProps) {
+  const { t } = useLanguage();
+  const supportItems = [
+    { label: t('profile.help'), icon: HelpCircle, screen: 'help-center' as Screen, desc: t('profile.helpDesc') },
+    { label: t('profile.support'), icon: HelpCircle, screen: 'support-center' as Screen, desc: t('profile.supportDesc') },
+    { label: t('profile.about'), icon: Settings, screen: 'about' as Screen, desc: t('profile.aboutDesc') },
+  ];
+
   const { userId, status } = useAuth();
   const { isApproved, isPending, kycStatus } = useKycStatus();
   const accountItems = [
-    { label: 'Edit Profile', icon: User, screen: 'edit-profile' as Screen, desc: 'Name, username, bio, country' },
-    { label: 'Security Center', icon: Shield, screen: 'security' as Screen, desc: 'PIN, sessions, whitelist' },
-    { label: 'Payment Methods', icon: CreditCard, screen: 'payment-methods' as Screen, desc: 'Bank accounts' },
+    { label: t('profile.edit'), icon: User, screen: 'edit-profile' as Screen, desc: t('profile.editDesc') },
+    { label: t('profile.security'), icon: Shield, screen: 'security' as Screen, desc: t('profile.securityDesc') },
+    { label: t('profile.payments'), icon: CreditCard, screen: 'payment-methods' as Screen, desc: t('profile.paymentsDesc') },
     {
-      label: 'KYC Verification',
+      label: t('profile.kyc'),
       icon: FileCheck,
       screen: 'kyc' as Screen,
       desc: isApproved ? 'Verified' : isPending ? `In review (${kycStatus})` : 'Identity verification',
     },
   ];
   const activityItems = [
-    { label: 'Rewards & Points', icon: Gift, screen: 'rewards' as Screen, badge: null as string | null, badgeColor: '' },
-    { label: 'Portfolio', icon: TrendingUp, screen: 'portfolio' as Screen, badge: null as string | null, badgeColor: '' },
-    { label: 'Notifications', icon: Bell, screen: 'notifications' as Screen, badge: null as string | null, badgeColor: '' },
+    { label: t('profile.rewards'), icon: Gift, screen: 'rewards' as Screen, badge: null as string | null, badgeColor: '' },
+    { label: t('profile.portfolio'), icon: TrendingUp, screen: 'portfolio' as Screen, badge: null as string | null, badgeColor: '' },
+    { label: t('profile.notifications'), icon: Bell, screen: 'notifications' as Screen, badge: null as string | null, badgeColor: '' },
   ];
   const [showReferral, setShowReferral] = useState(false);
   const [refCode, setRefCode] = useState('');
@@ -106,13 +108,13 @@ export function ProfileScreen({ navigate, darkMode, toggleDark }: ProfileScreenP
         </ListSection>
 
         <ListSection title="SUPPORT">
-          {SUPPORT_ITEMS.map((item) => (
+          {supportItems.map((item) => (
             <ListRow key={item.label} icon={item.icon} label={item.label} desc={item.desc} onClick={() => navigate(item.screen)} />
           ))}
         </ListSection>
 
         <ListSection>
-          <ListRow icon={Settings} label="Settings" onClick={() => navigate('settings')} />
+          <ListRow icon={Settings} label={t('profile.settings')} onClick={() => navigate('settings')} />
         </ListSection>
       </div>
 

@@ -15,6 +15,7 @@ import { SwapProcessingOverlay } from '../components/swap/SwapProcessingOverlay'
 import { SwapSuccessView, type SwapSettlement } from '../components/swap/SwapSuccessView';
 import { EmptyCatalogBanner } from '../../../shared/components/EmptyCatalogBanner';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
+import { useLanguage } from '../../../shared/context/LanguageContext';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { useAccountGates } from '../../../shared/hooks/useAccountGates';
 import { GateHint } from '../../../shared/components/AccountStatusBanners';
@@ -31,6 +32,7 @@ interface SwapScreenProps {
 type SwapPhase = 'idle' | 'review' | 'swapping' | 'success';
 
 export function SwapScreen({ goBack }: SwapScreenProps) {
+  const { t } = useLanguage();
   const { swapAssets: cryptoAssets, loading: registryLoading } = useWalletAssets();
   useEffect(() => {
     if (!cryptoAssets.length) return;
@@ -365,7 +367,7 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
             <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
           </motion.button>
         ) : null}
-        <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20 }}>Swap</h2>
+        <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20 }}>{t('swap.title')}</h2>
         <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1.5 rounded-full" style={{ background: 'var(--muted)' }}>
           <Zap size={12} style={{ color: 'var(--foreground)' }} />
           <span style={{ color: 'var(--foreground)', fontSize: 11, fontWeight: 700 }}>Best Rate</span>
@@ -415,7 +417,7 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
             {platformFee > 0 && (
               <div className="flex justify-between items-center px-1 py-2 mb-1">
                 <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
-                  Platform fee{quoteFeeBps != null ? ` (${(quoteFeeBps / 100).toFixed(2)}%)` : ''}
+                  {/* fee */}Platform fee{quoteFeeBps != null ? ` (${(quoteFeeBps / 100).toFixed(2)}%)` : ''}
                 </span>
                 <span style={{ color: 'var(--foreground)', fontSize: 12, fontWeight: 600 }}>
                   {platformFee.toFixed(6)} {toAsset.symbol}

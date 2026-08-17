@@ -102,15 +102,15 @@ export function SettingsScreen({ goBack, darkMode: darkProp, toggleDark }: Setti
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
       <div style={{ height: 50 }} />
-      <ScreenHeader title="Settings" onBack={goBack} />
+      <ScreenHeader title={t('settings.title')} onBack={goBack} />
 
       <div className="flex-1 overflow-y-auto px-5 pb-28">
         {prefError && <FeatureAlert reason="generic" message={prefError} />}
 
-        <ListSection title="Appearance">
+        <ListSection title={t('settings.appearance')}>
           <ListRow
             icon={darkMode ? Moon : Sun}
-            label="Dark mode"
+            label={t('settings.darkMode')}
             trailing={
               <ToggleSwitch
                 checked={darkMode}
@@ -123,7 +123,7 @@ export function SettingsScreen({ goBack, darkMode: darkProp, toggleDark }: Setti
           />
           <ListRow
             icon={Globe}
-            label="Display currency"
+            label={t('settings.currency')}
             desc={currency.code}
             onClick={() => setShowCurrencyPicker(true)}
           />
@@ -152,7 +152,7 @@ export function SettingsScreen({ goBack, darkMode: darkProp, toggleDark }: Setti
           </div>
         </ListSection>
 
-        <ListSection title="Notifications">
+        <ListSection title={t('settings.notifications')}>
           {loadingPrefs && (
             <p className="text-xs px-1 mb-2" style={{ color: 'var(--muted-foreground)' }}>
               Loading preferences…
@@ -160,7 +160,7 @@ export function SettingsScreen({ goBack, darkMode: darkProp, toggleDark }: Setti
           )}
           <ListRow
             icon={Bell}
-            label="In-app alerts"
+            label={t('settings.notifInApp')}
             desc={saving === 'in_app' ? 'Saving…' : 'Inbox inside the app'}
             trailing={
               <ToggleSwitch
@@ -171,7 +171,7 @@ export function SettingsScreen({ goBack, darkMode: darkProp, toggleDark }: Setti
           />
           <ListRow
             icon={Smartphone}
-            label="Push"
+            label={t('settings.notifPush')}
             desc={saving === 'push' ? 'Saving…' : 'Device push notifications'}
             trailing={
               <ToggleSwitch checked={prefs.push} onChange={() => void setChannel('push', !prefs.push)} />
@@ -179,7 +179,7 @@ export function SettingsScreen({ goBack, darkMode: darkProp, toggleDark }: Setti
           />
           <ListRow
             icon={Mail}
-            label="Email"
+            label={t('settings.notifEmail')}
             desc={saving === 'email' ? 'Saving…' : 'Receipts and security'}
             trailing={
               <ToggleSwitch checked={prefs.email} onChange={() => void setChannel('email', !prefs.email)} />
@@ -187,7 +187,7 @@ export function SettingsScreen({ goBack, darkMode: darkProp, toggleDark }: Setti
           />
           <ListRow
             icon={MessageSquare}
-            label="SMS"
+            label={t('settings.notifSms')}
             desc={saving === 'sms' ? 'Saving…' : 'Optional text alerts'}
             trailing={
               <ToggleSwitch checked={prefs.sms} onChange={() => void setChannel('sms', !prefs.sms)} />

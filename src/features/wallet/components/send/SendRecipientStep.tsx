@@ -2,6 +2,7 @@ import type { RefObject } from 'react';
 import { motion } from 'motion/react';
 import { Search, X, ClipboardPaste, ScanLine, ChevronDown, ArrowUpRight, Users, Loader } from 'lucide-react';
 import type { Asset, ChatContact } from '../../../../shared/data/mockData';
+import { useLanguage } from '../../../../shared/context/LanguageContext';
 import { AssetIcon } from '../../../../shared/components/AssetIcon';
 
 interface SendRecipientStepProps {
@@ -45,6 +46,7 @@ export function SendRecipientStep({
   findFriendsLoading,
   findFriendsNote,
 }: SendRecipientStepProps) {
+  const { t } = useLanguage();
   return (
     <motion.div
       key="recipient"
@@ -54,8 +56,7 @@ export function SendRecipientStep({
       transition={{ duration: 0.25 }}
     >
       <p className="mb-3" style={{ color: 'var(--muted-foreground)', fontSize: 12, lineHeight: 1.4 }}>
-        Send to a <strong style={{ color: 'var(--foreground)' }}>Convia username</strong>. Phone contacts are
-        only used to find friends already on Convia — not as a payment address.
+        {t('send.usernameOnly')}
       </p>
 
       <div
@@ -64,7 +65,7 @@ export function SendRecipientStep({
       >
         <Search size={16} style={{ color: 'var(--muted-foreground)' }} />
         <input
-          placeholder="Search @username…"
+          placeholder={t('send.searchUsername')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="flex-1 bg-transparent outline-none"
@@ -94,7 +95,7 @@ export function SendRecipientStep({
           }}
         >
           {findFriendsLoading ? <Loader size={16} className="animate-spin" /> : <Users size={16} />}
-          {findFriendsLoading ? 'Matching contacts…' : 'Find friends on Convia'}
+          {findFriendsLoading ? t('common.loading') : t('send.findFriends')}
         </motion.button>
       )}
 
@@ -106,7 +107,7 @@ export function SendRecipientStep({
 
       <div className="flex items-center justify-between mb-3">
         <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }}>
-          {filteredContacts.length ? 'On Convia' : 'Recipients'}
+          {filteredContacts.length ? t('send.onConvia') : t('send.recipient')}
         </p>
         <span style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>{filteredContacts.length}</span>
       </div>
@@ -139,7 +140,7 @@ export function SendRecipientStep({
               className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
               style={{ background: 'var(--primary)', color: '#fff' }}
             >
-              On Convia
+              {t('send.onConvia')}
             </span>
           </motion.button>
         ))}
@@ -151,7 +152,7 @@ export function SendRecipientStep({
       </div>
 
       <p className="mb-2" style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }}>
-        Or enter @username
+        {t('send.enterUsername')}
       </p>
       <div
         className="flex items-center gap-2 px-4 py-3 rounded-[14px] mb-4"
