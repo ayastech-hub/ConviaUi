@@ -13,6 +13,7 @@ import { HomeScreen } from '../features/home/screens/HomeScreen';
 
 import { WalletScreen } from '../features/wallet/screens/WalletScreen';
 import { SendScreen } from '../features/wallet/screens/SendScreen';
+import { RequestMoneyScreen } from '../features/wallet/screens/RequestMoneyScreen';
 import { ReceiveScreen } from '../features/wallet/screens/ReceiveScreen';
 import { SwapScreen } from '../features/wallet/screens/SwapScreen';
 import { OffRampScreen } from '../features/wallet/screens/OffRampScreen';
@@ -167,6 +168,12 @@ export default function App() {
         );
 
       // Sub-screens (slide up)
+      case 'request':
+        return (
+          <div className="flex flex-col h-full">
+            <RequestMoneyScreen goBack={goBack} navigate={navigate} />
+          </div>
+        );
       case 'send':
         return (
           <motion.div key="send" {...slideRight} className="absolute inset-0">

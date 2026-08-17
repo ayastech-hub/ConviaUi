@@ -8,6 +8,7 @@ export type UserProfile = {
   bio?: string | null;
   country?: string | null;
   preferredCurrency?: string | null;
+  preferredLanguage?: string | null;
   themePreference?: string | null;
   profileVisibility?: string;
   socialLinks?: Record<string, string> | null;
@@ -31,6 +32,7 @@ export function updateMyProfile(body: {
   avatarUrl?: string;
   country?: string;
   preferredCurrency?: string;
+  preferredLanguage?: 'en' | 'ar' | 'sw' | 'ha' | 'yo' | 'ig';
   themePreference?: 'system' | 'light' | 'dark';
 }) {
   return api.patch<UserProfile>('/profiles/me', body);

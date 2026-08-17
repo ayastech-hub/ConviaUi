@@ -3,7 +3,7 @@ export type Screen =
   | 'login' | 'signup' | 'forgot-password'
   | 'home' | 'wallet' | 'profile'
   | 'deposit' | 'withdraw' | 'swap' | 'offramp' | 'onramp'
-  | 'send' | 'receive' | 'notifications' | 'rewards'
+  | 'send' | 'request' | 'receive' | 'notifications' | 'rewards'
   | 'settings' | 'security' | 'kyc' | 'chat' | 'portfolio'
   | 'help-center' | 'about' | 'support-center' | 'payment-methods' | 'services' | 'edit-profile';
 

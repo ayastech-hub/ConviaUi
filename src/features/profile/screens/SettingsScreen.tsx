@@ -9,6 +9,8 @@ import { ToggleSwitch } from '../../../shared/components/ToggleSwitch';
 import { CurrencyPickerView } from '../components/CurrencyPickerView';
 import { SignOutButton } from '../components/SignOutButton';
 import { useAuth } from '../../../shared/context/AuthContext';
+import { useLanguage } from '../../../shared/context/LanguageContext';
+import type { LocaleCode } from '../../../shared/i18n/strings';
 import * as notifApi from '../../../shared/api/notifications';
 import * as profileApi from '../../../shared/api/profile';
 import { FeatureAlert } from '../../../shared/components/FeatureAlert';
@@ -27,6 +29,7 @@ export function SettingsScreen({ goBack, darkMode: darkProp, toggleDark }: Setti
   const [darkMode, setDarkMode] = useState(darkProp ?? true);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const { userId } = useAuth();
+  const { locale, setLocale, t, labels, suggestedForCountry } = useLanguage();
   const [prefs, setPrefs] = useState<Record<PrefChannel, boolean>>({
     in_app: true,
     email: false,
@@ -124,6 +127,29 @@ export function SettingsScreen({ goBack, darkMode: darkProp, toggleDark }: Setti
             desc={currency.code}
             onClick={() => setShowCurrencyPicker(true)}
           />
+        </ListSection>
+
+        
+        <ListSection title={t('lang.title')}>
+          <p className="text-xs px-1 mb-2" style={{ color: 'var(--muted-foreground)' }}>
+            {t('lang.hint')}
+          </p>
+          <div className="flex flex-wrap gap-2 px-1 mb-3">
+            {(Object.keys(labels) as LocaleCode[]).map((code) => (
+              <button
+                key={code}
+                type="button"
+                onClick={() => setLocale(code)}
+                className="px-3 py-1.5 rounded-full text-xs font-bold"
+                style={{
+                  background: locale === code ? 'var(--primary)' : 'var(--muted)',
+                  color: locale === code ? '#fff' : 'var(--foreground)',
+                }}
+              >
+                {labels[code]}
+              </button>
+            ))}
+          </div>
         </ListSection>
 
         <ListSection title="Notifications">
