@@ -1,12 +1,7 @@
 import { motion } from 'motion/react';
 import { CreditCard, Landmark, ArrowDownToLine, ArrowUpFromLine, PieChart } from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
-
-const SECONDARY_ACTIONS: { label: string; icon: React.ComponentType<{ size?: number; strokeWidth?: number; style?: React.CSSProperties }>; screen: Screen }[] = [
-  { label: 'Receive', icon: ArrowDownToLine, screen: 'receive' },
-  { label: 'Withdraw', icon: ArrowUpFromLine, screen: 'withdraw' },
-  { label: 'Portfolio', icon: PieChart, screen: 'portfolio' },
-];
+import { useLanguage } from '../../../shared/context/LanguageContext';
 
 interface WalletQuickActionsProps {
   onNavigate: (s: Screen) => void;
@@ -14,10 +9,18 @@ interface WalletQuickActionsProps {
 
 /** Buy/Sell primary buttons plus the Receive/Withdraw/Portfolio row, shown at the top of Wallet. */
 export function WalletQuickActions({ onNavigate }: WalletQuickActionsProps) {
+  const { t } = useLanguage();
+  const secondary: { label: string; icon: React.ComponentType<{ size?: number; strokeWidth?: number; style?: React.CSSProperties }>; screen: Screen }[] = [
+    { label: t('nav.receive'), icon: ArrowDownToLine, screen: 'receive' },
+    { label: t('nav.withdraw'), icon: ArrowUpFromLine, screen: 'withdraw' },
+    { label: t('portfolio.title'), icon: PieChart, screen: 'portfolio' },
+  ];
+
   return (
     <div className="px-5 mb-4">
       <div className="grid grid-cols-2 gap-3">
         <motion.button
+          type="button"
           whileTap={{ scale: 0.97 }}
           onClick={() => onNavigate('onramp')}
           className="flex items-center gap-3 p-4 rounded-[16px]"
@@ -27,11 +30,12 @@ export function WalletQuickActions({ onNavigate }: WalletQuickActionsProps) {
             <CreditCard size={20} style={{ color: 'var(--positive)' }} />
           </div>
           <div className="text-left">
-            <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14 }}>Buy Crypto</p>
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>Card or bank</p>
+            <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14 }}>{t('onramp.title')}</p>
+            <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>{t('nav.buy')}</p>
           </div>
         </motion.button>
         <motion.button
+          type="button"
           whileTap={{ scale: 0.97 }}
           onClick={() => onNavigate('offramp')}
           className="flex items-center gap-3 p-4 rounded-[16px]"
@@ -41,15 +45,16 @@ export function WalletQuickActions({ onNavigate }: WalletQuickActionsProps) {
             <Landmark size={20} style={{ color: 'var(--muted-foreground)' }} />
           </div>
           <div className="text-left">
-            <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14 }}>Sell Crypto</p>
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>Withdraw to bank</p>
+            <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14 }}>{t('offramp.title')}</p>
+            <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>{t('nav.withdraw')}</p>
           </div>
         </motion.button>
       </div>
       <div className="grid grid-cols-3 gap-2.5 mt-2.5">
-        {SECONDARY_ACTIONS.map(({ label, icon: Icon, screen }) => (
+        {secondary.map(({ label, icon: Icon, screen }) => (
           <motion.button
-            key={label}
+            key={screen}
+            type="button"
             whileTap={{ scale: 0.92 }}
             onClick={() => onNavigate(screen)}
             className="flex flex-col items-center gap-2 p-3 rounded-[14px]"

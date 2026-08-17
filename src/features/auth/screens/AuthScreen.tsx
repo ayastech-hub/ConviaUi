@@ -7,6 +7,7 @@ import { CredentialsStep } from '../components/CredentialsStep';
 import { PhoneStep } from '../components/PhoneStep';
 import { OtpStep } from '../components/OtpStep';
 import { AuthSuccessView } from '../components/AuthSuccessView';
+import { useLanguage } from '../../../shared/context/LanguageContext';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { ApiError } from '../../../shared/api/types';
 import * as authApi from '../../../shared/api/auth';
@@ -25,6 +26,7 @@ interface AuthScreenProps {
 type Step = 'credentials' | 'phone' | 'otp';
 
 export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProps) {
+  const { t } = useLanguage();
   const { login, register } = useAuth();
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
@@ -161,8 +163,8 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
     }
   };
 
-  const titles = { login: 'Welcome Back', signup: 'Create Account', 'forgot-password': 'Reset Password' };
-  const subtitles = { login: 'Sign in to your Convia account', signup: "Join Africa's financial universe", 'forgot-password': "We'll send you a reset link" };
+  const titles = { login: t('auth.welcomeBack'), signup: t('auth.createAccount'), 'forgot-password': t('auth.resetPassword') };
+  const subtitles = { login: t('auth.signInSubtitle'), signup: t('auth.signupSubtitle'), 'forgot-password': t('auth.resetSubtitle') };
 
   if (success) {
     return <AuthSuccessView mode={mode} />;
