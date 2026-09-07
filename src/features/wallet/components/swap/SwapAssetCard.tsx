@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Wallet } from 'lucide-react';
 import type { Asset } from '../../../../shared/data/mockData';
 import { AssetIcon } from '../../../../shared/components/AssetIcon';
 import { decimalsFor } from './utils';
@@ -38,10 +38,13 @@ export function SwapAssetCard(props: Props) {
           {props.variant === 'from' ? 'You send' : 'You receive'}
         </span>
         {props.variant === 'from' && (
-          <div className="flex items-center gap-2">
-            <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
-              {props.balance.toLocaleString(undefined, { maximumFractionDigits: 6 })}
-            </span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <Wallet size={14} style={{ color: 'var(--muted-foreground)' }} />
+              <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
+                {props.balance.toLocaleString(undefined, { maximumFractionDigits: 6 })}
+              </span>
+            </div>
             <button
               type="button"
               onClick={props.onMax}
