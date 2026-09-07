@@ -301,6 +301,13 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
                 setSelectedAmount={setSelectedAmount}
                 customAmount={customAmount}
                 setCustomAmount={setCustomAmount}
+                provider={selectedProvider}
+                onChangeProvider={() => {
+                  setSelectedProvider(null);
+                  setSelectedBillerCode(null);
+                  setSelectedAmount(null);
+                  setCustomAmount('');
+                }}
               />
               <PaymentSummaryCard
                 provider={selectedProvider}
