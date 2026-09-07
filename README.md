@@ -43,3 +43,23 @@ npm i
 npm run dev
 npm run build
 ```
+
+
+## Mock API (MSW)
+
+When the backend is down, **Mock Service Worker** serves local data so every screen stays usable.
+
+```bash
+npm i
+npx msw init public/ --save   # once — copies mockServiceWorker.js
+npm run dev                   # MSW starts automatically in development
+```
+
+| Control | How |
+|--------|-----|
+| Default in `npm run dev` | MSW on (set `VITE_USE_MSW=false` to disable) |
+| Force mocks anytime | `localStorage.setItem('convia.forceMock','1')` then reload |
+| Always on (e.g. demo deploy) | `VITE_USE_MSW=true` |
+
+Handlers live in `src/mocks/handlers.ts` and reuse `src/shared/api/mockHandlers.ts` (same catalog as the offline client fallback).
+
