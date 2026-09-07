@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import { ChevronRight, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { PROVIDERS } from './serviceData';
+import { ProviderIcon } from '../../../shared/icons/ProviderIcon';
 
 interface ProviderSelectorProps {
   serviceId: string;
@@ -59,12 +60,7 @@ export function ProviderSelector({ serviceId, onSelect }: ProviderSelectorProps)
               borderBottom: i === filtered.length - 1 ? 'none' : '1px solid var(--border)',
             }}
           >
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: 'var(--muted)' }}
-            >
-              <span style={{ color: 'var(--foreground)', fontSize: 11, fontWeight: 800 }}>{p.logo}</span>
-            </div>
+            <ProviderIcon name={p.name} logo={p.logo} size={40} rounded="xl" />
             <span style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14, flex: 1 }}>
               {p.name}
             </span>
