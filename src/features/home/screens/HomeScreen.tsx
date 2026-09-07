@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import type { Screen, Transaction } from '../../../shared/data/mockData';
 import { TransactionReceipt } from '../../../shared/components/TransactionReceipt';
 import { AccountStatusBanners } from '../../../shared/components/AccountStatusBanners';
-import { QRScanner } from '../../../shared/components/QRScanner';
 import { CenteredBalance } from '../components/CenteredBalance';
 import { HubActions } from '../components/HubActions';
 import { PromoBanner } from '../components/PromoBanner';
@@ -10,8 +9,6 @@ import { HubAssetsList } from '../components/HubAssetsList';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useAuth } from '../../../shared/context/AuthContext';
 import * as notifApi from '../../../shared/api/notifications';
-import { parseQRPayload, setSendPrefill } from '../../../shared/utils/qrPayload';
-import { AnimatePresence } from 'motion/react';
 import { Bell, ScanLine } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -32,8 +29,7 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
   const [unread, setUnread] = useState(0);
   const [balanceVisible, setBalanceVisible] = useState(true);
   const [hideSmall, setHideSmall] = useState(false);
-  const [showScanner, setShowScanner] = useState(false);
-  const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);
+    const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);
   const { assets, loading } = useWalletAssets();
 
   useEffect(() => {
@@ -59,7 +55,7 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
         <motion.button
           type="button"
           whileTap={{ scale: 0.9 }}
-          onClick={() => setShowScanner(true)}
+          onClick={() => navigate('scan')}
           aria-label="Scan QR"
           className="w-10 h-10 rounded-full flex items-center justify-center"
           style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
@@ -108,24 +104,6 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
 
       <TransactionReceipt tx={receiptTx} open={!!receiptTx} onClose={() => setReceiptTx(null)} />
 
-      <AnimatePresence>
-        {showScanner && (
-          <QRScanner
-            onScan={(result) => {
-              setShowScanner(false);
-              const parsed = parseQRPayload(result);
-              if (parsed) setSendPrefill(parsed);
-              else setSendPrefill({ address: result.trim() });
-              navigate('send');
-            }}
-            onClose={() => setShowScanner(false)}
-            onManualEntry={() => {
-              setShowScanner(false);
-              navigate('send');
-            }}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 }

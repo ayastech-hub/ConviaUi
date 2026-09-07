@@ -1,34 +1,47 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Eye, EyeOff, ChevronDown, Check, X } from 'lucide-react';
+import { Eye, EyeOff, ChevronDown, Check, Search, X } from 'lucide-react';
 import { usePortfolio } from '../../../shared/hooks/usePortfolio';
 import { useCurrency, type Currency } from '../../../shared/context/CurrencyContext';
 import { useAuth } from '../../../shared/context/AuthContext';
+import { CurrencyIcon } from '../../../shared/icons/CurrencyIcon';
 
 interface Props {
   balanceVisible: boolean;
   onToggle: () => void;
 }
 
-/** Large centered total + currency picker sheet. */
+/** Large centered total + enterprise currency sheet with flag icons. */
 export function CenteredBalance({ balanceVisible, onToggle }: Props) {
   const { data, loading, source } = usePortfolio();
   const { format, currency, currencies, setCurrency } = useCurrency();
   const { status } = useAuth();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [q, setQ] = useState('');
 
   const total = data ? Number(data.totalValueUsd) || 0 : 0;
 
-  // Always show a numeric balance (0 when empty / signed out) — never "—"
   const display = !balanceVisible
     ? '••••••'
     : loading && status === 'authenticated' && data == null
       ? '…'
       : format(total);
 
+  const list = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return currencies;
+    return currencies.filter(
+      (c) =>
+        c.code.toLowerCase().includes(needle) ||
+        c.name.toLowerCase().includes(needle) ||
+        c.symbol.toLowerCase().includes(needle),
+    );
+  }, [currencies, q]);
+
   const pick = (c: Currency) => {
     setCurrency(c);
     setPickerOpen(false);
+    setQ('');
   };
 
   return (
@@ -67,16 +80,26 @@ export function CenteredBalance({ balanceVisible, onToggle }: Props) {
         type="button"
         whileTap={{ scale: 0.97 }}
         onClick={() => setPickerOpen(true)}
-        className="flex items-center gap-1 mt-2 px-2 py-1 rounded-full"
-        style={{ color: 'var(--muted-foreground)', fontSize: 13 }}
+        className="flex items-center gap-2 mt-2.5 pl-1.5 pr-2.5 py-1.5 rounded-full"
+        style={{
+          background: 'var(--muted)',
+          border: '1px solid var(--border)',
+          color: 'var(--foreground)',
+          fontSize: 13,
+          fontWeight: 600,
+        }}
         aria-label="Change display currency"
       >
+        <CurrencyIcon code={currency.code} size={18} />
         <span>
-          Total balance in {currency.code}
+          {currency.code}
           {source === 'mock' ? ' · demo' : source === 'live' ? ' · live' : ''}
         </span>
-        <ChevronDown size={14} strokeWidth={2.2} />
+        <ChevronDown size={14} strokeWidth={2.2} style={{ color: 'var(--muted-foreground)' }} />
       </motion.button>
+      <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 8 }}>
+        Total balance
+      </p>
 
       <AnimatePresence>
         {pickerOpen && (
@@ -88,77 +111,114 @@ export function CenteredBalance({ balanceVisible, onToggle }: Props) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 z-50"
-              style={{ background: 'rgba(0,0,0,0.45)' }}
-              onClick={() => setPickerOpen(false)}
+              style={{ background: 'rgba(0,0,0,0.55)' }}
+              onClick={() => {
+                setPickerOpen(false);
+                setQ('');
+              }}
             />
             <motion.div
               role="dialog"
               aria-modal="true"
               aria-label="Select currency"
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', stiffness: 380, damping: 36 }}
-              className="fixed bottom-0 left-0 right-0 z-50 mx-auto"
+              initial={{ opacity: 0, y: 24, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.98 }}
+              transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+              className="fixed z-50 left-1/2 top-[12%] -translate-x-1/2 w-[min(92vw,400px)] flex flex-col overflow-hidden"
               style={{
-                maxWidth: 480,
-                maxHeight: '70dvh',
+                maxHeight: 'min(72dvh, 560px)',
                 background: 'var(--card)',
-                borderTopLeftRadius: 20,
-                borderTopRightRadius: 20,
+                borderRadius: 20,
                 border: '1px solid var(--border)',
-                paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
+                boxShadow: '0 24px 64px rgba(0,0,0,0.45)',
               }}
             >
-              <div className="flex items-center justify-between px-5 pt-4 pb-3">
-                <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 16 }}>
-                  Display currency
-                </p>
+              <div
+                className="flex items-center justify-between px-5 pt-5 pb-3"
+                style={{ borderBottom: '1px solid var(--border)' }}
+              >
+                <div>
+                  <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 17 }}>
+                    Display currency
+                  </p>
+                  <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 2 }}>
+                    Portfolio converts from USD
+                  </p>
+                </div>
                 <button
                   type="button"
-                  onClick={() => setPickerOpen(false)}
-                  className="w-8 h-8 rounded-full flex items-center justify-center"
+                  onClick={() => {
+                    setPickerOpen(false);
+                    setQ('');
+                  }}
+                  className="w-9 h-9 rounded-full flex items-center justify-center"
                   style={{ background: 'var(--muted)' }}
-                  aria-label="Close currency picker"
+                  aria-label="Close"
                 >
                   <X size={16} style={{ color: 'var(--foreground)' }} />
                 </button>
               </div>
-              <p className="px-5 pb-3" style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
-                Amounts convert from USD using supported rates
-              </p>
-              <div className="overflow-y-auto px-3 pb-2" style={{ maxHeight: '50dvh' }}>
-                {(currencies.length ? currencies : []).map((c) => {
+
+              <div className="px-4 py-3">
+                <div
+                  className="flex items-center gap-2 px-3 h-11 rounded-xl"
+                  style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+                >
+                  <Search size={16} style={{ color: 'var(--muted-foreground)' }} />
+                  <input
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="Search code or name"
+                    className="flex-1 bg-transparent outline-none text-sm"
+                    style={{ color: 'var(--foreground)' }}
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-2 pb-4">
+                {list.map((c) => {
                   const active = c.code === currency.code;
                   return (
                     <button
                       key={c.code}
                       type="button"
                       onClick={() => pick(c)}
-                      className="w-full flex items-center gap-3 px-3 py-3.5 rounded-xl text-left mb-1"
+                      className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left"
                       style={{
                         background: active ? 'var(--muted)' : 'transparent',
                       }}
                     >
-                      <span
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-lg"
-                        style={{ background: 'var(--background)' }}
-                      >
-                        {c.flag || c.code.slice(0, 1)}
-                      </span>
-                      <div className="flex-1 min-w-0">
+                      <CurrencyIcon code={c.code} size={40} />
+                      <div className="flex-1 min-w-0 text-left">
                         <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 15 }}>
                           {c.code}
                         </p>
                         <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>{c.name}</p>
                       </div>
-                      <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
+                      <span
+                        className="tabular-nums"
+                        style={{ color: 'var(--muted-foreground)', fontSize: 13, fontWeight: 500 }}
+                      >
                         {c.symbol}
                       </span>
-                      {active && <Check size={18} style={{ color: 'var(--primary)' }} />}
+                      <span
+                        className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{
+                          background: active ? 'var(--primary)' : 'var(--border)',
+                        }}
+                      >
+                        {active && <Check size={14} color="#fff" strokeWidth={3} />}
+                      </span>
                     </button>
                   );
                 })}
+                {!list.length && (
+                  <p className="py-10 text-center" style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
+                    No currencies match “{q}”
+                  </p>
+                )}
               </div>
             </motion.div>
           </>

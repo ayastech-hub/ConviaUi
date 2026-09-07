@@ -15,6 +15,7 @@ import { WalletScreen } from '../features/wallet/screens/WalletScreen';
 import { SendScreen } from '../features/wallet/screens/SendScreen';
 import { RequestMoneyScreen } from '../features/wallet/screens/RequestMoneyScreen';
 import { ReceiveScreen } from '../features/wallet/screens/ReceiveScreen';
+import { ScanScreen } from '../features/wallet/screens/ScanScreen';
 import { SwapScreen } from '../features/wallet/screens/SwapScreen';
 import { OffRampScreen } from '../features/wallet/screens/OffRampScreen';
 import { OnRampScreen } from '../features/wallet/screens/OnRampScreen';
@@ -206,6 +207,12 @@ export default function App() {
         return (
           <motion.div key="receive" {...slideRight} className="absolute inset-0">
             <ReceiveScreen goBack={goBack} />
+          </motion.div>
+        );
+      case 'scan':
+        return (
+          <motion.div key="scan" {...slideRight} className="absolute inset-0">
+            <ScanScreen goBack={goBack} navigate={navigate} />
           </motion.div>
         );
       case 'swap':
