@@ -49,13 +49,6 @@ export function ServiceHub({ onSelectService }: { onSelectService: (item: Servic
 
   return (
     <div className="px-5 pb-8">
-      {/* Hero */}
-      <div className="mb-5">
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 13, lineHeight: 1.45 }}>
-          Pay bills and top up from your Convia balance — airtime, data, power, TV, and more.
-        </p>
-      </div>
-
       {/* Search */}
       <div
         className="flex items-center gap-2.5 px-3.5 h-12 rounded-2xl mb-5"
