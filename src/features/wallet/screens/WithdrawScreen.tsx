@@ -1,4 +1,8 @@
 import { useState, useRef, useMemo } from 'react';
+import { motion } from 'motion/react';
+import { ChevronLeft, Wallet, Landmark, Send } from 'lucide-react';
+import { MethodOptionRow, MethodOrDivider } from '../components/MethodOptionRow';
+import { PageTop } from '../../../shared/components/PageTop';
 import { type Asset, type Transaction } from '../../../shared/data/mockData';
 import { WithdrawTokenList } from '../components/withdraw/WithdrawTokenList';
 import { WithdrawForm } from '../components/withdraw/WithdrawForm';
@@ -22,9 +26,10 @@ import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
 
 interface WithdrawScreenProps {
   goBack: () => void;
+  navigate?: (s: import('../../../shared/data/mockData').Screen) => void;
 }
 
-export function WithdrawScreen({ goBack }: WithdrawScreenProps) {
+export function WithdrawScreen({ goBack, navigate }: WithdrawScreenProps) {
   const { assets: cryptoAssets, loading: registryLoading, chainKeysForSymbol } = useWalletAssets();
   const { chains } = useTokenRegistry();
   const { userId } = useAuth();
@@ -33,7 +38,7 @@ export function WithdrawScreen({ goBack }: WithdrawScreenProps) {
   const liveAssets = (portfolioData?.holdings || []).map(holdingToAsset);
   const assets = cryptoAssets.length ? cryptoAssets : liveAssets;
 
-  const [step, setStep] = useState<'select' | 'form' | 'pin' | 'processing' | 'success'>('select');
+  const [step, setStep] = useState<'hub' | 'select' | 'form' | 'pin' | 'processing' | 'success'>('hub');
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [selectedChain, setSelectedChain] = useState<string>('');
   const [address, setAddress] = useState('');
@@ -191,8 +196,53 @@ export function WithdrawScreen({ goBack }: WithdrawScreenProps) {
     }
   };
 
+
+  if (step === 'hub') {
+    return (
+      <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
+        <PageTop />
+        <div className="flex items-center gap-3 px-5 mb-2">
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={goBack}
+            aria-label="Go back"
+            className="w-10 h-10 rounded-2xl flex items-center justify-center"
+            style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+          >
+            <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
+          </motion.button>
+          <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22 }}>Cash out</h2>
+        </div>
+        <p className="px-5 mb-5" style={{ color: 'var(--muted-foreground)', fontSize: 14, lineHeight: 1.45 }}>
+          Move funds out of Convia — to a blockchain wallet, your bank, or another user.
+        </p>
+        <div className="flex-1 overflow-y-auto px-5 pb-8">
+          <MethodOptionRow
+            title="Send to external wallet"
+            subtitle="Withdraw crypto to any address on a supported network"
+            Icon={Wallet}
+            onClick={() => setStep('select')}
+          />
+          <MethodOrDivider />
+          <MethodOptionRow
+            title="Withdraw to bank"
+            subtitle="Sell crypto and receive money in your local bank account"
+            Icon={Landmark}
+            onClick={() => navigate?.('offramp') ?? setStep('select')}
+          />
+          <MethodOptionRow
+            title="Send to a Convia user"
+            subtitle="Transfer instantly by username or QR"
+            Icon={Send}
+            onClick={() => navigate?.('send') ?? setStep('select')}
+          />
+        </div>
+      </div>
+    );
+  }
+
   if (step === 'select') {
-    return <WithdrawTokenList assets={assets} goBack={goBack} onSelect={handleSelectAsset} />;
+    return <WithdrawTokenList assets={assets} goBack={() => setStep('hub')} onSelect={handleSelectAsset} />;
   }
 
   if (step === 'success' && selectedAsset) {

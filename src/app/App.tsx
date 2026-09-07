@@ -237,13 +237,13 @@ export default function App() {
       case 'deposit':
         return (
           <motion.div key="deposit" {...slideRight} className="absolute inset-0">
-            <DepositScreen goBack={goBack} />
+            <DepositScreen goBack={goBack} navigate={navigate} />
           </motion.div>
         );
       case 'withdraw':
         return (
           <motion.div key="withdraw" {...slideRight} className="absolute inset-0">
-            <WithdrawScreen goBack={goBack} />
+            <WithdrawScreen goBack={goBack} navigate={navigate} />
           </motion.div>
         );
       case 'notifications':

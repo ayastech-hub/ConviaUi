@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft, Loader } from 'lucide-react';
+import { ChevronLeft, Loader, Coins, CreditCard, HandCoins } from 'lucide-react';
+import { MethodOptionRow, MethodOrDivider } from '../components/MethodOptionRow';
 import { type Asset } from '../../../shared/data/mockData';
 import { NETWORKS } from '../components/deposit/types';
 import { AssetDropdown } from '../components/deposit/AssetDropdown';
@@ -18,14 +19,15 @@ import { ApiError } from '../../../shared/api/types';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
 import { useLanguage } from '../../../shared/context/LanguageContext';
-import { PageTop } from '../../../shared/components/PageTop';;
+import { PageTop } from '../../../shared/components/PageTop';
 
 interface DepositScreenProps {
   goBack: () => void;
+  navigate?: (s: import('../../../shared/data/mockData').Screen) => void;
 }
 
-/** Deposit crypto to custodial address — same live source as Receive. */
-export function DepositScreen({ goBack }: DepositScreenProps) {
+/** Deposit hub → crypto address flow or buy / request. */
+export function DepositScreen({ goBack, navigate }: DepositScreenProps) {
   const { t } = useLanguage();
   const { assets: cryptoAssets, loading: registryLoading, chainKeysForSymbol } = useWalletAssets();
   const { chains } = useTokenRegistry();
@@ -39,6 +41,8 @@ export function DepositScreen({ goBack }: DepositScreenProps) {
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<{ code?: string; message?: string } | null>(null);
+  /** hub = method picker; crypto = existing deposit address flow */
+  const [mode, setMode] = useState<'hub' | 'crypto'>('hub');
 
   const netInfo = NETWORKS[network] || NETWORKS.Ethereum;
 
@@ -101,8 +105,53 @@ export function DepositScreen({ goBack }: DepositScreenProps) {
     setTimeout(() => setShared(false), 2000);
   }, [address, asset]);
 
+
+  if (mode === 'hub') {
+    return (
+      <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
+        <PageTop />
+        <div className="flex items-center gap-3 px-5 mb-2">
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={goBack}
+            aria-label="Go back"
+            className="w-10 h-10 rounded-2xl flex items-center justify-center"
+            style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+          >
+            <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
+          </motion.button>
+          <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22 }}>Add funds</h2>
+        </div>
+        <p className="px-5 mb-5" style={{ color: 'var(--muted-foreground)', fontSize: 14, lineHeight: 1.45 }}>
+          Choose how you want to top up your Convia balance.
+        </p>
+        <div className="flex-1 overflow-y-auto px-5 pb-8">
+          <MethodOptionRow
+            title="Deposit crypto"
+            subtitle="Send tokens from another wallet to your Convia address"
+            Icon={Coins}
+            onClick={() => setMode('crypto')}
+          />
+          <MethodOrDivider />
+          <MethodOptionRow
+            title="Buy with card or bank"
+            subtitle="Pay in local currency and receive crypto in your wallet"
+            Icon={CreditCard}
+            onClick={() => navigate?.('onramp') ?? setMode('crypto')}
+          />
+          <MethodOptionRow
+            title="Request from someone"
+            subtitle="Ask a contact to send you crypto on Convia"
+            Icon={HandCoins}
+            onClick={() => navigate?.('request') ?? goBack()}
+          />
+        </div>
+      </div>
+    );
+  }
+
   if (!asset) {
-    return <TokenSelectionList assets={cryptoAssets.length ? cryptoAssets : []} goBack={goBack} onSelect={handleAssetSelect} />;
+    return <TokenSelectionList assets={cryptoAssets.length ? cryptoAssets : []} goBack={() => setMode('hub')} onSelect={handleAssetSelect} />;
   }
 
   return (
