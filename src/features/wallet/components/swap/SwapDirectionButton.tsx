@@ -1,18 +1,24 @@
 import { motion } from 'motion/react';
 import { ArrowDownUp } from 'lucide-react';
 
-/** The circular flip button that sits between the "You pay" and "You receive" cards. */
+/** Center flip control between You send / You receive. */
 export function SwapDirectionButton({ onClick }: { onClick: () => void }) {
   return (
-    <div className="absolute left-1/2 -translate-x-1/2 -bottom-5 z-10">
+    <div className="relative flex items-center justify-center py-4">
+      <div className="absolute left-0 right-0 h-px" style={{ background: 'var(--border)' }} />
       <motion.button
-        whileTap={{ scale: 0.85, rotate: 180 }}
+        type="button"
+        whileTap={{ scale: 0.88, rotate: 180 }}
         onClick={onClick}
         aria-label="Flip swap direction"
-        className="w-10 h-10 rounded-full flex items-center justify-center"
-        style={{ background: 'var(--secondary)', border: '3px solid var(--background)', boxShadow: '0 4px 14px var(--muted)' }}
+        className="relative z-10 w-11 h-11 rounded-full flex items-center justify-center"
+        style={{
+          background: 'var(--muted)',
+          border: '1px solid var(--border)',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+        }}
       >
-        <ArrowDownUp size={16} className="text-white" />
+        <ArrowDownUp size={18} style={{ color: 'var(--foreground)' }} />
       </motion.button>
     </div>
   );

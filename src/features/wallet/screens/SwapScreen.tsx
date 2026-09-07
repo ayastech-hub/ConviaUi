@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, Zap, AlertTriangle } from 'lucide-react';
+import { Zap, AlertTriangle } from 'lucide-react';
 import { type Asset, type Transaction } from '../../../shared/data/mockData';
 import { AssetPicker } from '../../../shared/components/AssetPicker';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
@@ -362,19 +362,11 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
       <PageTop />
 
-      <div className="flex items-center gap-3 px-5 mb-3">
-        {goBack ? (
-          <motion.button whileTap={{ scale: 0.9 }} onClick={goBack} aria-label="Go back" className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'var(--muted)' }}>
-            <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
-          </motion.button>
-        ) : null}
-        <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20 }}>{t('swap.title')}</h2>
-        <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1.5 rounded-full" style={{ background: 'var(--muted)' }}>
-          <Zap size={12} style={{ color: 'var(--foreground)' }} />
-          <span style={{ color: 'var(--foreground)', fontSize: 11, fontWeight: 700 }}>Best Rate</span>
-        </div>
+      <div className="flex items-center justify-center px-5 mb-6">
+        <h2 style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 18 }}>{t('swap.title') || 'Swap'}</h2>
       </div>
-      <div className="px-5 mb-3">
+
+      <div className="px-5 mb-2">
         {!registryLoading && cryptoAssets.length === 0 && <EmptyCatalogBanner />}
         <GateHint mode="swap" />
         <WalletFeatureBanner feature="swap" />
@@ -382,16 +374,24 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 pb-6">
-        <div className="relative">
+        <SwapAssetCard
+          variant="from"
+          asset={fromAsset}
+          amount={fromAmount}
+          onAmountChange={handleFromAmount}
+          onOpenPicker={() => setShowFromPicker(true)}
+          onMax={() => setPercentage(1)}
+          balance={fromAsset.balance}
+        />
+        <SwapDirectionButton onClick={flipAssets} />
+        <div className="mb-6">
           <SwapAssetCard
-            variant="from" asset={fromAsset} amount={fromAmount} onAmountChange={handleFromAmount}
-            onOpenPicker={() => setShowFromPicker(true)} usdValue={fromUSD} format={format} onSetPercentage={setPercentage}
+            variant="to"
+            asset={toAsset}
+            amount={receiveAmount}
+            onOpenPicker={() => setShowToPicker(true)}
+            quoteLoading={quoteLoading}
           />
-          <SwapDirectionButton onClick={flipAssets} />
-        </div>
-
-        <div className="mb-4 mt-3">
-          <SwapAssetCard variant="to" asset={toAsset} amount={receiveAmount} onOpenPicker={() => setShowToPicker(true)} usdValue={receiveUSD} format={format} />
         </div>
 
         <AnimatePresence>
@@ -438,12 +438,12 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
           whileTap={{ scale: canConfirmSwap ? 0.97 : 1 }}
           onClick={openReview}
           disabled={!canConfirmSwap}
-          className="w-full py-4 rounded-[16px] text-white flex items-center justify-center gap-2"
+          className="w-full py-4 rounded-full flex items-center justify-center gap-2"
           style={{
             background: canConfirmSwap ? 'var(--primary)' : 'var(--muted)',
-            color: canConfirmSwap ? '#FFF' : 'var(--muted-foreground)',
+            color: canConfirmSwap ? 'var(--primary-foreground, #FFF)' : 'var(--muted-foreground)',
             fontWeight: 700,
-            fontSize: 15,
+            fontSize: 16,
           }}
         >
           {sameAsset
@@ -456,7 +456,7 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
                   ? 'Fetching quote…'
                   : !receiveAmount
                     ? 'Waiting for quote'
-                    : 'Review Swap'}
+                    : 'Continue'}
         </motion.button>
       </div>
 
