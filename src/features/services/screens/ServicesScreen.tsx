@@ -17,7 +17,7 @@ import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/Fea
 import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { useLanguage } from '../../../shared/context/LanguageContext';
-import { PageTop } from '../../../shared/components/PageTop';;
+import { PageTop } from '../../../shared/components/PageTop';
 
 interface ServicesScreenProps {
   navigate: (s: Screen) => void;
