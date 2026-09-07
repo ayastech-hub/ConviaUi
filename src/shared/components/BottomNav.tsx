@@ -1,10 +1,9 @@
 import { motion } from 'motion/react';
 import {
   Wallet,
-  CreditCard,
   ArrowLeftRight,
-  Send,
   Grid3x3,
+  User,
 } from 'lucide-react';
 import type { Screen } from '../data/mockData';
 import { useLanguage } from '../context/LanguageContext';
@@ -16,8 +15,8 @@ interface BottomNavProps {
 }
 
 /**
- * Floating pill nav — not full-bleed.
- * Smaller icons, horizontal margins, fully rounded capsule (matches Crypto Bot dock).
+ * Floating pill: Wallet · Swap · More · Profile
+ * (Buy / Send removed from nav — Buy is a hub action; Send via assets / flows)
  */
 export function BottomNav({ activeTab, onNavigate, onSwap }: BottomNavProps) {
   const { t } = useLanguage();
@@ -37,13 +36,6 @@ export function BottomNav({ activeTab, onNavigate, onSwap }: BottomNavProps) {
       active: activeTab === 'home' || activeTab === 'wallet',
     },
     {
-      id: 'buy',
-      label: 'Buy',
-      icon: CreditCard,
-      action: () => onNavigate('onramp'),
-      active: activeTab === 'onramp',
-    },
-    {
       id: 'swap',
       label: t('nav.swap') || 'Swap',
       icon: ArrowLeftRight,
@@ -51,18 +43,18 @@ export function BottomNav({ activeTab, onNavigate, onSwap }: BottomNavProps) {
       active: activeTab === 'swap',
     },
     {
-      id: 'send',
-      label: 'Send',
-      icon: Send,
-      action: () => onNavigate('send'),
-      active: activeTab === 'send',
-    },
-    {
       id: 'more',
       label: 'More',
       icon: Grid3x3,
       action: () => onNavigate('services'),
-      active: activeTab === 'services' || activeTab === 'profile',
+      active: activeTab === 'services',
+    },
+    {
+      id: 'profile',
+      label: t('nav.profile') || 'Profile',
+      icon: User,
+      action: () => onNavigate('profile'),
+      active: activeTab === 'profile' || activeTab === 'settings' || activeTab === 'security',
     },
   ];
 

@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { CreditCard, Landmark, ArrowDownToLine, ArrowUpFromLine, PieChart } from 'lucide-react';
+import { CreditCard, Landmark, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
 import { useLanguage } from '../../../shared/context/LanguageContext';
 
@@ -13,7 +13,7 @@ export function WalletQuickActions({ onNavigate }: WalletQuickActionsProps) {
   const secondary: { label: string; icon: React.ComponentType<{ size?: number; strokeWidth?: number; style?: React.CSSProperties }>; screen: Screen }[] = [
     { label: t('nav.receive'), icon: ArrowDownToLine, screen: 'receive' },
     { label: t('nav.withdraw'), icon: ArrowUpFromLine, screen: 'withdraw' },
-    { label: t('portfolio.title'), icon: PieChart, screen: 'portfolio' },
+    { label: t('nav.send') || 'Send', icon: ArrowUpFromLine, screen: 'send' },
   ];
 
   return (

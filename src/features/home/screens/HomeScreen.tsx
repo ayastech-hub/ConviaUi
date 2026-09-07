@@ -103,7 +103,7 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
         loading={loading}
         hideSmall={hideSmall}
         onToggleHide={() => setHideSmall((v) => !v)}
-        onSeeAll={() => navigate('portfolio')}
+        onSeeAll={undefined}
       />
 
       <TransactionReceipt tx={receiptTx} open={!!receiptTx} onClose={() => setReceiptTx(null)} />

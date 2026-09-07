@@ -39,7 +39,19 @@ import { RewardsScreen } from '../features/rewards/screens/RewardsScreen';
 import { ServicesScreen } from '../features/services/screens/ServicesScreen';
 import { fetchPlatformStatus } from '../shared/api/platform';
 
-const MAIN_TABS: Screen[] = ['home', 'wallet']; // wallet redirects to home; profile via More → services/profile
+const MAIN_TABS: Screen[] = ['home', 'wallet']; // legacy tab ids for home hub
+
+/** Screens that keep the floating bottom nav (static dock, not only home). */
+const NAV_VISIBLE: Screen[] = [
+  'home',
+  'wallet',
+  'profile',
+  'services',
+  'swap',
+  'rewards',
+  'notifications',
+  'settings',
+];
 
 function MaintenanceBanner() {
   const [msg, setMsg] = useState<string | null>(null);
@@ -135,8 +147,17 @@ export default function App() {
     }
   }, [status, current, switchTab]);
 
-  const isMainTab = MAIN_TABS.includes(current);
-  const activeTab = isMainTab ? current : MAIN_TABS[0];
+  const showNav = NAV_VISIBLE.includes(current);
+  const activeTab: Screen =
+    current === 'home' || current === 'wallet'
+      ? 'home'
+      : current === 'profile' || current === 'settings' || current === 'security'
+        ? 'profile'
+        : current === 'services'
+          ? 'services'
+          : current === 'swap'
+            ? 'swap'
+            : 'home';
 
   const renderScreen = () => {
     const commonProps = { navigate, goBack };
@@ -189,7 +210,7 @@ export default function App() {
         );
       case 'swap':
         return (
-          <motion.div key="swap" {...slideRight} className="absolute inset-0">
+          <motion.div key="swap" {...slideRight} className="absolute inset-0 flex flex-col" style={{ paddingBottom: 88 }}>
             <SwapScreen goBack={goBack} />
           </motion.div>
         );
@@ -219,19 +240,19 @@ export default function App() {
         );
       case 'notifications':
         return (
-          <motion.div key="notifications" {...slideRight} className="absolute inset-0">
+          <motion.div key="notifications" {...slideRight} className="absolute inset-0 flex flex-col" style={{ paddingBottom: 88 }}>
             <NotificationsScreen goBack={goBack} navigate={navigate} />
           </motion.div>
         );
       case 'rewards':
         return (
-          <motion.div key="rewards" {...slideRight} className="absolute inset-0">
+          <motion.div key="rewards" {...slideRight} className="absolute inset-0 flex flex-col" style={{ paddingBottom: 88 }}>
             <RewardsScreen goBack={goBack} />
           </motion.div>
         );
       case 'settings':
         return (
-          <motion.div key="settings" {...slideRight} className="absolute inset-0">
+          <motion.div key="settings" {...slideRight} className="absolute inset-0 flex flex-col" style={{ paddingBottom: 88 }}>
             <SettingsScreen goBack={goBack} navigate={navigate} darkMode={darkMode} toggleDark={() => setDarkMode(!darkMode)} />
           </motion.div>
         );
@@ -260,9 +281,10 @@ export default function App() {
           </motion.div>
         );
       case 'portfolio':
+        // Portfolio screen removed — stay on wallet hub
         return (
-          <motion.div key="portfolio" {...slideRight} className="absolute inset-0">
-            <PortfolioScreen goBack={goBack} />
+          <motion.div key="portfolio" {...fadeIn} className="absolute inset-0 flex flex-col" style={{ paddingBottom: 88 }}>
+            <HomeScreen navigate={navigate} darkMode={darkMode} toggleDark={() => setDarkMode(!darkMode)} notificationCount={0} />
           </motion.div>
         );
       case 'login':
@@ -303,7 +325,7 @@ export default function App() {
         );
       case 'services':
         return (
-          <motion.div key="services" {...slideRight} className="absolute inset-0">
+          <motion.div key="services" {...slideRight} className="absolute inset-0 flex flex-col" style={{ paddingBottom: 88 }}>
             <ServicesScreen navigate={navigate} goBack={goBack} switchTab={switchTab} />
           </motion.div>
         );
@@ -333,7 +355,7 @@ export default function App() {
           <AnimatePresence mode="wait">{renderScreen()}</AnimatePresence>
         </div>
 
-        {isMainTab && (
+        {showNav && (
           <div className="absolute bottom-0 left-0 right-0 z-40">
             <BottomNav
               activeTab={activeTab as Screen}

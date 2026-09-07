@@ -8,7 +8,7 @@ interface Props {
   loading?: boolean;
   hideSmall: boolean;
   onToggleHide: () => void;
-  onSeeAll?: () => void;
+  onSeeAll?: () => void; // optional; portfolio removed
 }
 
 /** Asset rows: name, price + 24h %, qty, USD — Crypto-Bot list structure. */
@@ -21,15 +21,9 @@ export function HubAssetsList({ assets, loading, hideSmall, onToggleHide, onSeeA
   return (
     <div className="px-5 pb-28">
       <div className="flex items-center justify-between mb-3">
-        <button
-          type="button"
-          onClick={onSeeAll}
-          className="flex items-center gap-1"
-          style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 15 }}
-        >
+        <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 15 }}>
           My Assets
-          <span style={{ color: 'var(--muted-foreground)', fontWeight: 500 }}>›</span>
-        </button>
+        </p>
         <button
           type="button"
           onClick={onToggleHide}
