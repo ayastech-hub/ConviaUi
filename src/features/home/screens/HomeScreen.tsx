@@ -1,18 +1,19 @@
-import { useState, useEffect } from 'react';
-import { AnimatePresence } from 'motion/react';
-import { QRScanner } from '../../../shared/components/QRScanner';
-import { parseQRPayload, setSendPrefill } from '../../../shared/utils/qrPayload';
-import { TransactionReceipt } from '../../../shared/components/TransactionReceipt';
+import { useEffect, useState } from 'react';
 import type { Screen, Transaction } from '../../../shared/data/mockData';
-import { HomeHeader } from '../components/HomeHeader';
-import { PortfolioHeroCard } from '../components/PortfolioHeroCard';
+import { TransactionReceipt } from '../../../shared/components/TransactionReceipt';
 import { AccountStatusBanners } from '../../../shared/components/AccountStatusBanners';
-import { QuickActionsRow } from '../components/QuickActionsRow';
-import { MarketWatchlist } from '../components/MarketWatchlist';
-import { HomeHoldingsPreview } from '../components/HomeHoldingsPreview';
-import { RecentTransactionsList } from '../components/RecentTransactionsList';
+import { QRScanner } from '../../../shared/components/QRScanner';
+import { CenteredBalance } from '../components/CenteredBalance';
+import { HubActions } from '../components/HubActions';
+import { PromoBanner } from '../components/PromoBanner';
+import { HubAssetsList } from '../components/HubAssetsList';
+import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useAuth } from '../../../shared/context/AuthContext';
 import * as notifApi from '../../../shared/api/notifications';
+import { parseQRPayload, setSendPrefill } from '../../../shared/utils/qrPayload';
+import { AnimatePresence } from 'motion/react';
+import { Bell, ScanLine } from 'lucide-react';
+import { motion } from 'motion/react';
 
 interface HomeScreenProps {
   navigate: (s: Screen, param?: string) => void;
@@ -21,44 +22,89 @@ interface HomeScreenProps {
   notificationCount: number;
 }
 
+/**
+ * Unified Home + Wallet hub.
+ * Structure: centered balance → circular actions → promo banner → assets list.
+ * Replaces the old split Home/Wallet tabs (same content, one surface).
+ */
 export function HomeScreen({ navigate, notificationCount: notificationCountProp }: HomeScreenProps) {
   const { userId, status } = useAuth();
   const [unread, setUnread] = useState(0);
+  const [balanceVisible, setBalanceVisible] = useState(true);
+  const [hideSmall, setHideSmall] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
+  const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);
+  const { assets, loading } = useWalletAssets();
+
   useEffect(() => {
     if (status !== 'authenticated' || !userId) {
       setUnread(0);
       return;
     }
-    notifApi.listNotifications(userId, 30).then((list) => {
-      setUnread((Array.isArray(list) ? list : []).filter((n) => !n.readAt).length);
-    }).catch(() => setUnread(0));
+    notifApi
+      .listNotifications(userId, 30)
+      .then((list) => {
+        setUnread((Array.isArray(list) ? list : []).filter((n: { readAt?: string }) => !n.readAt).length);
+      })
+      .catch(() => setUnread(0));
   }, [userId, status]);
+
   const notificationCount = unread || notificationCountProp || 0;
-  const [balanceVisible, setBalanceVisible] = useState(true);
-  const [showScanner, setShowScanner] = useState(false);
-  const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);
 
   return (
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
+      {/* Top chrome */}
+      <div style={{ height: 12 }} />
+      <div className="flex items-center justify-between px-5 mb-2">
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setShowScanner(true)}
+          aria-label="Scan QR"
+          className="w-10 h-10 rounded-full flex items-center justify-center"
+          style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+        >
+          <ScanLine size={18} style={{ color: 'var(--foreground)' }} />
+        </motion.button>
+        <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 17 }}>Wallet</p>
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.9 }}
+          onClick={() => navigate('notifications')}
+          aria-label="Notifications"
+          className="relative w-10 h-10 rounded-full flex items-center justify-center"
+          style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+        >
+          <Bell size={18} style={{ color: 'var(--foreground)' }} />
+          {notificationCount > 0 && (
+            <span
+              className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
+              style={{ background: 'var(--destructive)' }}
+            >
+              {notificationCount > 9 ? '9+' : notificationCount}
+            </span>
+          )}
+        </motion.button>
+      </div>
 
-      <HomeHeader
-        notificationCount={notificationCount}
-        onScan={() => setShowScanner(true)}
-        onOpenNotifications={() => navigate('notifications')}
+      <CenteredBalance
+        balanceVisible={balanceVisible}
+        onToggle={() => setBalanceVisible((v) => !v)}
       />
 
-      <PortfolioHeroCard balanceVisible={balanceVisible} onToggleVisibility={() => setBalanceVisible((v) => !v)} />
+      <HubActions onNavigate={navigate} />
 
       <AccountStatusBanners onKyc={() => navigate('kyc')} />
 
-      <QuickActionsRow onNavigate={navigate} />
+      <PromoBanner onNavigate={navigate} />
 
-      <HomeHoldingsPreview onSeeAll={() => navigate('wallet')} />
-
-      <MarketWatchlist onSeeAll={() => navigate('swap')} onSelectAsset={() => navigate('swap')} />
-
-      <RecentTransactionsList onSeeAll={() => navigate('wallet')} onSelectTransaction={setReceiptTx} />
+      <HubAssetsList
+        assets={assets || []}
+        loading={loading}
+        hideSmall={hideSmall}
+        onToggleHide={() => setHideSmall((v) => !v)}
+        onSeeAll={() => navigate('portfolio')}
+      />
 
       <TransactionReceipt tx={receiptTx} open={!!receiptTx} onClose={() => setReceiptTx(null)} />
 
@@ -68,20 +114,18 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
             onScan={(result) => {
               setShowScanner(false);
               const parsed = parseQRPayload(result);
-              if (parsed) {
-                setSendPrefill(parsed);
-              } else {
-                setSendPrefill({ address: result.trim() });
-              }
+              if (parsed) setSendPrefill(parsed);
+              else setSendPrefill({ address: result.trim() });
               navigate('send');
             }}
             onClose={() => setShowScanner(false)}
-            onManualEntry={() => { setShowScanner(false); navigate('send'); }}
+            onManualEntry={() => {
+              setShowScanner(false);
+              navigate('send');
+            }}
           />
         )}
       </AnimatePresence>
-
-      <div style={{ height: 100 }} />
     </div>
   );
 }

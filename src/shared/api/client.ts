@@ -1,4 +1,6 @@
 import { ApiError, type ApiErrorBody, type SessionTokens } from './types';
+import { isApiOffline, isForceMock, setApiOffline } from './mockMode';
+import { resolveMockResponse } from './mockHandlers';
 
 const BASE_URL = (import.meta as ImportMeta & { env: Record<string, string> }).env
   ?.VITE_API_BASE_URL || 'http://localhost:4000';
@@ -111,6 +113,12 @@ export async function apiRequest<T>(path: string, opts: RequestOptions = {}): Pr
   };
 
   attachAuth(getTokens()?.accessToken);
+
+  if (isForceMock() || isApiOffline()) {
+    const mock = resolveMockResponse(method, path, opts.body);
+    if (mock !== null) return mock as T;
+    if (method === 'GET') return {} as T;
+  }
 
   const doFetch = () =>
     fetch(`${BASE_URL}${path}`, {

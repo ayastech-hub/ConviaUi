@@ -1,9 +1,9 @@
 import { motion } from 'motion/react';
 import {
-  Home,
   Wallet,
-  User,
+  CreditCard,
   ArrowLeftRight,
+  Send,
   Grid3x3,
 } from 'lucide-react';
 import type { Screen } from '../data/mockData';
@@ -16,179 +16,104 @@ interface BottomNavProps {
 }
 
 /**
- * Mobile bottom nav — layout must stay identical to design (rounded bar + center Services + Swap).
- * Only labels are translated; structure/CSS unchanged.
+ * 5-item nav matching modern crypto hubs:
+ * Wallet (merged home) · Buy · Swap · Send · More (services)
+ * Trade/P2P replaced with Buy + Send (Convia capabilities).
  */
-export function BottomNav({
-  activeTab,
-  onNavigate,
-  onSwap,
-}: BottomNavProps) {
+export function BottomNav({ activeTab, onNavigate, onSwap }: BottomNavProps) {
   const { t } = useLanguage();
 
-  const tabs = [
+  const items: {
+    id: string;
+    label: string;
+    icon: typeof Wallet;
+    action: () => void;
+    active: boolean;
+  }[] = [
     {
-      id: 'home' as Screen,
-      label: t('nav.home'),
-      icon: Home,
-    },
-    {
-      id: 'wallet' as Screen,
-      label: t('nav.wallet'),
+      id: 'wallet',
+      label: t('nav.wallet') || 'Wallet',
       icon: Wallet,
+      action: () => onNavigate('home'),
+      active: activeTab === 'home' || activeTab === 'wallet',
     },
     {
-      id: 'profile' as Screen,
-      label: t('nav.profile'),
-      icon: User,
+      id: 'buy',
+      label: 'Buy',
+      icon: CreditCard,
+      action: () => onNavigate('onramp'),
+      active: activeTab === 'onramp',
+    },
+    {
+      id: 'swap',
+      label: t('nav.swap') || 'Swap',
+      icon: ArrowLeftRight,
+      action: onSwap,
+      active: activeTab === 'swap',
+    },
+    {
+      id: 'send',
+      label: 'Send',
+      icon: Send,
+      action: () => onNavigate('send'),
+      active: activeTab === 'send',
+    },
+    {
+      id: 'more',
+      label: 'More',
+      icon: Grid3x3,
+      action: () => onNavigate('services'),
+      active: activeTab === 'services' || activeTab === 'profile',
     },
   ];
 
-  const leftTabs = tabs.slice(0, 2);
-  const rightTabs = tabs.slice(2);
-
-  const renderTab = (tab: (typeof tabs)[number]) => {
-    const Icon = tab.icon;
-    const isActive = activeTab === tab.id;
-
-    return (
-      <motion.button
-        key={tab.id}
-        type="button"
-        onClick={() => onNavigate(tab.id)}
-        whileTap={{ scale: 0.9 }}
-        aria-label={tab.label}
-        className="relative flex h-full flex-1 flex-col items-center justify-center gap-1"
-      >
-        {/* Active indicator */}
-        {isActive && (
-          <motion.div
-            layoutId="bottom-nav-active"
-            transition={{
-              type: 'spring',
-              stiffness: 400,
-              damping: 30,
-            }}
-            className="absolute top-2 h-1 w-5 rounded-full"
-            style={{
-              background: 'var(--accent)',
-            }}
-          />
-        )}
-
-        <motion.div
-          animate={{
-            scale: isActive ? 1.05 : 1,
-          }}
-          transition={{
-            type: 'spring',
-            stiffness: 400,
-            damping: 25,
-          }}
-        >
-          <Icon
-            size={22}
-            strokeWidth={isActive ? 2.2 : 1.6}
-            style={{
-              color: isActive
-                ? 'var(--foreground)'
-                : 'var(--muted-foreground)',
-            }}
-          />
-        </motion.div>
-
-        <span
-          className="text-[10px] tracking-wide"
-          style={{
-            color: isActive
-              ? 'var(--foreground)'
-              : 'var(--muted-foreground)',
-            fontWeight: isActive ? 600 : 400,
-          }}
-        >
-          {tab.label}
-        </span>
-      </motion.button>
-    );
-  };
-
   return (
     <div
-      className="relative w-full"
+      className="flex items-stretch h-[68px] px-1 relative"
       style={{
-        height: 92,
+        borderTop: '1px solid var(--border)',
+        background: 'var(--background)',
       }}
     >
-      {/* Navigation surface */}
-      <div
-        className="absolute bottom-0 left-0 right-0 h-[76px] rounded-t-[28px]"
-        style={{
-          background: 'var(--background)',
-          borderTop: '1px solid var(--border)',
-        }}
-      >
-        <div className="flex h-full items-center px-3 pb-1">
-          {/* Left side */}
-          <div className="flex h-full flex-1">
-            {leftTabs.map(renderTab)}
-          </div>
-
-          {/* Center space */}
-          <div className="w-[76px] shrink-0" />
-
-          {/* Right side */}
-          <div className="flex h-full flex-1">
-            {/* Swap */}
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.9 }}
-              onClick={onSwap}
-              aria-label={t('nav.swap')}
-              className="flex h-full flex-1 flex-col items-center justify-center gap-1"
-            >
-              <ArrowLeftRight
-                size={22}
-                strokeWidth={1.6}
-                style={{
-                  color: 'var(--muted-foreground)',
-                }}
+      {items.map((tab) => {
+        const Icon = tab.icon;
+        const isActive = tab.active;
+        return (
+          <motion.button
+            key={tab.id}
+            type="button"
+            onClick={tab.action}
+            whileTap={{ scale: 0.9 }}
+            aria-label={tab.label}
+            className="relative flex h-full flex-1 flex-col items-center justify-center gap-1"
+          >
+            {isActive && (
+              <motion.div
+                layoutId="bottom-nav-active"
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                className="absolute top-2 h-1 w-5 rounded-full"
+                style={{ background: 'var(--foreground)' }}
               />
-
-              <span
-                className="text-[10px] tracking-wide"
-                style={{
-                  color: 'var(--muted-foreground)',
-                  fontWeight: 400,
-                }}
-              >
-                {t('nav.swap')}
-              </span>
-            </motion.button>
-
-            {rightTabs.map(renderTab)}
-          </div>
-        </div>
-      </div>
-
-      {/* Floating center action */}
-      <motion.button
-        type="button"
-        onClick={() => onNavigate('services')}
-        whileTap={{ scale: 0.88 }}
-        whileHover={{ scale: 1.04 }}
-        aria-label={t('nav.services')}
-        className="absolute left-1/2 top-0 z-10 flex h-[58px] w-[58px] -translate-x-1/2 items-center justify-center rounded-full"
-        style={{
-          background: 'var(--foreground)',
-          color: 'var(--background)',
-          border: '4px solid var(--background)',
-        }}
-      >
-        <Grid3x3
-          size={21}
-          strokeWidth={2}
-        />
-      </motion.button>
+            )}
+            <Icon
+              size={22}
+              strokeWidth={isActive ? 2.2 : 1.6}
+              style={{
+                color: isActive ? 'var(--foreground)' : 'var(--muted-foreground)',
+              }}
+            />
+            <span
+              className="text-[10px] tracking-wide"
+              style={{
+                color: isActive ? 'var(--foreground)' : 'var(--muted-foreground)',
+                fontWeight: isActive ? 600 : 400,
+              }}
+            >
+              {tab.label}
+            </span>
+          </motion.button>
+        );
+      })}
     </div>
   );
 }

@@ -39,7 +39,7 @@ import { RewardsScreen } from '../features/rewards/screens/RewardsScreen';
 import { ServicesScreen } from '../features/services/screens/ServicesScreen';
 import { fetchPlatformStatus } from '../shared/api/platform';
 
-const MAIN_TABS: Screen[] = ['home', 'wallet', 'profile'];
+const MAIN_TABS: Screen[] = ['home', 'wallet']; // wallet redirects to home; profile via More → services/profile
 
 function MaintenanceBanner() {
   const [msg, setMsg] = useState<string | null>(null);
@@ -155,9 +155,10 @@ export default function App() {
           </motion.div>
         );
       case 'wallet':
+        // Merged into Home hub — same UI as home
         return (
           <motion.div key="wallet" {...fadeIn} className="absolute inset-0 flex flex-col" style={{ paddingBottom: 68 }}>
-            <WalletScreen navigate={navigate} />
+            <HomeScreen navigate={navigate} darkMode={darkMode} toggleDark={() => setDarkMode(!darkMode)} notificationCount={0} />
           </motion.div>
         );
       case 'profile':
