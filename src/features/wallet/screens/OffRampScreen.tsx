@@ -101,7 +101,7 @@ export function OffRampScreen({ goBack, navigate }: OffRampScreenProps) {
         <motion.button whileTap={{ scale: 0.9 }} onClick={step === 'form' ? goBack : () => setStep('form')} className="w-10 h-10 rounded-2xl flex items-center justify-center glass-card" style={{ border: '1px solid var(--border)' }}>
           <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
         </motion.button>
-        <h2 style={{ color: 'var(--foreground)', fontWeight: 800 }}>'Sell crypto'</h2>
+        <h2 style={{ color: 'var(--foreground)', fontWeight: 800 }}>Sell crypto</h2>
       </div>
 
       <div className="flex-1 overflow-y-auto px-5">
