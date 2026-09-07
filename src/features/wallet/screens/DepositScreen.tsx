@@ -168,7 +168,7 @@ export function DepositScreen({ goBack, navigate }: DepositScreenProps) {
       <div className="flex items-center gap-3 px-5 mb-5">
         <motion.button
           whileTap={{ scale: 0.9 }}
-          onClick={goBack}
+          onClick={() => setAsset(null)}
           aria-label="Go back"
           className="w-10 h-10 rounded-2xl flex items-center justify-center"
           style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}

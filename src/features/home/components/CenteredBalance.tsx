@@ -11,7 +11,6 @@ interface Props {
   onToggle: () => void;
 }
 
-/** Large centered total + enterprise currency sheet with flag icons. */
 export function CenteredBalance({ balanceVisible, onToggle }: Props) {
   const { data, loading, source } = usePortfolio();
   const { format, currency, currencies, setCurrency } = useCurrency();
@@ -34,7 +33,7 @@ export function CenteredBalance({ balanceVisible, onToggle }: Props) {
       (c) =>
         c.code.toLowerCase().includes(needle) ||
         c.name.toLowerCase().includes(needle) ||
-        c.symbol.toLowerCase().includes(needle),
+        (c.symbol || '').toLowerCase().includes(needle),
     );
   }, [currencies, q]);
 
@@ -91,22 +90,17 @@ export function CenteredBalance({ balanceVisible, onToggle }: Props) {
         aria-label="Change display currency"
       >
         <CurrencyIcon code={currency.code} size={18} />
-        <span>
-          {currency.code}
-          {source === 'mock' ? ' · demo' : source === 'live' ? ' · live' : ''}
-        </span>
+        <span>{currency.code}</span>
         <ChevronDown size={14} strokeWidth={2.2} style={{ color: 'var(--muted-foreground)' }} />
       </motion.button>
-      <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 8 }}>
-        Total balance
-      </p>
+      <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 8 }}>Total balance</p>
 
       <AnimatePresence>
         {pickerOpen && (
           <>
             <motion.button
               type="button"
-              aria-label="Close"
+              aria-label="Close backdrop"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -121,12 +115,14 @@ export function CenteredBalance({ balanceVisible, onToggle }: Props) {
               role="dialog"
               aria-modal="true"
               aria-label="Select currency"
-              initial={{ opacity: 0, y: 24, scale: 0.96 }}
+              initial={{ opacity: 0, y: 28, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 16, scale: 0.98 }}
+              exit={{ opacity: 0, y: 20, scale: 0.98 }}
               transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-              className="fixed z-50 left-1/2 top-[12%] -translate-x-1/2 w-[min(92vw,400px)] flex flex-col overflow-hidden"
+              className="fixed z-50 left-1/2 -translate-x-1/2 flex flex-col overflow-hidden"
               style={{
+                top: 'max(12%, env(safe-area-inset-top))',
+                width: 'min(92vw, 400px)',
                 maxHeight: 'min(72dvh, 560px)',
                 background: 'var(--card)',
                 borderRadius: 20,
@@ -163,7 +159,7 @@ export function CenteredBalance({ balanceVisible, onToggle }: Props) {
               <div className="px-4 py-3">
                 <div
                   className="flex items-center gap-2 px-3 h-11 rounded-xl"
-                  style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+                  style={{ background: 'var(--background)', border: '1px solid var(--border)' }}
                 >
                   <Search size={16} style={{ color: 'var(--muted-foreground)' }} />
                   <input
@@ -172,7 +168,6 @@ export function CenteredBalance({ balanceVisible, onToggle }: Props) {
                     placeholder="Search code or name"
                     className="flex-1 bg-transparent outline-none text-sm"
                     style={{ color: 'var(--foreground)' }}
-                    autoFocus
                   />
                 </div>
               </div>
@@ -186,12 +181,10 @@ export function CenteredBalance({ balanceVisible, onToggle }: Props) {
                       type="button"
                       onClick={() => pick(c)}
                       className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left"
-                      style={{
-                        background: active ? 'var(--muted)' : 'transparent',
-                      }}
+                      style={{ background: active ? 'var(--muted)' : 'transparent' }}
                     >
                       <CurrencyIcon code={c.code} size={40} />
-                      <div className="flex-1 min-w-0 text-left">
+                      <div className="flex-1 min-w-0">
                         <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 15 }}>
                           {c.code}
                         </p>
@@ -205,18 +198,16 @@ export function CenteredBalance({ balanceVisible, onToggle }: Props) {
                       </span>
                       <span
                         className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-                        style={{
-                          background: active ? 'var(--primary)' : 'var(--border)',
-                        }}
+                        style={{ background: active ? 'var(--primary)' : 'transparent', border: active ? 'none' : '1px solid var(--border)' }}
                       >
-                        {active && <Check size={14} color="#fff" strokeWidth={3} />}
+                        {active ? <Check size={14} color="#fff" strokeWidth={3} /> : null}
                       </span>
                     </button>
                   );
                 })}
                 {!list.length && (
                   <p className="py-10 text-center" style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
-                    No currencies match “{q}”
+                    No currencies match &ldquo;{q}&rdquo;
                   </p>
                 )}
               </div>
