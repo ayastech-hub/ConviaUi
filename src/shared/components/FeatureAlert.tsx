@@ -1,5 +1,6 @@
-import { AlertTriangle, ShieldAlert, Ban, Snowflake, ChevronRight } from 'lucide-react';
-import { motion } from 'motion/react';
+import { useState } from 'react';
+import { AlertTriangle, ShieldAlert, Ban, Snowflake, ChevronRight, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 export type FeatureBlockReason =
   | 'kyc_required'
@@ -16,7 +17,7 @@ const COPY: Record<
 > = {
   kyc_required: {
     title: 'Verification required',
-    body: 'Complete identity verification (KYC) to unlock this feature. Backend will reject the request until you are approved.',
+    body: 'Complete identity verification (KYC) to unlock this feature.',
     icon: ShieldAlert,
     tone: 'warn',
   },
@@ -83,26 +84,30 @@ export function mapApiCodeToReason(code?: string): FeatureBlockReason {
 
 interface FeatureAlertProps {
   reason: FeatureBlockReason;
-  /** string preferred — Error/unknown coerced to string to avoid React #31 */
   message?: string | Error | unknown;
   detail?: string | unknown;
   onAction?: () => void;
   actionLabel?: string;
   compact?: boolean;
+  floating?: boolean;
+  dismissible?: boolean;
+  onDismiss?: () => void;
 }
 
-/** Blocking / informational banner for KYC, regional suspension, freeze, whitelist, limits. */
 export function FeatureAlert({
   reason,
   message,
   detail,
   onAction,
-  actionLabel,
-  compact,
+  actionLabel = 'Resolve',
+  compact = false,
+  floating = true,
+  dismissible = true,
+  onDismiss,
 }: FeatureAlertProps) {
+  const [dismissed, setDismissed] = useState(false);
   const meta = COPY[reason] || COPY.generic;
   const Icon = meta.icon;
-  // Never pass Error/objects as React children (React minified #31)
   const safeMessage =
     message == null
       ? ''
@@ -111,21 +116,21 @@ export function FeatureAlert({
         : typeof message === 'object' && message !== null && 'message' in (message as object)
           ? String((message as { message: unknown }).message)
           : String(message);
-  const safeDetail =
-    detail == null
-      ? ''
-      : typeof detail === 'string'
-        ? detail
-        : String(detail);
-  return (
+  const safeDetail = detail == null ? '' : typeof detail === 'string' ? detail : String(detail);
+
+  if (dismissed) return null;
+
+  const card = (
     <motion.div
-      initial={{ opacity: 0, y: 6 }}
+      initial={{ opacity: 0, y: floating ? -8 : 6 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: floating ? -8 : 0 }}
       className="rounded-[16px] p-3.5 flex gap-3"
       style={{
         background: TONE_BG[meta.tone],
         border: `1px solid ${TONE_FG[meta.tone]}33`,
-        marginBottom: compact ? 8 : 12,
+        marginBottom: floating ? 0 : compact ? 8 : 12,
+        boxShadow: floating ? '0 8px 24px rgba(0,0,0,0.25)' : undefined,
       }}
     >
       <Icon size={18} style={{ color: TONE_FG[meta.tone], flexShrink: 0, marginTop: 2 }} />
@@ -135,19 +140,51 @@ export function FeatureAlert({
           {safeMessage || meta.body}
         </p>
         {safeDetail ? (
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 11, marginTop: 4, opacity: 0.85 }}>{safeDetail}</p>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 11, marginTop: 4, opacity: 0.85 }}>
+            {safeDetail}
+          </p>
         ) : null}
-        {onAction && (
+        {onAction ? (
           <button
             type="button"
             onClick={onAction}
             className="flex items-center gap-1 mt-2"
             style={{ color: TONE_FG[meta.tone], fontSize: 12, fontWeight: 700 }}
           >
-            {actionLabel || 'Resolve'} <ChevronRight size={14} />
+            {actionLabel} <ChevronRight size={14} />
           </button>
-        )}
+        ) : null}
       </div>
+      {dismissible ? (
+        <button
+          type="button"
+          onClick={() => {
+            setDismissed(true);
+            onDismiss?.();
+          }}
+          aria-label="Dismiss"
+          className="flex-shrink-0 p-0.5"
+        >
+          <X size={16} style={{ color: 'var(--muted-foreground)' }} />
+        </button>
+      ) : null}
     </motion.div>
   );
+
+  if (floating) {
+    return (
+      <AnimatePresence>
+        <div
+          className="fixed left-0 right-0 z-[60] px-4 pointer-events-none"
+          style={{ top: 'max(12px, env(safe-area-inset-top))' }}
+        >
+          <div className="pointer-events-auto mx-auto" style={{ maxWidth: 480 }}>
+            {card}
+          </div>
+        </div>
+      </AnimatePresence>
+    );
+  }
+
+  return card;
 }

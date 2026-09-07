@@ -1,8 +1,9 @@
+import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import type { Asset } from '../../../../shared/data/mockData';
 import { AssetIcon } from '../../../../shared/components/AssetIcon';
-import { PageTop } from '../../../../shared/components/PageTop';;
+import { PageTop } from '../../../../shared/components/PageTop';
 
 interface TokenSelectionListProps {
   assets: Asset[];
@@ -10,27 +11,66 @@ interface TokenSelectionListProps {
   onSelect: (a: Asset) => void;
 }
 
-/** Initial "Select a token to deposit" full-screen list, shown before an asset is chosen. */
+/** Deposit token picker with search. */
 export function TokenSelectionList({ assets, goBack, onSelect }: TokenSelectionListProps) {
+  const [q, setQ] = useState('');
+
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return assets;
+    return assets.filter(
+      (a) =>
+        a.symbol.toLowerCase().includes(needle) ||
+        a.name.toLowerCase().includes(needle),
+    );
+  }, [assets, q]);
+
   return (
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
       <PageTop />
-      <div className="flex items-center gap-3 px-5 mb-6">
-        <motion.button whileTap={{ scale: 0.9 }} onClick={goBack} aria-label="Back" className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+      <div className="flex items-center gap-3 px-5 mb-4">
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={goBack}
+          aria-label="Back"
+          className="w-10 h-10 rounded-2xl flex items-center justify-center"
+          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+        >
           <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
         </motion.button>
         <div>
-          <h1 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22, lineHeight: 1.1 }}>Deposit</h1>
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginTop: 2 }}>Select a token to deposit</p>
+          <h1 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22, lineHeight: 1.1 }}>
+            Deposit
+          </h1>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginTop: 2 }}>
+            Select a token to deposit
+          </p>
         </div>
       </div>
+
+      <div className="px-5 mb-4">
+        <div
+          className="flex items-center gap-2 px-3 h-11 rounded-xl"
+          style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+        >
+          <Search size={16} style={{ color: 'var(--muted-foreground)' }} />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search token"
+            className="flex-1 bg-transparent outline-none text-sm"
+            style={{ color: 'var(--foreground)' }}
+          />
+        </div>
+      </div>
+
       <div className="px-5 pb-5">
-        {assets.map((a, i) => (
+        {filtered.map((a, i) => (
           <motion.button
             key={a.id}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.04 }}
+            transition={{ delay: Math.min(i, 12) * 0.03 }}
             whileTap={{ scale: 0.97 }}
             onClick={() => onSelect(a)}
             className="flex items-center gap-3 p-4 rounded-[16px] mb-3 w-full text-left"
@@ -42,11 +82,18 @@ export function TokenSelectionList({ assets, goBack, onSelect }: TokenSelectionL
               <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>{a.name}</p>
             </div>
             <div className="text-right">
-              <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>{a.chains.length} networks</p>
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>
+                {(a.chains || []).length} networks
+              </p>
             </div>
             <ChevronRight size={16} style={{ color: 'var(--muted-foreground)' }} />
           </motion.button>
         ))}
+        {!filtered.length && (
+          <p className="py-10 text-center" style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
+            No tokens match “{q}”
+          </p>
+        )}
       </div>
       <div style={{ height: 60 }} />
     </div>
