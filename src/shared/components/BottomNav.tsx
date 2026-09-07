@@ -16,9 +16,8 @@ interface BottomNavProps {
 }
 
 /**
- * 5-item nav matching modern crypto hubs:
- * Wallet (merged home) · Buy · Swap · Send · More (services)
- * Trade/P2P replaced with Buy + Send (Convia capabilities).
+ * Floating pill nav — not full-bleed.
+ * Smaller icons, horizontal margins, fully rounded capsule (matches Crypto Bot dock).
  */
 export function BottomNav({ activeTab, onNavigate, onSwap }: BottomNavProps) {
   const { t } = useLanguage();
@@ -69,51 +68,57 @@ export function BottomNav({ activeTab, onNavigate, onSwap }: BottomNavProps) {
 
   return (
     <div
-      className="flex items-stretch h-[68px] px-1 relative"
-      style={{
-        borderTop: '1px solid var(--border)',
-        background: 'var(--background)',
-      }}
+      className="pointer-events-none absolute bottom-0 left-0 right-0 z-40 flex justify-center"
+      style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
     >
-      {items.map((tab) => {
-        const Icon = tab.icon;
-        const isActive = tab.active;
-        return (
-          <motion.button
-            key={tab.id}
-            type="button"
-            onClick={tab.action}
-            whileTap={{ scale: 0.9 }}
-            aria-label={tab.label}
-            className="relative flex h-full flex-1 flex-col items-center justify-center gap-1"
-          >
-            {isActive && (
-              <motion.div
-                layoutId="bottom-nav-active"
-                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                className="absolute top-2 h-1 w-5 rounded-full"
-                style={{ background: 'var(--foreground)' }}
-              />
-            )}
-            <Icon
-              size={22}
-              strokeWidth={isActive ? 2.2 : 1.6}
+      <nav
+        className="pointer-events-auto flex items-center justify-between gap-0.5 px-2 py-1.5"
+        style={{
+          width: 'min(92%, 380px)',
+          height: 58,
+          borderRadius: 999,
+          background: 'var(--card)',
+          border: '1px solid var(--border)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
+        }}
+        aria-label="Main"
+      >
+        {items.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = tab.active;
+          return (
+            <motion.button
+              key={tab.id}
+              type="button"
+              onClick={tab.action}
+              whileTap={{ scale: 0.88 }}
+              aria-label={tab.label}
+              aria-current={isActive ? 'page' : undefined}
+              className="relative flex flex-col items-center justify-center gap-0.5 flex-1 min-w-0 h-full rounded-full"
               style={{
-                color: isActive ? 'var(--foreground)' : 'var(--muted-foreground)',
-              }}
-            />
-            <span
-              className="text-[10px] tracking-wide"
-              style={{
-                color: isActive ? 'var(--foreground)' : 'var(--muted-foreground)',
-                fontWeight: isActive ? 600 : 400,
+                background: isActive ? 'var(--muted)' : 'transparent',
               }}
             >
-              {tab.label}
-            </span>
-          </motion.button>
-        );
-      })}
+              <Icon
+                size={20}
+                strokeWidth={isActive ? 2.25 : 1.6}
+                style={{
+                  color: isActive ? 'var(--foreground)' : 'var(--muted-foreground)',
+                }}
+              />
+              <span
+                className="text-[9px] tracking-wide truncate max-w-full px-0.5"
+                style={{
+                  color: isActive ? 'var(--foreground)' : 'var(--muted-foreground)',
+                  fontWeight: isActive ? 600 : 400,
+                }}
+              >
+                {tab.label}
+              </span>
+            </motion.button>
+          );
+        })}
+      </nav>
     </div>
   );
 }
