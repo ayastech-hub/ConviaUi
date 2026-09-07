@@ -5,10 +5,19 @@ const FORCE_KEY = 'convia.forceMock';
 
 export function isForceMock(): boolean {
   try {
-    return localStorage.getItem(FORCE_KEY) === '1';
+    if (localStorage.getItem(FORCE_KEY) === '1') return true;
   } catch {
-    return false;
+    /* */
   }
+  try {
+    const env = (import.meta as ImportMeta & { env: Record<string, string> }).env;
+    if (env?.VITE_USE_MOCKS === 'true' || env?.VITE_USE_MSW === 'true' || env?.VITE_FORCE_MOCK === 'true') {
+      return true;
+    }
+  } catch {
+    /* */
+  }
+  return false;
 }
 export function setForceMock(on: boolean) {
   try {
