@@ -46,35 +46,40 @@ const SLIDES: {
 ];
 
 const AUTO_MS = 5000;
+const N = SLIDES.length;
 
 interface Props {
   onNavigate: (s: Screen) => void;
 }
 
-/** Swipeable promo carousel + auto-advance every 5s. */
+/**
+ * Swipeable promo + auto-advance every 5s.
+ * Track width = N * 100% of viewport; translate by -(i/N)*100% of track (= one viewport).
+ */
 export function PromoBanner({ onNavigate }: Props) {
   const [i, setI] = useState(0);
   const touchX = useRef<number | null>(null);
+  const mouseX = useRef<number | null>(null);
   const paused = useRef(false);
+  const dragging = useRef(false);
 
   const go = useCallback((next: number) => {
-    const n = SLIDES.length;
-    setI(((next % n) + n) % n);
+    setI(((next % N) + N) % N);
   }, []);
 
   const goNext = useCallback(() => go(i + 1), [go, i]);
   const goPrev = useCallback(() => go(i - 1), [go, i]);
 
-  // Auto-slide every 5s (pauses while finger is down)
   useEffect(() => {
     const id = window.setInterval(() => {
-      if (!paused.current) setI((v) => (v + 1) % SLIDES.length);
+      if (!paused.current) setI((v) => (v + 1) % N);
     }, AUTO_MS);
     return () => window.clearInterval(id);
   }, []);
 
   const onTouchStart = (e: React.TouchEvent) => {
     paused.current = true;
+    dragging.current = false;
     touchX.current = e.touches[0].clientX;
   };
 
@@ -83,23 +88,25 @@ export function PromoBanner({ onNavigate }: Props) {
     if (touchX.current == null) return;
     const dx = e.changedTouches[0].clientX - touchX.current;
     touchX.current = null;
-    if (Math.abs(dx) < 40) return; // tap, not swipe
+    if (Math.abs(dx) < 40) return;
+    dragging.current = true;
     if (dx < 0) goNext();
     else goPrev();
   };
 
-  // Mouse drag (desktop)
-  const mouseX = useRef<number | null>(null);
   const onMouseDown = (e: React.MouseEvent) => {
     paused.current = true;
+    dragging.current = false;
     mouseX.current = e.clientX;
   };
+
   const onMouseUp = (e: React.MouseEvent) => {
     paused.current = false;
     if (mouseX.current == null) return;
     const dx = e.clientX - mouseX.current;
     mouseX.current = null;
     if (Math.abs(dx) < 40) return;
+    dragging.current = true;
     if (dx < 0) goNext();
     else goPrev();
   };
@@ -107,7 +114,7 @@ export function PromoBanner({ onNavigate }: Props) {
   return (
     <div className="px-5 mb-5">
       <div
-        className="overflow-hidden rounded-2xl touch-pan-y"
+        className="overflow-hidden rounded-2xl select-none"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
         onMouseDown={onMouseDown}
@@ -119,10 +126,10 @@ export function PromoBanner({ onNavigate }: Props) {
         style={{ border: '1px solid var(--border)', background: 'var(--card)' }}
       >
         <motion.div
-          className="flex"
-          animate={{ x: `-${i * 100}%` }}
-          transition={{ type: 'spring', stiffness: 280, damping: 32 }}
-          style={{ width: `${SLIDES.length * 100}%` }}
+          className="flex flex-nowrap"
+          animate={{ x: `${-(i * 100) / N}%` }}
+          transition={{ type: 'spring', stiffness: 320, damping: 34 }}
+          style={{ width: `${N * 100}%` }}
         >
           {SLIDES.map((slide) => {
             const Icon = slide.Icon;
@@ -131,11 +138,18 @@ export function PromoBanner({ onNavigate }: Props) {
                 key={slide.id}
                 type="button"
                 onClick={() => {
-                  if (Math.abs((mouseX.current ?? 0)) > 0) return;
+                  if (dragging.current) {
+                    dragging.current = false;
+                    return;
+                  }
                   if (slide.screen) onNavigate(slide.screen);
                 }}
                 className="flex items-center gap-3 px-4 py-3.5 text-left shrink-0"
-                style={{ width: `${100 / SLIDES.length}%` }}
+                style={{
+                  width: `${100 / N}%`,
+                  minWidth: `${100 / N}%`,
+                  boxSizing: 'border-box',
+                }}
               >
                 <div
                   className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
