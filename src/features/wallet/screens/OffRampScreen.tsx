@@ -17,7 +17,7 @@ import * as fiatApi from '../../../shared/api/fiat';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useLanguage } from '../../../shared/context/LanguageContext';
-import { PageTop } from '../../../shared/components/PageTop';;
+import { PageTop } from '../../../shared/components/PageTop';
 
 interface OffRampScreenProps {
   goBack: () => void;
@@ -101,7 +101,7 @@ export function OffRampScreen({ goBack, navigate }: OffRampScreenProps) {
         <motion.button whileTap={{ scale: 0.9 }} onClick={step === 'form' ? goBack : () => setStep('form')} className="w-10 h-10 rounded-2xl flex items-center justify-center glass-card" style={{ border: '1px solid var(--border)' }}>
           <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
         </motion.button>
-        <h2 style={{ color: 'var(--foreground)', fontWeight: 800 }}>{t('offramp.titleFull')}</h2>
+        <h2 style={{ color: 'var(--foreground)', fontWeight: 800 }}>'Sell crypto'</h2>
       </div>
 
       <div className="flex-1 overflow-y-auto px-5">

@@ -1,13 +1,12 @@
 import { motion } from 'motion/react';
-import { Clock } from 'lucide-react';
+import { Clock, ChevronDown, Shield } from 'lucide-react';
 import type { Asset } from '../../../../shared/data/mockData';
 import type { Currency } from '../../../../shared/context/CurrencyContext';
 import type { BankAccount } from '../../../../shared/context/PaymentMethodsContext';
 import { AssetIcon } from '../../../../shared/components/AssetIcon';
-import { ConvertTokenSelector } from './ConvertTokenSelector';
 import { PayoutAccountSelector } from './PayoutAccountSelector';
 
-const QUICK_AMOUNTS = ['50', '100', '500', 'Max'];
+const QUICK_AMOUNTS = ['25', '50', '100', '250'];
 
 interface OffRampFormStepProps {
   currency: Currency;
@@ -31,91 +30,231 @@ interface OffRampFormStepProps {
   onPreview: () => void;
 }
 
-/** Off-Ramp step 1: which token to convert, how much, and which payout account to send to. */
+/** Enterprise Sell form — crypto out, fiat in, bank payout. */
 export function OffRampFormStep({
-  currency, format, stablecoins, selectedAsset, setSelectedAsset, showTokenDropdown, setShowTokenDropdown,
-  amount, setAmount, compatibleAccounts, selectedAccountId, setSelectedAccountId, selectedAccount,
-  showAccountDropdown, setShowAccountDropdown, onAddAccount, fee, youGet, onPreview,
+  currency,
+  format,
+  stablecoins,
+  selectedAsset,
+  setSelectedAsset,
+  showTokenDropdown,
+  setShowTokenDropdown,
+  amount,
+  setAmount,
+  compatibleAccounts,
+  selectedAccountId,
+  setSelectedAccountId,
+  selectedAccount,
+  showAccountDropdown,
+  setShowAccountDropdown,
+  onAddAccount,
+  fee,
+  youGet,
+  onPreview,
 }: OffRampFormStepProps) {
-  return (
-    <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <ConvertTokenSelector
-        assets={stablecoins} selected={selectedAsset} open={showTokenDropdown}
-        onToggle={() => setShowTokenDropdown(!showTokenDropdown)}
-        onSelect={(a) => { setSelectedAsset(a); setShowTokenDropdown(false); }}
-        onClose={() => setShowTokenDropdown(false)}
-      />
+  const canContinue = Number(amount) > 0 && Number(amount) <= selectedAsset.balance && !!selectedAccountId;
 
-      <div className="rounded-[20px] p-4 mb-4 glass-card" style={{ border: '1px solid var(--border)' }}>
-        <div className="flex justify-between mb-2">
-          <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>Amount ({selectedAsset.symbol})</span>
-          <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>Bal: {selectedAsset.balance.toFixed(2)} {selectedAsset.symbol}</span>
+  return (
+    <motion.div key="form" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="pb-28">
+      <div
+        className="flex items-center gap-2 px-3 py-2.5 rounded-xl mb-5"
+        style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+      >
+        <Shield size={14} style={{ color: 'var(--primary)' }} />
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
+          Payout to your verified bank account · KYC required
+        </p>
+      </div>
+
+      {/* Sell amount */}
+      <div
+        className="rounded-[20px] p-5 mb-4"
+        style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <span style={{ color: 'var(--muted-foreground)', fontSize: 13, fontWeight: 500 }}>You sell</span>
+          <button
+            type="button"
+            onClick={() => setAmount(String(selectedAsset.balance))}
+            style={{ color: 'var(--primary)', fontSize: 12, fontWeight: 700 }}
+          >
+            MAX · {selectedAsset.balance.toLocaleString(undefined, { maximumFractionDigits: 4 })}{' '}
+            {selectedAsset.symbol}
+          </button>
         </div>
-        <div className="flex items-center gap-3 mb-2">
-          <AssetIcon symbol={selectedAsset.symbol} size={32} />
-          <input type="number" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} className="flex-1 bg-transparent outline-none" style={{ color: 'var(--foreground)', fontSize: 28, fontWeight: 800 }} autoFocus />
+
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowTokenDropdown(!showTokenDropdown)}
+            className="flex items-center gap-2 shrink-0"
+          >
+            <AssetIcon symbol={selectedAsset.symbol} size={36} />
+            <span style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 16 }}>
+              {selectedAsset.symbol}
+            </span>
+            <ChevronDown size={14} style={{ color: 'var(--muted-foreground)' }} />
+          </button>
+          <input
+            type="text"
+            inputMode="decimal"
+            placeholder="0"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
+            className="flex-1 bg-transparent outline-none text-right min-w-0"
+            style={{
+              color: amount ? 'var(--foreground)' : 'var(--muted-foreground)',
+              fontSize: 36,
+              fontWeight: 700,
+              letterSpacing: -0.5,
+            }}
+          />
         </div>
-        {amount && <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>≈ {format(Number(amount) * selectedAsset.price)}</p>}
-        <div className="flex gap-2 mt-2 flex-wrap">
-          {QUICK_AMOUNTS.map((v) => (
-            <button key={v} onClick={() => setAmount(v === 'Max' ? selectedAsset.balance.toFixed(2) : v)} className="px-3 py-1.5 rounded-xl" style={{ background: 'var(--muted)', color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap' }}>
-              {v === 'Max' ? 'Max' : `${v} ${selectedAsset.symbol}`}
+
+        {Number(amount) > selectedAsset.balance && (
+          <p className="mt-2" style={{ color: 'var(--destructive)', fontSize: 12 }}>
+            Amount exceeds available balance
+          </p>
+        )}
+
+        <div className="flex flex-wrap gap-2 mt-4">
+          {QUICK_AMOUNTS.map((q) => (
+            <button
+              key={q}
+              type="button"
+              onClick={() => setAmount(q)}
+              className="px-3.5 py-1.5 rounded-full"
+              style={{
+                background: amount === q ? 'var(--primary)' : 'var(--muted)',
+                color: amount === q ? 'var(--primary-foreground, #fff)' : 'var(--foreground)',
+                fontSize: 12,
+                fontWeight: 600,
+              }}
+            >
+              {q}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setAmount(String(selectedAsset.balance))}
+            className="px-3.5 py-1.5 rounded-full"
+            style={{
+              background: 'var(--muted)',
+              color: 'var(--foreground)',
+              fontSize: 12,
+              fontWeight: 600,
+            }}
+          >
+            Max
+          </button>
+        </div>
+      </div>
+
+      {showTokenDropdown && (
+        <div
+          className="mb-4 rounded-[16px] overflow-hidden max-h-48 overflow-y-auto"
+          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+        >
+          {stablecoins.map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => {
+                setSelectedAsset(a);
+                setShowTokenDropdown(false);
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-left"
+              style={{
+                background: a.id === selectedAsset.id ? 'var(--muted)' : 'transparent',
+                borderBottom: '1px solid var(--border)',
+              }}
+            >
+              <AssetIcon symbol={a.symbol} size={32} />
+              <div className="flex-1">
+                <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>{a.symbol}</p>
+                <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>
+                  Bal {a.balance.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                </p>
+              </div>
             </button>
           ))}
         </div>
-      </div>
+      )}
 
-      <div className="rounded-[16px] p-4 mb-4 glass-card" style={{ border: '1px solid var(--border)' }}>
-        <div className="flex justify-between items-center">
-          <div>
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>Payout Currency</p>
-            <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 15 }}>{currency.code} · {currency.name}</p>
-          </div>
-          <span style={{ color: 'var(--foreground)', fontSize: 24, fontWeight: 800 }}>{currency.symbol}</span>
+      {/* You receive fiat */}
+      <div
+        className="rounded-[16px] p-4 mb-4 space-y-2.5"
+        style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+      >
+        <div className="flex justify-between">
+          <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>Est. fee (~1.5%)</span>
+          <span style={{ color: 'var(--foreground)', fontSize: 12, fontWeight: 600 }}>
+            {fee > 0 ? format(fee) : '—'}
+          </span>
+        </div>
+        <div className="flex justify-between pt-2" style={{ borderTop: '1px solid var(--border)' }}>
+          <span style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: 600 }}>You receive</span>
+          <span style={{ color: 'var(--primary)', fontSize: 15, fontWeight: 700 }}>
+            {youGet > 0
+              ? `${currency.symbol}${youGet.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+              : `${currency.symbol}0`}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Clock size={12} style={{ color: 'var(--muted-foreground)' }} />
+          <span style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>
+            Bank transfer usually 1–2 business days
+          </span>
         </div>
       </div>
 
+      <p style={{ color: 'var(--muted-foreground)', fontSize: 13, fontWeight: 500 }} className="mb-2 px-0.5">
+        Payout account
+      </p>
       <PayoutAccountSelector
         currencyCode={currency.code}
         compatibleAccounts={compatibleAccounts}
         selectedAccount={selectedAccount}
         open={showAccountDropdown}
         onToggle={() => setShowAccountDropdown(!showAccountDropdown)}
-        onClose={() => setShowAccountDropdown(false)}
-        onSelect={(id) => { setSelectedAccountId(id); setShowAccountDropdown(false); }}
+        onSelect={(id) => {
+          setSelectedAccountId(id);
+          setShowAccountDropdown(false);
+        }}
         onAddAccount={onAddAccount}
+        onClose={() => setShowAccountDropdown(false)}
       />
 
-      {amount && (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="p-4 rounded-[16px] mb-4" style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}>
-          <div className="flex justify-between mb-2">
-            <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Live Rate</span>
-            <span style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: 600 }}>1 {selectedAsset.symbol} = {currency.symbol}{(selectedAsset.price * currency.rate).toLocaleString('en', { maximumFractionDigits: 2 })}</span>
-          </div>
-          <div className="flex justify-between mb-2">
-            <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Fee (1.5%)</span>
-            <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>-{format(fee)}</span>
-          </div>
-          <div className="flex justify-between mb-2">
-            <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Settlement</span>
-            <div className="flex items-center gap-1"><Clock size={11} style={{ color: 'var(--foreground)' }} /><span style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: 600 }}>~ 5 minutes</span></div>
-          </div>
-          <div className="h-px mb-2" style={{ background: 'var(--border)' }} />
-          <div className="flex justify-between">
-            <span style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14 }}>You Receive</span>
-            <span style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 18 }}>{currency.symbol}{youGet.toLocaleString('en', { maximumFractionDigits: 0 })}</span>
-          </div>
-        </motion.div>
-      )}
-
-      <motion.button
-        whileTap={{ scale: 0.97 }}
-        onClick={onPreview}
-        className="w-full py-3.5 rounded-[16px] text-white"
-        style={{ background: Number(amount) > 0 && selectedAccountId ? 'var(--primary)' : 'var(--muted)', fontWeight: 700, fontSize: 15 }}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-30 px-5 pt-3"
+        style={{
+          paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
+          background: 'linear-gradient(to top, var(--background) 70%, transparent)',
+        }}
       >
-        Preview Off-Ramp
-      </motion.button>
+        <motion.button
+          type="button"
+          whileTap={{ scale: canContinue ? 0.98 : 1 }}
+          disabled={!canContinue}
+          onClick={onPreview}
+          className="w-full py-4 rounded-full mx-auto block"
+          style={{
+            maxWidth: 480,
+            background: canContinue ? 'var(--primary)' : 'var(--muted)',
+            color: canContinue ? 'var(--primary-foreground, #fff)' : 'var(--muted-foreground)',
+            fontWeight: 700,
+            fontSize: 16,
+          }}
+        >
+          {!Number(amount)
+            ? 'Enter an amount'
+            : Number(amount) > selectedAsset.balance
+              ? 'Insufficient balance'
+              : !selectedAccountId
+                ? 'Add a bank account'
+                : 'Continue'}
+        </motion.button>
+      </div>
     </motion.div>
   );
 }
