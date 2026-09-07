@@ -4,6 +4,7 @@ import { ChatHeader } from '../components/chat/ChatHeader';
 import { MessageList } from '../components/chat/MessageList';
 import { ChatInputBar } from '../components/chat/ChatInputBar';
 import { PaymentSheet } from '../components/chat/PaymentSheet';
+import { PageTop } from '../../../shared/components/PageTop';;
 
 interface ChatScreenProps {
   goBack: () => void;
@@ -54,7 +55,7 @@ export function ChatScreen({ goBack }: ChatScreenProps) {
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
+      <PageTop />
 
       <ChatHeader goBack={goBack} onSendPayment={() => setShowPayment(true)} />
       <MessageList messages={messages} endRef={endRef} />

@@ -17,6 +17,7 @@ import * as fiatApi from '../../../shared/api/fiat';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useLanguage } from '../../../shared/context/LanguageContext';
+import { PageTop } from '../../../shared/components/PageTop';;
 
 interface OffRampScreenProps {
   goBack: () => void;
@@ -81,7 +82,7 @@ export function OffRampScreen({ goBack, navigate }: OffRampScreenProps) {
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
+      <PageTop />
       <div className="px-5 pt-2">
         <GateHint mode="offramp" />
         <WalletFeatureBanner feature="offramp" onGoKyc={() => navigate('kyc')} />

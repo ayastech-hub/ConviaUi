@@ -21,6 +21,7 @@ import * as notifApi from '../../../shared/api/notifications';
 import type { NotificationRow } from '../../../shared/api/notifications';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { ApiError } from '../../../shared/api/types';
+import { PageTop } from '../../../shared/components/PageTop';;
 
 interface NotificationsScreenProps {
   goBack: () => void;
@@ -256,7 +257,7 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
 
   return (
     <div className="flex flex-col h-full relative" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
+      <PageTop />
 
       <div className="flex items-center justify-between px-5 mb-4">
         <div className="flex items-center gap-3">

@@ -11,7 +11,6 @@ interface SuccessViewProps {
 export function SuccessView({ firstName, onDone }: SuccessViewProps) {
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
       <ScreenHeader title="Verification" onBack={onDone} />
 
       <div className="flex-1 flex flex-col items-center justify-center px-5">

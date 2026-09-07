@@ -10,6 +10,7 @@ import { usePortfolio } from '../../../shared/hooks/usePortfolio';
 import { holdingToAsset } from '../../../shared/utils/mapApiToUi';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { AssetIcon } from '../../../shared/components/AssetIcon';
+import { PageTop } from '../../../shared/components/PageTop';;
 
 interface PortfolioScreenProps {
   goBack: () => void;
@@ -31,7 +32,7 @@ export function PortfolioScreen({ goBack }: PortfolioScreenProps) {
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
+      <PageTop />
 
       <div className="flex items-center gap-3 px-5 mb-5">
         <motion.button whileTap={{ scale: 0.9 }} onClick={goBack} aria-label="Go back" className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'var(--muted)' }}>

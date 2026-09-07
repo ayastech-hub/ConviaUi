@@ -56,7 +56,6 @@ export function SecurityMenu({
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
       <ScreenHeader title={t('security.title')} onBack={goBack} />
 
       <div className="flex-1 overflow-y-auto px-5">

@@ -19,6 +19,7 @@ import { fetchDepositInfo, fetchAddresses } from '../../../shared/api/wallet';
 import { resolveChain } from '../../../shared/utils/chains';
 import { ApiError } from '../../../shared/api/types';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
+import { PageTop } from '../../../shared/components/PageTop';;
 
 interface ReceiveScreenProps {
   goBack: () => void;
@@ -145,7 +146,7 @@ export function ReceiveScreen({ goBack }: ReceiveScreenProps) {
 
   return (
     <div className="flex flex-col h-full relative" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
+      <PageTop />
 
       <div className="flex items-center gap-3 px-5 mb-5">
         <motion.button

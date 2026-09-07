@@ -17,7 +17,6 @@ export function CurrencyPickerView({ currentCode, onSelect, onBack }: CurrencyPi
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
       <ScreenHeader title={t('currency.select')} onBack={onBack} />
       <div className="flex-1 overflow-y-auto px-5">
         <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginBottom: 16 }}>

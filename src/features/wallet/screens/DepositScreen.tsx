@@ -18,6 +18,7 @@ import { ApiError } from '../../../shared/api/types';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
 import { useLanguage } from '../../../shared/context/LanguageContext';
+import { PageTop } from '../../../shared/components/PageTop';;
 
 interface DepositScreenProps {
   goBack: () => void;
@@ -106,7 +107,7 @@ export function DepositScreen({ goBack }: DepositScreenProps) {
 
   return (
     <div className="flex flex-col h-full relative" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
+      <PageTop />
       <div className="px-5 pt-2">
         <WalletFeatureBanner feature="deposit" />
         {status === 'anonymous' && (

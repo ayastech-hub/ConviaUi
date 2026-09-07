@@ -76,7 +76,6 @@ export function EditProfileScreen({ goBack }: EditProfileScreenProps) {
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
       <ScreenHeader title={t('editProfile.title')} onBack={goBack} />
       <div className="flex-1 overflow-y-auto px-5">
         {error && <FeatureAlert reason={mapApiCodeToReason(error.code)} message={error.message} detail={error.code} />}

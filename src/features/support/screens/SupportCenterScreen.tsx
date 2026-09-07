@@ -8,6 +8,7 @@ import * as supportApi from '../../../shared/api/support';
 import type { SupportCase, SupportMessage, SupportAttachment } from '../../../shared/api/support';
 import { ApiError } from '../../../shared/api/types';
 import { FeatureAlert } from '../../../shared/components/FeatureAlert';
+import { PageTop } from '../../../shared/components/PageTop';;
 
 interface SupportCenterScreenProps {
   goBack: () => void;
@@ -139,7 +140,7 @@ export function SupportCenterScreen({ goBack }: SupportCenterScreenProps) {
   if (authStatus !== 'authenticated') {
     return (
       <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-        <div style={{ height: 50 }} />
+        <PageTop />
         <Header title="Support Centre" onBack={goBack} />
         <div className="px-5">
           <FeatureAlert reason="generic" message="Sign in to open support cases with our team." />
@@ -150,7 +151,7 @@ export function SupportCenterScreen({ goBack }: SupportCenterScreenProps) {
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
+      <PageTop />
 
       {view === 'list' && (
         <>

@@ -83,7 +83,6 @@ export function AddressWhitelistView({ onBack }: AddressWhitelistViewProps) {
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
       <ScreenHeader title={t('security.whitelist')} onBack={onBack} />
       <div className="flex-1 overflow-y-auto px-5 pb-8">
         <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginBottom: 12, lineHeight: 1.45 }}>

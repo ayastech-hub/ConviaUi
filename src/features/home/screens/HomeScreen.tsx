@@ -11,6 +11,7 @@ import { useAuth } from '../../../shared/context/AuthContext';
 import * as notifApi from '../../../shared/api/notifications';
 import { Bell, ScanLine } from 'lucide-react';
 import { motion } from 'motion/react';
+import { PageTop } from '../../../shared/components/PageTop';
 
 interface HomeScreenProps {
   navigate: (s: Screen, param?: string) => void;
@@ -50,7 +51,7 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
   return (
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
       {/* Top chrome */}
-      <div style={{ height: 12 }} />
+      <PageTop />
       <div className="flex items-center justify-between px-5 mb-2">
         <motion.button
           type="button"

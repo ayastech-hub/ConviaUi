@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Asset } from '../../../../shared/data/mockData';
 import { AssetIcon } from '../../../../shared/components/AssetIcon';
+import { PageTop } from '../../../../shared/components/PageTop';;
 
 interface TokenSelectionListProps {
   assets: Asset[];
@@ -13,7 +14,7 @@ interface TokenSelectionListProps {
 export function TokenSelectionList({ assets, goBack, onSelect }: TokenSelectionListProps) {
   return (
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
+      <PageTop />
       <div className="flex items-center gap-3 px-5 mb-6">
         <motion.button whileTap={{ scale: 0.9 }} onClick={goBack} aria-label="Back" className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
           <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />

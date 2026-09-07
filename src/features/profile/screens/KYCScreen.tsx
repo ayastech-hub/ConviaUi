@@ -156,7 +156,6 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
   if (isApproved || isPending) {
     return (
       <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-        <div style={{ height: 50 }} />
         <ScreenHeader title={t('kyc.title')} onBack={goBack} />
         <div className="flex-1 px-5 flex flex-col items-center justify-center text-center">
           <div className="w-16 h-16 rounded-3xl flex items-center justify-center mb-4" style={{ background: 'var(--muted)' }}>
@@ -189,8 +188,6 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
-
       <ScreenHeader
         title={t('kyc.title')}
         onBack={goBack}

@@ -13,7 +13,6 @@ interface RecoveryPhraseViewProps {
 export function RecoveryPhraseView({ onBack }: RecoveryPhraseViewProps) {
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
       <ScreenHeader title="Recovery Phrase" onBack={onBack} />
       <div className="flex-1 overflow-y-auto px-5 pb-8">
         <div

@@ -4,6 +4,7 @@ import { Search, X } from 'lucide-react';
 import type { Asset } from '../data/mockData';
 import { AssetIcon } from './AssetIcon';
 import { useTokenRegistry } from '../hooks/useTokenRegistry';
+import { PageTop } from './PageTop';;
 
 interface AssetPickerProps {
   open: boolean;
@@ -40,7 +41,7 @@ export function AssetPicker({ open, onClose, onSelect, selected, assets: assetsP
           className="absolute inset-0 z-50 flex flex-col"
           style={{ background: 'var(--background)' }}
         >
-          <div style={{ height: 50 }} />
+          <PageTop />
           <div className="flex items-center gap-3 px-5 mb-4">
             <div
               className="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-[14px]"

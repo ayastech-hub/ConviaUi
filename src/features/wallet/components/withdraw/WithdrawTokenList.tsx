@@ -4,6 +4,7 @@ import type { Asset } from '../../../../shared/data/mockData';
 import { AssetIcon } from '../../../../shared/components/AssetIcon';
 import { useCurrency } from '../../../../shared/context/CurrencyContext';
 import { useLanguage } from '../../../../shared/context/LanguageContext';
+import { PageTop } from '../../../../shared/components/PageTop';;
 
 interface WithdrawTokenListProps {
   assets: Asset[];
@@ -18,7 +19,7 @@ export function WithdrawTokenList({ assets, goBack, onSelect }: WithdrawTokenLis
 
   return (
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
+      <PageTop />
       <div className="flex items-center gap-3 px-5 mb-6">
         <motion.button whileTap={{ scale: 0.9 }} onClick={goBack} aria-label="Back" className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
           <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />

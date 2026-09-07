@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 
 import type { Screen } from '../shared/data/mockData';
 import { BottomNav } from '../shared/components/BottomNav';
+import { LAYOUT } from '../shared/layout/spacing';
 import { useNavigation } from './navigation';
 import { hasSeenOnboarding, markOnboardingSeen } from '../shared/utils/firstVisit';
 import { useAuth } from '../shared/context/AuthContext';
@@ -172,20 +173,20 @@ export default function App() {
         );
       case 'home':
         return (
-          <motion.div key="home" {...fadeIn} className="absolute inset-0 flex flex-col" style={{ paddingBottom: 88 }}>
+          <motion.div key="home" {...fadeIn} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
             <HomeScreen navigate={navigate} darkMode={darkMode} toggleDark={() => setDarkMode(!darkMode)} notificationCount={0} />
           </motion.div>
         );
       case 'wallet':
         // Merged into Home hub — same UI as home
         return (
-          <motion.div key="wallet" {...fadeIn} className="absolute inset-0 flex flex-col" style={{ paddingBottom: 88 }}>
+          <motion.div key="wallet" {...fadeIn} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
             <HomeScreen navigate={navigate} darkMode={darkMode} toggleDark={() => setDarkMode(!darkMode)} notificationCount={0} />
           </motion.div>
         );
       case 'profile':
         return (
-          <motion.div key="profile" {...fadeIn} className="absolute inset-0 flex flex-col" style={{ paddingBottom: 88 }}>
+          <motion.div key="profile" {...fadeIn} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
             <ProfileScreen navigate={navigate} darkMode={darkMode} toggleDark={() => setDarkMode(!darkMode)} />
           </motion.div>
         );
@@ -217,7 +218,7 @@ export default function App() {
         );
       case 'swap':
         return (
-          <motion.div key="swap" {...slideRight} className="absolute inset-0 flex flex-col" style={{ paddingBottom: 88 }}>
+          <motion.div key="swap" {...slideRight} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
             <SwapScreen goBack={goBack} />
           </motion.div>
         );
@@ -247,19 +248,19 @@ export default function App() {
         );
       case 'notifications':
         return (
-          <motion.div key="notifications" {...slideRight} className="absolute inset-0 flex flex-col" style={{ paddingBottom: 88 }}>
+          <motion.div key="notifications" {...slideRight} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
             <NotificationsScreen goBack={goBack} navigate={navigate} />
           </motion.div>
         );
       case 'rewards':
         return (
-          <motion.div key="rewards" {...slideRight} className="absolute inset-0 flex flex-col" style={{ paddingBottom: 88 }}>
+          <motion.div key="rewards" {...slideRight} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
             <RewardsScreen goBack={goBack} />
           </motion.div>
         );
       case 'settings':
         return (
-          <motion.div key="settings" {...slideRight} className="absolute inset-0 flex flex-col" style={{ paddingBottom: 88 }}>
+          <motion.div key="settings" {...slideRight} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
             <SettingsScreen goBack={goBack} navigate={navigate} darkMode={darkMode} toggleDark={() => setDarkMode(!darkMode)} />
           </motion.div>
         );
@@ -290,7 +291,7 @@ export default function App() {
       case 'portfolio':
         // Portfolio screen removed — stay on wallet hub
         return (
-          <motion.div key="portfolio" {...fadeIn} className="absolute inset-0 flex flex-col" style={{ paddingBottom: 88 }}>
+          <motion.div key="portfolio" {...fadeIn} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
             <HomeScreen navigate={navigate} darkMode={darkMode} toggleDark={() => setDarkMode(!darkMode)} notificationCount={0} />
           </motion.div>
         );
@@ -332,7 +333,7 @@ export default function App() {
         );
       case 'services':
         return (
-          <motion.div key="services" {...slideRight} className="absolute inset-0 flex flex-col" style={{ paddingBottom: 88 }}>
+          <motion.div key="services" {...slideRight} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
             <ServicesScreen navigate={navigate} goBack={goBack} switchTab={switchTab} />
           </motion.div>
         );

@@ -101,7 +101,6 @@ export function ChangePinFlow({ onBack }: ChangePinFlowProps) {
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
       <ScreenHeader title={t('security.pin')} onBack={onBack} />
       <div className="flex-1 overflow-y-auto px-5 pb-8">
         {error && <FeatureAlert reason={mapApiCodeToReason(error.code)} message={error.message} detail={error.code} />}

@@ -11,6 +11,7 @@ import { useLanguage } from '../../../shared/context/LanguageContext';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { ApiError } from '../../../shared/api/types';
 import * as authApi from '../../../shared/api/auth';
+import { PageTop } from '../../../shared/components/PageTop';;
 
 // Native biometric login (`BiometricStep`) intentionally not imported here —
 // see the comment at the top of `../components/BiometricStep.tsx` for why.
@@ -172,11 +173,8 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
 
   return (
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
-
-      <div style={{ height: 12 }} />
-
-      <div className="px-6 flex-1 flex flex-col">
+      <PageTop />
+<div className="px-6 flex-1 flex flex-col">
         <div className="flex items-center gap-3 mb-8">
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'var(--primary)' }}>
             <ConviaLogo size={28} color="#FFFFFF" />

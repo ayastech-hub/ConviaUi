@@ -17,6 +17,7 @@ import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/Fea
 import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { useLanguage } from '../../../shared/context/LanguageContext';
+import { PageTop } from '../../../shared/components/PageTop';;
 
 interface ServicesScreenProps {
   navigate: (s: Screen) => void;
@@ -173,7 +174,7 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
 
   return (
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
+      <PageTop />
 
       <div className="flex items-center gap-3 px-5 mb-4">
         <motion.button

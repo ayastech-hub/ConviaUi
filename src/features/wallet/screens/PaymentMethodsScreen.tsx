@@ -98,7 +98,6 @@ export function PaymentMethodsScreen({ goBack }: PaymentMethodsScreenProps) {
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
       <ScreenHeader title={t('paymentMethods.title')} onBack={goBack} />
 
       <div className="flex-1 overflow-y-auto px-5 pb-28">
@@ -198,7 +197,6 @@ export function PaymentMethodsScreen({ goBack }: PaymentMethodsScreenProps) {
             className="absolute inset-0 z-50 flex flex-col"
             style={{ background: 'var(--background)' }}
           >
-            <div style={{ height: 50 }} />
             <ScreenHeader title="Add bank account" onBack={() => setShowAdd(false)} />
 
             <div className="flex-1 overflow-y-auto px-5 pb-10">

@@ -101,7 +101,6 @@ export function SettingsScreen({ goBack, darkMode: darkProp, toggleDark }: Setti
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
       <ScreenHeader title={t('settings.title')} onBack={goBack} />
 
       <div className="flex-1 overflow-y-auto px-5 pb-28">

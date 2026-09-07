@@ -24,6 +24,7 @@ import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/Fea
 import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
 import { executeSwap, getSwapQuote } from '../../../shared/api/swap';
 import { ApiError } from '../../../shared/api/types';
+import { PageTop } from '../../../shared/components/PageTop';;
 
 interface SwapScreenProps {
   goBack: () => void;
@@ -359,7 +360,7 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
+      <PageTop />
 
       <div className="flex items-center gap-3 px-5 mb-3">
         {goBack ? (

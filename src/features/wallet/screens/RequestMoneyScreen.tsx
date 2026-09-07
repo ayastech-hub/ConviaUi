@@ -15,6 +15,7 @@ import {
 } from '../../../shared/api/moneyRequests';
 import { ApiError } from '../../../shared/api/types';
 import { queryClient, queryKeys } from '../../../shared/query/queryClient';
+import { PageTop } from '../../../shared/components/PageTop';;
 
 interface Props {
   goBack: () => void;
@@ -114,7 +115,7 @@ export function RequestMoneyScreen({ goBack }: Props) {
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
+      <PageTop />
       <div className="flex items-center gap-3 px-5 mb-4">
         <motion.button
           type="button"

@@ -7,6 +7,7 @@ import { CategoryGrid } from '../components/helpcenter/CategoryGrid';
 import { ArticleList } from '../components/helpcenter/ArticleList';
 import { ArticleDetailSheet } from '../components/helpcenter/ArticleDetailSheet';
 import { SupportChatView } from '../components/helpcenter/SupportChatView';
+import { PageTop } from '../../../shared/components/PageTop';;
 
 interface HelpCenterScreenProps {
   goBack: () => void;
@@ -65,7 +66,7 @@ export function HelpCenterScreen({ goBack }: HelpCenterScreenProps) {
 
   return (
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
+      <PageTop />
 
       <div className="flex items-center gap-3 px-5 mb-6">
         <motion.button whileTap={{ scale: 0.9 }} onClick={goBack} aria-label="Go back" className="w-10 h-10 rounded-2xl flex items-center justify-center glass-card" style={{ border: '1px solid var(--border)' }}>

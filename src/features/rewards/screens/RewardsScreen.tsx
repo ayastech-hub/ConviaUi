@@ -20,6 +20,7 @@ import { OverviewTab, TasksTab, BadgesTab } from '../components/RewardsTabs';
 import { useAuth } from '../../../shared/context/AuthContext';
 import * as rewardsApi from '../../../shared/api/rewards';
 import { ApiError } from '../../../shared/api/types';
+import { PageTop } from '../../../shared/components/PageTop';;
 
 interface RewardsScreenProps {
   goBack: () => void;
@@ -179,7 +180,7 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
 
   return (
     <div className="flex flex-col h-full relative" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
+      <PageTop />
       <div className="flex items-center gap-3 px-5 mb-4">
         <motion.button
           type="button"

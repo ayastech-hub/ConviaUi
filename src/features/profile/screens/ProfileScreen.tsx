@@ -15,6 +15,7 @@ import { SignOutButton } from '../components/SignOutButton';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { useKycStatus } from '../../../shared/hooks/useKycStatus';
 import * as rewardsApi from '../../../shared/api/rewards';
+import { PageTop } from '../../../shared/components/PageTop';;;
 
 interface ProfileScreenProps {
   navigate: (s: Screen) => void;
@@ -65,7 +66,7 @@ export function ProfileScreen({ navigate, darkMode, toggleDark }: ProfileScreenP
 
   return (
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
+      <PageTop />
 
       <div className="flex items-center justify-between px-5 mb-6">
         <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 24, letterSpacing: -0.5 }}>Profile</h2>

@@ -18,6 +18,7 @@ import type { LocalOnrampOrder, LocalOnrampQuote } from '../../../shared/api/fia
 import { ApiError } from '../../../shared/api/types';
 import { queryClient, queryKeys } from '../../../shared/query/queryClient';
 import { useLanguage } from '../../../shared/context/LanguageContext';
+import { PageTop } from '../../../shared/components/PageTop';;
 
 interface OnRampScreenProps {
   goBack: () => void;
@@ -180,7 +181,7 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
+      <PageTop />
       <div className="px-5 pt-2">
         <WalletFeatureBanner feature="onramp" />
         <GateHint mode="onramp" />

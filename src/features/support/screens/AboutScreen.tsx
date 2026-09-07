@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { ChevronLeft, Heart } from 'lucide-react';
 import { AppInfoHeader } from '../components/AppInfoHeader';
 import { LegalAccordion } from '../components/LegalAccordion';
+import { PageTop } from '../../../shared/components/PageTop';;
 
 interface AboutScreenProps {
   goBack: () => void;
@@ -14,7 +15,7 @@ export function AboutScreen({ goBack }: AboutScreenProps) {
 
   return (
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
+      <PageTop />
 
       <div className="flex items-center gap-3 px-5 mb-6">
         <motion.button whileTap={{ scale: 0.9 }} onClick={goBack} aria-label="Go back" className="w-10 h-10 rounded-2xl flex items-center justify-center glass-card" style={{ border: '1px solid var(--border)' }}>

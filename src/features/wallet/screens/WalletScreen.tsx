@@ -7,6 +7,7 @@ import { AssetsHistoryTabs } from '../components/AssetsHistoryTabs';
 import { AssetsList } from '../components/AssetsList';
 import { WalletHistoryList } from '../components/WalletHistoryList';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
+import { PageTop } from '../../../shared/components/PageTop';;
 
 interface WalletScreenProps {
   navigate: (s: Screen) => void;
@@ -26,7 +27,7 @@ export function WalletScreen({ navigate }: WalletScreenProps) {
 
   return (
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
-      <div style={{ height: 50 }} />
+      <PageTop />
 
       <div className="px-5 mb-4">
         <h2 style={{ color: 'var(--foreground)', fontWeight: 800 }}>Wallet</h2>
