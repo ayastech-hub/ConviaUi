@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import {
-  ArrowUpRight,
   ArrowLeftRight,
+  ArrowUpRight,
   Check,
   ChevronRight,
   Gift,
@@ -17,7 +17,6 @@ type PromoSlide = {
   id: string;
   eyebrow: string;
   title: string;
-  highlight: string;
   body: string;
   Icon: typeof Gift;
   accent: string;
@@ -27,20 +26,18 @@ type PromoSlide = {
 const SLIDES: PromoSlide[] = [
   {
     id: 'rewards',
-    eyebrow: 'CONVIA REWARDS',
-    title: 'Turn activity',
-    highlight: 'into rewards.',
-    body: 'Invite friends, complete missions and earn Convia Points.',
+    eyebrow: 'REWARDS',
+    title: 'Earn more with Convia',
+    body: 'Invite friends and complete tasks to earn points.',
     Icon: Gift,
     accent: 'var(--primary)',
     screen: 'rewards',
   },
   {
     id: 'swap',
-    eyebrow: 'INSTANT SWAPS',
-    title: 'Move money',
-    highlight: 'without friction.',
-    body: 'Swap supported crypto assets quickly, securely and effortlessly.',
+    eyebrow: 'SWAP',
+    title: 'Swap crypto instantly',
+    body: 'Move between supported assets with ease.',
     Icon: ArrowLeftRight,
     accent: 'var(--positive, #22c55e)',
     screen: 'swap',
@@ -49,18 +46,16 @@ const SLIDES: PromoSlide[] = [
     id: 'buy',
     eyebrow: 'BUY CRYPTO',
     title: 'Fund your wallet',
-    highlight: 'in seconds.',
-    body: 'Buy crypto with supported cards or bank funding and get started.',
+    body: 'Buy crypto with card or bank funding.',
     Icon: Zap,
     accent: 'var(--foreground)',
     screen: 'onramp',
   },
   {
     id: 'kyc',
-    eyebrow: 'ACCOUNT VERIFICATION',
-    title: 'Verify once.',
-    highlight: 'Unlock more.',
-    body: 'Complete verification to unlock higher limits and more features.',
+    eyebrow: 'VERIFICATION',
+    title: 'Verify your account',
+    body: 'Unlock higher limits and more features.',
     Icon: ShieldCheck,
     accent: 'var(--primary)',
     screen: 'kyc',
@@ -68,43 +63,43 @@ const SLIDES: PromoSlide[] = [
 ];
 
 const AUTO_MS = 5000;
-const SWIPE_THRESHOLD = 45;
+const SWIPE_THRESHOLD = 40;
 const N = SLIDES.length;
 
 interface Props {
   onNavigate: (s: Screen) => void;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Compact visuals                                                            */
+/* -------------------------------------------------------------------------- */
+
 function RewardsVisual() {
   return (
-    <div
-      className="relative w-[132px] h-[118px] sm:w-[160px] sm:h-[140px]"
-      aria-hidden="true"
-    >
+    <div className="relative w-[88px] h-[76px]" aria-hidden="true">
       <motion.div
-        animate={{ y: [0, -5, 0], rotate: [-1, 1, -1] }}
-        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute right-0 top-1 w-[108px] sm:w-[128px] rounded-2xl p-3.5"
+        animate={{ y: [0, -3, 0] }}
+        transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute right-0 top-1 w-[76px] rounded-xl p-2.5"
         style={{
-          background:
-            'linear-gradient(145deg, color-mix(in srgb, var(--primary) 22%, var(--card)), var(--card))',
-          border: '1px solid color-mix(in srgb, var(--primary) 30%, var(--border))',
-          boxShadow:
-            '0 20px 45px color-mix(in srgb, var(--primary) 18%, transparent)',
+          background: 'var(--card)',
+          border: '1px solid var(--border)',
+          boxShadow: '0 8px 20px rgba(0,0,0,.15)',
         }}
       >
         <div className="flex items-center justify-between">
           <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center"
+            className="w-5 h-5 rounded-md flex items-center justify-center"
             style={{
-              background: 'color-mix(in srgb, var(--primary) 16%, transparent)',
+              background:
+                'color-mix(in srgb, var(--primary) 13%, transparent)',
             }}
           >
-            <Gift size={14} style={{ color: 'var(--primary)' }} />
+            <Gift size={10} style={{ color: 'var(--primary)' }} />
           </div>
 
           <span
-            className="text-[9px] font-semibold"
+            className="text-[6px] font-bold"
             style={{ color: 'var(--muted-foreground)' }}
           >
             POINTS
@@ -112,56 +107,46 @@ function RewardsVisual() {
         </div>
 
         <div
-          className="mt-4 text-xl sm:text-2xl font-bold tracking-tight"
+          className="mt-2 text-[15px] font-bold"
           style={{ color: 'var(--foreground)' }}
         >
           2,450
         </div>
 
-        <div className="mt-1 flex items-center gap-1">
-          <ArrowUpRight size={10} style={{ color: 'var(--positive, #22c55e)' }} />
-          <span
-            className="text-[9px] font-medium"
-            style={{ color: 'var(--positive, #22c55e)' }}
-          >
-            +240 this week
-          </span>
+        <div
+          className="text-[6px] mt-0.5"
+          style={{ color: 'var(--positive, #22c55e)' }}
+        >
+          +240 this week
         </div>
       </motion.div>
 
       <motion.div
-        animate={{ y: [0, 4, 0] }}
-        transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute left-0 bottom-0 rounded-xl px-3 py-2 flex items-center gap-2"
+        animate={{ y: [0, 2, 0] }}
+        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute left-0 bottom-0 rounded-lg px-2 py-1.5 flex items-center gap-1.5"
         style={{
           background: 'var(--card)',
           border: '1px solid var(--border)',
-          boxShadow: '0 12px 30px rgba(0,0,0,.18)',
+          boxShadow: '0 6px 15px rgba(0,0,0,.15)',
         }}
       >
         <div
-          className="w-6 h-6 rounded-full flex items-center justify-center"
+          className="w-4 h-4 rounded-full flex items-center justify-center"
           style={{
-            background: 'color-mix(in srgb, var(--primary) 14%, transparent)',
+            background:
+              'color-mix(in srgb, var(--primary) 12%, transparent)',
           }}
         >
-          <Check size={12} style={{ color: 'var(--primary)' }} />
+          <Check size={8} style={{ color: 'var(--primary)' }} />
         </div>
 
-        <div>
-          <div
-            className="text-[9px] font-semibold"
-            style={{ color: 'var(--foreground)' }}
-          >
-            Task completed
-          </div>
-          <div
-            className="text-[8px]"
-            style={{ color: 'var(--muted-foreground)' }}
-          >
-            +100 points
-          </div>
-        </div>
+        <span
+          className="text-[6px] font-semibold"
+          style={{ color: 'var(--foreground)' }}
+        >
+          +100 pts
+        </span>
       </motion.div>
     </div>
   );
@@ -169,305 +154,209 @@ function RewardsVisual() {
 
 function SwapVisual() {
   return (
-    <div
-      className="relative w-[140px] h-[126px] sm:w-[165px] sm:h-[142px]"
+    <motion.div
+      animate={{ y: [0, -3, 0] }}
+      transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+      className="relative w-[88px] h-[76px] rounded-xl p-2.5"
       aria-hidden="true"
+      style={{
+        background: 'var(--card)',
+        border: '1px solid var(--border)',
+        boxShadow: '0 8px 20px rgba(0,0,0,.15)',
+      }}
     >
-      <motion.div
-        animate={{ y: [0, -4, 0] }}
-        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute inset-x-0 top-0 rounded-2xl p-3.5"
-        style={{
-          background: 'var(--card)',
-          border: '1px solid var(--border)',
-          boxShadow: '0 20px 45px rgba(0,0,0,.2)',
-        }}
+      <div className="flex items-center justify-between">
+        <span
+          className="text-[7px] font-bold"
+          style={{ color: 'var(--foreground)' }}
+        >
+          SWAP
+        </span>
+
+        <ArrowLeftRight
+          size={10}
+          style={{ color: 'var(--positive, #22c55e)' }}
+        />
+      </div>
+
+      <div
+        className="mt-2 rounded-lg px-2 py-1.5 flex items-center justify-between"
+        style={{ background: 'var(--muted)' }}
       >
-        <div className="flex items-center justify-between mb-3">
-          <span
-            className="text-[9px] font-semibold"
-            style={{ color: 'var(--foreground)' }}
-          >
-            SWAP
-          </span>
-
-          <div
-            className="w-6 h-6 rounded-full flex items-center justify-center"
-            style={{
-              background:
-                'color-mix(in srgb, var(--positive, #22c55e) 12%, transparent)',
-            }}
-          >
-            <ArrowLeftRight
-              size={11}
-              style={{ color: 'var(--positive, #22c55e)' }}
-            />
-          </div>
-        </div>
-
-        <div
-          className="rounded-xl px-3 py-2.5"
-          style={{ background: 'var(--muted)' }}
+        <span
+          className="text-[9px] font-bold"
+          style={{ color: 'var(--foreground)' }}
         >
-          <div
-            className="text-[8px]"
-            style={{ color: 'var(--muted-foreground)' }}
-          >
-            You pay
-          </div>
+          0.25
+        </span>
 
-          <div className="flex items-center justify-between mt-1">
-            <span
-              className="text-sm font-bold"
-              style={{ color: 'var(--foreground)' }}
-            >
-              0.25
-            </span>
-            <span
-              className="text-[9px] font-semibold"
-              style={{ color: 'var(--foreground)' }}
-            >
-              ETH
-            </span>
-          </div>
-        </div>
-
-        <div className="relative h-3">
-          <div
-            className="absolute left-1/2 -translate-x-1/2 -top-1 w-6 h-6 rounded-full flex items-center justify-center"
-            style={{
-              background: 'var(--card)',
-              border: '1px solid var(--border)',
-            }}
-          >
-            <ArrowLeftRight size={10} style={{ color: 'var(--foreground)' }} />
-          </div>
-        </div>
-
-        <div
-          className="rounded-xl px-3 py-2.5"
-          style={{ background: 'var(--muted)' }}
+        <span
+          className="text-[6px] font-bold"
+          style={{ color: 'var(--muted-foreground)' }}
         >
-          <div
-            className="text-[8px]"
-            style={{ color: 'var(--muted-foreground)' }}
-          >
-            You receive
-          </div>
+          ETH
+        </span>
+      </div>
 
-          <div className="flex items-center justify-between mt-1">
-            <span
-              className="text-sm font-bold"
-              style={{ color: 'var(--foreground)' }}
-            >
-              1,245
-            </span>
-            <span
-              className="text-[9px] font-semibold"
-              style={{ color: 'var(--foreground)' }}
-            >
-              USDC
-            </span>
-          </div>
-        </div>
-      </motion.div>
-    </div>
+      <div className="h-1 flex items-center justify-center">
+        <ArrowLeftRight
+          size={7}
+          style={{ color: 'var(--muted-foreground)' }}
+        />
+      </div>
+
+      <div
+        className="rounded-lg px-2 py-1.5 flex items-center justify-between"
+        style={{ background: 'var(--muted)' }}
+      >
+        <span
+          className="text-[9px] font-bold"
+          style={{ color: 'var(--foreground)' }}
+        >
+          1,245
+        </span>
+
+        <span
+          className="text-[6px] font-bold"
+          style={{ color: 'var(--muted-foreground)' }}
+        >
+          USDC
+        </span>
+      </div>
+    </motion.div>
   );
 }
 
 function BuyVisual() {
   return (
-    <div
-      className="relative w-[140px] h-[126px] sm:w-[165px] sm:h-[142px]"
+    <motion.div
+      animate={{ y: [0, -3, 0] }}
+      transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+      className="relative w-[88px] h-[76px] rounded-xl p-2.5"
       aria-hidden="true"
+      style={{
+        background: 'var(--card)',
+        border: '1px solid var(--border)',
+        boxShadow: '0 8px 20px rgba(0,0,0,.15)',
+      }}
     >
-      <motion.div
-        animate={{ y: [0, -5, 0] }}
-        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute right-0 top-0 w-[125px] sm:w-[145px] rounded-2xl p-3.5"
-        style={{
-          background: 'var(--card)',
-          border: '1px solid var(--border)',
-          boxShadow: '0 20px 45px rgba(0,0,0,.2)',
-        }}
-      >
-        <div className="flex items-center justify-between">
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{ background: 'var(--muted)' }}
-          >
-            <WalletCards size={14} style={{ color: 'var(--foreground)' }} />
-          </div>
-
-          <span
-            className="text-[8px] font-medium"
-            style={{ color: 'var(--muted-foreground)' }}
-          >
-            WALLET
-          </span>
-        </div>
-
+      <div className="flex items-center justify-between">
         <div
-          className="mt-4 text-lg sm:text-xl font-bold"
-          style={{ color: 'var(--foreground)' }}
+          className="w-5 h-5 rounded-md flex items-center justify-center"
+          style={{ background: 'var(--muted)' }}
         >
-          $4,820.40
+          <WalletCards size={10} style={{ color: 'var(--foreground)' }} />
         </div>
 
-        <div
-          className="mt-1 text-[8px]"
+        <span
+          className="text-[6px] font-bold"
           style={{ color: 'var(--muted-foreground)' }}
         >
-          Available balance
-        </div>
+          WALLET
+        </span>
+      </div>
 
-        <div className="mt-4 flex items-center gap-1.5">
-          <div
-            className="h-1.5 flex-1 rounded-full"
-            style={{ background: 'var(--muted)' }}
-          >
-            <motion.div
-              initial={{ width: '0%' }}
-              animate={{ width: '72%' }}
-              transition={{ duration: 1.2, delay: 0.2 }}
-              className="h-full rounded-full"
-              style={{ background: 'var(--foreground)' }}
-            />
-          </div>
-        </div>
-      </motion.div>
-
-      <motion.div
-        animate={{ y: [0, 4, 0], x: [0, 2, 0] }}
-        transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute left-0 bottom-0 rounded-xl px-3 py-2 flex items-center gap-2"
-        style={{
-          background: 'var(--card)',
-          border: '1px solid var(--border)',
-          boxShadow: '0 12px 30px rgba(0,0,0,.18)',
-        }}
+      <div
+        className="mt-2 text-[14px] font-bold"
+        style={{ color: 'var(--foreground)' }}
       >
-        <div
-          className="w-6 h-6 rounded-full flex items-center justify-center"
-          style={{
-            background:
-              'color-mix(in srgb, var(--positive, #22c55e) 13%, transparent)',
-          }}
-        >
-          <Zap size={11} style={{ color: 'var(--positive, #22c55e)' }} />
-        </div>
+        $4,820
+      </div>
 
-        <div>
-          <div
-            className="text-[9px] font-semibold"
-            style={{ color: 'var(--foreground)' }}
-          >
-            Funding ready
-          </div>
-          <div
-            className="text-[8px]"
-            style={{ color: 'var(--muted-foreground)' }}
-          >
-            Start building
-          </div>
-        </div>
-      </motion.div>
-    </div>
+      <div
+        className="mt-2 h-1 rounded-full overflow-hidden"
+        style={{ background: 'var(--muted)' }}
+      >
+        <motion.div
+          initial={{ width: '0%' }}
+          animate={{ width: '72%' }}
+          transition={{ duration: 1.2 }}
+          className="h-full rounded-full"
+          style={{ background: 'var(--foreground)' }}
+        />
+      </div>
+    </motion.div>
   );
 }
 
 function KycVisual() {
   return (
-    <div
-      className="relative w-[140px] h-[126px] sm:w-[165px] sm:h-[142px]"
+    <motion.div
+      animate={{ y: [0, -3, 0] }}
+      transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+      className="relative w-[88px] h-[76px] rounded-xl p-2.5"
       aria-hidden="true"
+      style={{
+        background: 'var(--card)',
+        border: '1px solid var(--border)',
+        boxShadow: '0 8px 20px rgba(0,0,0,.15)',
+      }}
     >
-      <motion.div
-        animate={{ y: [0, -4, 0] }}
-        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute right-0 top-0 w-[128px] sm:w-[148px] rounded-2xl p-3.5"
-        style={{
-          background: 'var(--card)',
-          border: '1px solid var(--border)',
-          boxShadow: '0 20px 45px rgba(0,0,0,.2)',
-        }}
-      >
-        <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2">
+        <div
+          className="w-6 h-6 rounded-full flex items-center justify-center"
+          style={{
+            background:
+              'color-mix(in srgb, var(--primary) 12%, transparent)',
+          }}
+        >
+          <ShieldCheck size={11} style={{ color: 'var(--primary)' }} />
+        </div>
+
+        <div>
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center"
-            style={{
-              background:
-                'color-mix(in srgb, var(--primary) 14%, transparent)',
-            }}
+            className="text-[7px] font-bold"
+            style={{ color: 'var(--foreground)' }}
           >
-            <ShieldCheck size={15} style={{ color: 'var(--primary)' }} />
+            Verified
           </div>
 
-          <div>
-            <div
-              className="text-[9px] font-bold"
-              style={{ color: 'var(--foreground)' }}
-            >
-              Identity verified
-            </div>
-            <div
-              className="text-[8px]"
+          <div
+            className="text-[5px]"
+            style={{ color: 'var(--muted-foreground)' }}
+          >
+            Account secure
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 space-y-1.5">
+        {['Identity', 'Document', 'Security'].map((item) => (
+          <div key={item} className="flex items-center gap-1.5">
+            <Check
+              size={7}
+              style={{ color: 'var(--positive, #22c55e)' }}
+            />
+
+            <span
+              className="text-[6px]"
               style={{ color: 'var(--muted-foreground)' }}
             >
-              Account protected
-            </div>
+              {item}
+            </span>
           </div>
-        </div>
-
-        <div className="mt-4 space-y-2">
-          {['Identity', 'Document', 'Security'].map((item) => (
-            <div key={item} className="flex items-center gap-2">
-              <div
-                className="w-4 h-4 rounded-full flex items-center justify-center"
-                style={{
-                  background:
-                    'color-mix(in srgb, var(--positive, #22c55e) 12%, transparent)',
-                }}
-              >
-                <Check
-                  size={9}
-                  style={{ color: 'var(--positive, #22c55e)' }}
-                />
-              </div>
-
-              <span
-                className="text-[8px]"
-                style={{ color: 'var(--muted-foreground)' }}
-              >
-                {item}
-              </span>
-            </div>
-          ))}
-        </div>
-      </motion.div>
-
-      <motion.div
-        animate={{ scale: [1, 1.04, 1] }}
-        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute left-0 bottom-0 w-12 h-12 rounded-2xl flex items-center justify-center"
-        style={{
-          background:
-            'color-mix(in srgb, var(--primary) 12%, var(--card))',
-          border: '1px solid color-mix(in srgb, var(--primary) 25%, var(--border))',
-        }}
-      >
-        <ShieldCheck size={21} style={{ color: 'var(--primary)' }} />
-      </motion.div>
-    </div>
+        ))}
+      </div>
+    </motion.div>
   );
 }
 
 function SlideVisual({ id }: { id: string }) {
-  if (id === 'rewards') return <RewardsVisual />;
-  if (id === 'swap') return <SwapVisual />;
-  if (id === 'buy') return <BuyVisual />;
-  return <KycVisual />;
+  switch (id) {
+    case 'rewards':
+      return <RewardsVisual />;
+    case 'swap':
+      return <SwapVisual />;
+    case 'buy':
+      return <BuyVisual />;
+    default:
+      return <KycVisual />;
+  }
 }
+
+/* -------------------------------------------------------------------------- */
+/* Banner                                                                     */
+/* -------------------------------------------------------------------------- */
 
 export function PromoBanner({ onNavigate }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -490,13 +379,13 @@ export function PromoBanner({ onNavigate }: Props) {
   }, []);
 
   useEffect(() => {
-    const interval = window.setInterval(() => {
+    const timer = window.setInterval(() => {
       if (!paused.current) {
         setActiveIndex((current) => (current + 1) % N);
       }
     }, AUTO_MS);
 
-    return () => window.clearInterval(interval);
+    return () => window.clearInterval(timer);
   }, []);
 
   const handleTouchStart = (event: React.TouchEvent) => {
@@ -510,7 +399,8 @@ export function PromoBanner({ onNavigate }: Props) {
 
     if (touchStartX.current === null) return;
 
-    const deltaX = event.changedTouches[0].clientX - touchStartX.current;
+    const deltaX =
+      event.changedTouches[0].clientX - touchStartX.current;
 
     touchStartX.current = null;
 
@@ -518,8 +408,11 @@ export function PromoBanner({ onNavigate }: Props) {
 
     dragged.current = true;
 
-    if (deltaX < 0) next();
-    else previous();
+    if (deltaX < 0) {
+      next();
+    } else {
+      previous();
+    }
   };
 
   const handleMouseDown = (event: React.MouseEvent) => {
@@ -541,8 +434,11 @@ export function PromoBanner({ onNavigate }: Props) {
 
     dragged.current = true;
 
-    if (deltaX < 0) next();
-    else previous();
+    if (deltaX < 0) {
+      next();
+    } else {
+      previous();
+    }
   };
 
   const handleMouseLeave = () => {
@@ -550,7 +446,7 @@ export function PromoBanner({ onNavigate }: Props) {
     paused.current = false;
   };
 
-  const handleSlideClick = (slide: PromoSlide) => {
+  const handleClick = (slide: PromoSlide) => {
     if (dragged.current) {
       dragged.current = false;
       return;
@@ -562,30 +458,32 @@ export function PromoBanner({ onNavigate }: Props) {
   };
 
   return (
-    <section className="px-5 mb-6" aria-label="Convia promotions">
+    <div className="px-5 mb-4">
       <div
-        className="relative overflow-hidden rounded-[24px] select-none touch-pan-y"
+        className="relative overflow-hidden rounded-[18px] select-none touch-pan-y"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
         style={{
+          height: '116px',
           border: '1px solid var(--border)',
           background: 'var(--card)',
-          boxShadow: '0 14px 40px rgba(0, 0, 0, 0.10)',
+          boxShadow: '0 8px 24px rgba(0,0,0,.08)',
         }}
       >
-        {/* Ambient background */}
-        <div
-          className="pointer-events-none absolute -right-20 -top-24 w-64 h-64 rounded-full blur-3xl opacity-20"
-          style={{
-            background: SLIDES[activeIndex].accent,
+        {/* Subtle glow */}
+        <motion.div
+          animate={{
+            opacity: [0.08, 0.15, 0.08],
           }}
-        />
-
-        <div
-          className="pointer-events-none absolute -left-24 -bottom-28 w-56 h-56 rounded-full blur-3xl opacity-10"
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+          className="absolute -right-12 -top-16 w-40 h-40 rounded-full blur-3xl pointer-events-none"
           style={{
             background: SLIDES[activeIndex].accent,
           }}
@@ -593,15 +491,14 @@ export function PromoBanner({ onNavigate }: Props) {
 
         {/* Slides */}
         <motion.div
-          className="flex"
+          className="flex h-full"
           animate={{
             x: `${-(activeIndex * 100) / N}%`,
           }}
           transition={{
             type: 'spring',
-            stiffness: 280,
-            damping: 30,
-            mass: 0.8,
+            stiffness: 300,
+            damping: 32,
           }}
           style={{
             width: `${N * 100}%`,
@@ -609,88 +506,61 @@ export function PromoBanner({ onNavigate }: Props) {
         >
           {SLIDES.map((slide, index) => {
             const Icon = slide.Icon;
-            const isActive = index === activeIndex;
+            const active = index === activeIndex;
 
             return (
               <button
                 key={slide.id}
                 type="button"
-                onClick={() => handleSlideClick(slide)}
-                className="relative text-left shrink-0 overflow-hidden group"
+                onClick={() => handleClick(slide)}
+                className="relative shrink-0 text-left overflow-hidden group"
                 style={{
                   width: `${100 / N}%`,
                   minWidth: `${100 / N}%`,
+                  height: '116px',
                   boxSizing: 'border-box',
                   WebkitTapHighlightColor: 'transparent',
                 }}
-                aria-label={`${slide.title} ${slide.highlight}`}
               >
-                <div className="relative min-h-[188px] sm:min-h-[205px] px-5 py-5 sm:px-6 sm:py-6">
-                  {/* Top row */}
-                  <div className="relative z-10 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <motion.div
-                        initial={false}
-                        animate={{
-                          scale: isActive ? 1 : 0.95,
-                          opacity: isActive ? 1 : 0.75,
-                        }}
-                        className="w-8 h-8 rounded-xl flex items-center justify-center"
-                        style={{
-                          background: `color-mix(in srgb, ${slide.accent} 12%, transparent)`,
-                          border: `1px solid color-mix(in srgb, ${slide.accent} 18%, var(--border))`,
-                        }}
-                      >
-                        <Icon
-                          size={15}
-                          strokeWidth={2.1}
-                          style={{ color: slide.accent }}
-                        />
-                      </motion.div>
-
-                      <span
-                        className="text-[9px] sm:text-[10px] font-bold tracking-[0.13em]"
-                        style={{
-                          color: 'var(--muted-foreground)',
-                        }}
-                      >
-                        {slide.eyebrow}
-                      </span>
-                    </div>
-
+                {/* Content */}
+                <div className="relative z-10 h-full px-4 py-3.5">
+                  {/* Eyebrow */}
+                  <div className="flex items-center gap-1.5">
                     <div
-                      className="w-7 h-7 rounded-full flex items-center justify-center opacity-70 group-hover:opacity-100 transition-opacity"
+                      className="w-5 h-5 rounded-md flex items-center justify-center"
                       style={{
-                        border: '1px solid var(--border)',
-                        background: 'color-mix(in srgb, var(--card) 60%, transparent)',
+                        background: `color-mix(in srgb, ${slide.accent} 12%, transparent)`,
                       }}
                     >
-                      <ArrowUpRight
-                        size={13}
-                        style={{ color: 'var(--foreground)' }}
+                      <Icon
+                        size={10}
+                        style={{ color: slide.accent }}
                       />
                     </div>
+
+                    <span
+                      className="text-[7px] font-bold tracking-[0.12em]"
+                      style={{
+                        color: 'var(--muted-foreground)',
+                      }}
+                    >
+                      {slide.eyebrow}
+                    </span>
                   </div>
 
-                  {/* Main content */}
-                  <div className="relative z-10 mt-4 sm:mt-5 max-w-[58%] sm:max-w-[61%]">
+                  {/* Text */}
+                  <div className="mt-2 max-w-[57%]">
                     <h3
-                      className="text-[21px] sm:text-[25px] leading-[1.05] tracking-[-0.035em] font-bold"
-                      style={{ color: 'var(--foreground)' }}
+                      className="text-[15px] leading-[1.1] tracking-[-0.02em] font-bold"
+                      style={{
+                        color: 'var(--foreground)',
+                      }}
                     >
                       {slide.title}
-                      <br />
-                      <span
-                        style={{
-                          color: slide.accent,
-                        }}
-                      >
-                        {slide.highlight}
-                      </span>
                     </h3>
 
                     <p
-                      className="mt-2.5 text-[11px] sm:text-[12px] leading-[1.45]"
+                      className="mt-1 text-[8px] leading-[1.35]"
                       style={{
                         color: 'var(--muted-foreground)',
                       }}
@@ -698,9 +568,9 @@ export function PromoBanner({ onNavigate }: Props) {
                       {slide.body}
                     </p>
 
-                    <div className="mt-4 inline-flex items-center gap-1.5">
+                    <div className="mt-2 flex items-center gap-0.5">
                       <span
-                        className="text-[10px] sm:text-[11px] font-bold"
+                        className="text-[8px] font-bold"
                         style={{
                           color: 'var(--foreground)',
                         }}
@@ -709,8 +579,7 @@ export function PromoBanner({ onNavigate }: Props) {
                       </span>
 
                       <ChevronRight
-                        size={13}
-                        className="transition-transform group-hover:translate-x-0.5"
+                        size={10}
                         style={{
                           color: 'var(--foreground)',
                         }}
@@ -718,27 +587,18 @@ export function PromoBanner({ onNavigate }: Props) {
                     </div>
                   </div>
 
-                  {/* Product visual */}
-                  <div className="absolute right-3 sm:right-6 bottom-4 sm:bottom-5 z-[2]">
+                  {/* Visual */}
+                  <div className="absolute right-3 top-5">
                     <SlideVisual id={slide.id} />
                   </div>
-
-                  {/* Bottom fade */}
-                  <div
-                    className="absolute inset-x-0 bottom-0 h-16 pointer-events-none"
-                    style={{
-                      background:
-                        'linear-gradient(to top, color-mix(in srgb, var(--card) 35%, transparent), transparent)',
-                    }}
-                  />
                 </div>
               </button>
             );
           })}
         </motion.div>
 
-        {/* Slide controls */}
-        <div className="absolute left-5 sm:left-6 bottom-4 z-20 flex items-center gap-1.5">
+        {/* Dots */}
+        <div className="absolute left-4 bottom-2.5 z-20 flex items-center gap-1">
           {SLIDES.map((slide, index) => {
             const active = index === activeIndex;
 
@@ -754,18 +614,19 @@ export function PromoBanner({ onNavigate }: Props) {
                 }}
                 className="rounded-full transition-all duration-300"
                 style={{
-                  width: active ? 22 : 5,
-                  height: 4,
+                  width: active ? 16 : 4,
+                  height: 3,
+                  padding: 0,
                   background: active
                     ? 'var(--foreground)'
-                    : 'color-mix(in srgb, var(--foreground) 22%, transparent)',
+                    : 'color-mix(in srgb, var(--foreground) 20%, transparent)',
                 }}
               />
             );
           })}
         </div>
 
-        {/* Progress line */}
+        {/* Auto progress */}
         <motion.div
           key={activeIndex}
           initial={{ scaleX: 0 }}
@@ -774,21 +635,12 @@ export function PromoBanner({ onNavigate }: Props) {
             duration: AUTO_MS / 1000,
             ease: 'linear',
           }}
-          className="absolute left-0 bottom-0 h-[2px] w-full origin-left pointer-events-none"
+          className="absolute left-0 bottom-0 h-[1.5px] w-full origin-left"
           style={{
             background: SLIDES[activeIndex].accent,
-            opacity: 0.7,
-          }}
-        />
-
-        {/* Enterprise-style corner detail */}
-        <div
-          className="absolute right-0 bottom-0 w-24 h-24 pointer-events-none opacity-[0.035]"
-          style={{
-            background: `radial-gradient(circle at bottom right, ${SLIDES[activeIndex].accent}, transparent 70%)`,
           }}
         />
       </div>
-    </section>
+    </div>
   );
 }
