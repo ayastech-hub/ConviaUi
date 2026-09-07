@@ -63,3 +63,26 @@ npm run dev                   # MSW starts automatically in development
 
 Handlers live in `src/mocks/handlers.ts` and reuse `src/shared/api/mockHandlers.ts` (same catalog as the offline client fallback).
 
+
+## Demo / mock testing
+
+Local `npm run dev` enables the mock API layer automatically.
+
+| Field | Value |
+|--------|--------|
+| Email | `demo@convia.app` |
+| Password | any (e.g. `demo1234`) |
+| User | Ada Okonkwo (`ada_okonkwo`) |
+| KYC | **Approved** |
+| Frozen | No |
+| Portfolio | ~$9,539 with balances |
+| Banks | GTBank + Access (NGN) |
+| PIN | Set |
+
+```bash
+npm install
+npm run msw:init   # once
+npm run dev
+```
+
+Optional: `localStorage.setItem('convia.forceMock','1')` to force mocks outside dev.

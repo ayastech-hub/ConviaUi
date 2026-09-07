@@ -5,7 +5,7 @@ import {
   notifications,
   marketData,
 } from '../data/mockData';
-import { MOCK_USER } from './mockMode';
+import { MOCK_USER, MOCK_BANK_ACCOUNTS } from './mockMode';
 
 function holdings() {
   return cryptoAssets
@@ -33,67 +33,103 @@ function tokens() {
   };
 }
 
+function authPayload(email?: string) {
+  return {
+    accessToken: MOCK_USER.accessToken,
+    refreshToken: MOCK_USER.refreshToken,
+    sessionId: MOCK_USER.sessionId,
+    userId: MOCK_USER.userId,
+    username: MOCK_USER.username,
+    displayName: MOCK_USER.displayName,
+    preferredCurrency: MOCK_USER.preferredCurrency,
+    country: MOCK_USER.country,
+    email: email || MOCK_USER.email,
+    kycStatus: MOCK_USER.kycStatus,
+  };
+}
+
+function profilePayload() {
+  return {
+    userId: MOCK_USER.userId,
+    username: MOCK_USER.username,
+    displayName: MOCK_USER.displayName,
+    email: MOCK_USER.email,
+    country: MOCK_USER.country,
+    preferredCurrency: MOCK_USER.preferredCurrency,
+    phone: MOCK_USER.phone,
+    bio: MOCK_USER.bio,
+    avatarUrl: MOCK_USER.avatarUrl,
+    kycStatus: MOCK_USER.kycStatus,
+    status: MOCK_USER.kycStatus,
+    isFrozen: MOCK_USER.isFrozen,
+    frozenReason: MOCK_USER.frozenReason,
+    hasPin: MOCK_USER.hasPin,
+  };
+}
+
 /**
- * Path-based mock catalog used by:
- * - API client offline fallback
- * - MSW service worker handlers
+ * Path-based mock catalog — full feature surface for demo user.
  */
 export function resolveMockResponse(method: string, path: string, body?: unknown): unknown | null {
   const [pathname] = path.split('?');
   const m = method.toUpperCase();
 
+  // Auth
   if (m === 'POST' && pathname.includes('/auth/login')) {
     const email =
       body && typeof body === 'object' && 'email' in body
         ? String((body as { email?: string }).email || MOCK_USER.email)
         : MOCK_USER.email;
-    return {
-      accessToken: MOCK_USER.accessToken,
-      refreshToken: MOCK_USER.refreshToken,
-      sessionId: MOCK_USER.sessionId,
-      userId: MOCK_USER.userId,
-      username: MOCK_USER.username,
-      displayName: MOCK_USER.displayName,
-      preferredCurrency: MOCK_USER.preferredCurrency,
-      country: MOCK_USER.country,
-      email,
-    };
+    return authPayload(email);
   }
-  if (m === 'POST' && pathname.includes('/auth/register')) {
-    return {
-      accessToken: MOCK_USER.accessToken,
-      refreshToken: MOCK_USER.refreshToken,
-      sessionId: MOCK_USER.sessionId,
-      userId: MOCK_USER.userId,
-      username: MOCK_USER.username,
-      displayName: MOCK_USER.displayName,
-      preferredCurrency: MOCK_USER.preferredCurrency,
-      country: MOCK_USER.country,
-    };
-  }
+  if (m === 'POST' && pathname.includes('/auth/register')) return authPayload();
   if (m === 'POST' && pathname.includes('/auth/refresh')) {
     return { accessToken: MOCK_USER.accessToken, refreshToken: MOCK_USER.refreshToken };
   }
   if (m === 'POST' && pathname.includes('/auth/logout')) return { ok: true };
 
-  // Mutations → soft success so UI flows complete offline
+  // Soft-success mutations so flows complete offline
   if (m !== 'GET' && m !== 'HEAD') {
+    if (pathname.includes('/swap')) {
+      const b = (body || {}) as Record<string, string>;
+      return {
+        ok: true,
+        status: 'completed',
+        ledgerTransactionId: `mock-swap-${Date.now()}`,
+        fromAsset: b.fromAsset || 'USDT',
+        toAsset: b.toAsset || 'ETH',
+        amountIn: b.amount || '10',
+        amountOut: String(Number(b.amount || 10) * 0.0003),
+        rate: '0.0003',
+        fee: '0.1',
+        mock: true,
+      };
+    }
     if (
-      pathname.includes('/swap') ||
       pathname.includes('/withdraw') ||
       pathname.includes('/deposit') ||
       pathname.includes('/fiat') ||
       pathname.includes('/on-ramp') ||
+      pathname.includes('/onramp') ||
       pathname.includes('/off-ramp') ||
+      pathname.includes('/offramp') ||
       pathname.includes('/money-request') ||
       pathname.includes('/bills') ||
       pathname.includes('/payments') ||
       pathname.includes('/kyc') ||
       pathname.includes('/profile') ||
       pathname.includes('/security') ||
-      pathname.includes('/pin')
+      pathname.includes('/pin') ||
+      pathname.includes('/send') ||
+      pathname.includes('/transfer')
     ) {
-      return { ok: true, status: 'pending', id: `mock-${Date.now()}`, mock: true };
+      return {
+        ok: true,
+        status: 'pending',
+        id: `mock-${Date.now()}`,
+        ledgerTransactionId: `mock-tx-${Date.now()}`,
+        mock: true,
+      };
     }
   }
 
@@ -101,7 +137,7 @@ export function resolveMockResponse(method: string, path: string, body?: unknown
     if (pathname.includes('/health') || pathname === '/' || pathname === '') {
       return { status: 'ok', mock: true };
     }
-    if (pathname.startsWith('/portfolio/')) {
+    if (pathname.startsWith('/portfolio/') || pathname.includes('/portfolio')) {
       return { totalValueUsd: String(portfolio.totalUSD ?? 9539.4), holdings: holdings() };
     }
     if (pathname.includes('/transactions')) {
@@ -116,7 +152,7 @@ export function resolveMockResponse(method: string, path: string, body?: unknown
           amount: String(t.amount),
           assetTo: t.assetTo || null,
           amountTo: t.amountTo != null ? String(t.amountTo) : null,
-          direction: t.type === 'receive' || t.type === 'deposit' ? 'credit' : 'debit',
+          direction: t.type === 'receive' || t.type === 'deposit' || t.type === 'buy' ? 'credit' : 'debit',
           txHash: t.hash || null,
           chainKey: null,
         })),
@@ -144,7 +180,7 @@ export function resolveMockResponse(method: string, path: string, body?: unknown
           .map((a) => ({
             chainKey: (a.chains?.[0] || 'ethereum').toLowerCase(),
             chainFamily: 'evm',
-            address: '0xmock',
+            address: '0xDemoEvmAddress000000000000000000000001',
             asset: a.symbol,
             ledgerBalance: String(a.balance),
             onChainBalance: String(a.balance),
@@ -152,15 +188,13 @@ export function resolveMockResponse(method: string, path: string, body?: unknown
           })),
       };
     }
-    if (pathname.includes('/addresses')) {
-      return [
-        { chainFamily: 'evm', address: '0xDemoEvmAddress000000000000000000000001' },
-        { chainFamily: 'solana', address: 'DemoSolAddress1111111111111111111111111' },
-      ];
-    }
-    if (pathname.includes('/deposit-info') || pathname.includes('/deposit')) {
+    if (pathname.includes('/addresses') || pathname.includes('/deposit-info') || pathname.includes('/deposit')) {
       return {
-        address: '0xDemoDepositAddress000000000000000001',
+        address: '0xDemoDepositAddressAda00000000000000001',
+        addresses: [
+          { chainFamily: 'evm', address: '0xDemoEvmAddress000000000000000000000001' },
+          { chainFamily: 'solana', address: 'DemoSolAddressAda1111111111111111111' },
+        ],
         chainName: 'Ethereum',
         requiredConfirmations: 12,
         contractAddress: null,
@@ -177,20 +211,16 @@ export function resolveMockResponse(method: string, path: string, body?: unknown
       }));
     }
     if (pathname.includes('/profiles/me') || pathname.includes('/profile')) {
-      return {
-        userId: MOCK_USER.userId,
-        username: MOCK_USER.username,
-        displayName: MOCK_USER.displayName,
-        email: MOCK_USER.email,
-        country: MOCK_USER.country,
-        preferredCurrency: MOCK_USER.preferredCurrency,
-        bio: 'Exploring Convia in demo mode',
-        avatarUrl: null,
-        kycStatus: 'approved',
-      };
+      return profilePayload();
     }
     if (pathname.includes('/kyc') || pathname.includes('/compliance')) {
-      return { status: 'approved', kycStatus: 'approved' };
+      return {
+        status: 'approved',
+        kycStatus: 'approved',
+        level: 2,
+        submittedAt: '2025-11-01T10:00:00Z',
+        approvedAt: '2025-11-02T14:30:00Z',
+      };
     }
     if (pathname.includes('transaction-pin') || pathname.includes('/pin')) {
       return { hasPin: true, set: true };
@@ -198,10 +228,18 @@ export function resolveMockResponse(method: string, path: string, body?: unknown
     if (pathname.includes('/sessions')) {
       return [
         {
-          id: 's1',
-          userAgent: 'Demo Browser',
-          ipAddress: '127.0.0.1',
+          id: MOCK_USER.sessionId,
+          userAgent: 'Demo Browser · Lagos',
+          ipAddress: '102.89.x.x',
           createdAt: new Date().toISOString(),
+          current: true,
+        },
+        {
+          id: 'sess_old_1',
+          userAgent: 'iPhone · Safari',
+          ipAddress: '105.112.x.x',
+          createdAt: '2026-08-01T08:00:00Z',
+          current: false,
         },
       ];
     }
@@ -211,28 +249,67 @@ export function resolveMockResponse(method: string, path: string, body?: unknown
         balance: 1250,
         tasks: [
           { id: 't1', title: 'Complete KYC', points: 100, done: true },
-          { id: 't2', title: 'First deposit', points: 50, done: false },
+          { id: 't2', title: 'First deposit', points: 50, done: true },
+          { id: 't3', title: 'First swap', points: 25, done: false },
         ],
-        badges: [{ id: 'b1', name: 'Early Adopter' }],
+        badges: [{ id: 'b1', name: 'Verified' }, { id: 'b2', name: 'Early Adopter' }],
       };
     }
     if (pathname.includes('/countries') || pathname.includes('/markets')) {
       return {
         countries: [
-          { code: 'NG', name: 'Nigeria' },
-          { code: 'GH', name: 'Ghana' },
-          { code: 'KE', name: 'Kenya' },
+          { code: 'NG', name: 'Nigeria', currency: 'NGN' },
+          { code: 'GH', name: 'Ghana', currency: 'GHS' },
+          { code: 'KE', name: 'Kenya', currency: 'KES' },
+          { code: 'ZA', name: 'South Africa', currency: 'ZAR' },
         ],
       };
     }
     if (pathname.includes('/prices') || pathname.includes('/market')) {
       return { items: marketData };
     }
-    if (pathname.includes('/banks') || pathname.includes('/payment-methods')) {
-      return { banks: [], methods: [] };
+    if (
+      pathname.includes('/banks') ||
+      pathname.includes('/payment-methods') ||
+      pathname.includes('/payment_methods') ||
+      pathname.includes('/bank-accounts')
+    ) {
+      return { banks: MOCK_BANK_ACCOUNTS, methods: MOCK_BANK_ACCOUNTS, accounts: MOCK_BANK_ACCOUNTS };
+    }
+    if (pathname.includes('/eligibility') || pathname.includes('/offramp') || pathname.includes('/onramp')) {
+      return {
+        action: 'ok',
+        canProceed: true,
+        kycStatus: 'approved',
+        hasPaymentDetails: true,
+        banks: MOCK_BANK_ACCOUNTS,
+      };
+    }
+    if (pathname.includes('/quote') || pathname.includes('/rates')) {
+      return {
+        rate: '1650',
+        fiatCurrency: 'NGN',
+        amountIn: '100',
+        amountOut: '0.06',
+        fee: '1.5',
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      };
     }
     if (pathname.includes('/platform') || pathname.includes('/status')) {
       return { maintenance: false, message: null };
+    }
+    if (pathname.includes('/whitelist')) {
+      return {
+        addresses: [
+          {
+            id: 'wl1',
+            address: '0xWhitelistedAda0000000000000000000001',
+            chainKey: 'ethereum',
+            label: 'Cold wallet',
+            status: 'active',
+          },
+        ],
+      };
     }
   }
 

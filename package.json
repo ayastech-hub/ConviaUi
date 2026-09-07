@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite"
+    "dev": "vite",
+    "msw:init": "msw init public/ --save",
+    "predev": "node scripts/ensure-msw.mjs"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
