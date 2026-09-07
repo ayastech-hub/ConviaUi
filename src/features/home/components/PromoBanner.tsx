@@ -7,7 +7,6 @@ import {
   Gift,
   ShieldCheck,
   Sparkles,
-  Wallet,
   Zap,
 } from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
@@ -44,8 +43,8 @@ const SLIDES: PromoSlide[] = [
   {
     id: 'buy',
     label: 'BUY CRYPTO',
-    title: 'Fund your wallet',
-    description: 'Buy crypto with card or bank.',
+    title: 'Buy crypto easily',
+    description: 'Fast and simple funding.',
     Icon: Zap,
     accent: 'var(--foreground)',
     screen: 'onramp',
@@ -62,74 +61,69 @@ const SLIDES: PromoSlide[] = [
 ];
 
 const AUTO_ADVANCE_MS = 5000;
-const SWIPE_DISTANCE = 45;
-
-interface Props {
-  onNavigate: (screen: Screen) => void;
-}
+const SWIPE_DISTANCE = 40;
+const N = SLIDES.length;
 
 /* -------------------------------------------------------------------------- */
-/* Focal visuals                                                              */
+/* Small decorative artwork                                                   */
 /* -------------------------------------------------------------------------- */
 
 function RewardsArt({ accent }: { accent: string }) {
   return (
-    <div className="relative w-[112px] h-[100px]" aria-hidden="true">
+    <div
+      className="relative w-[76px] h-[62px]"
+      aria-hidden="true"
+    >
       <motion.div
         animate={{
-          rotate: [-5, 3, -5],
           y: [0, -3, 0],
+          rotate: [-4, 3, -4],
         }}
         transition={{
-          duration: 4,
+          duration: 3.8,
           repeat: Infinity,
           ease: 'easeInOut',
         }}
-        className="absolute right-0 top-1 w-[76px] h-[76px] rounded-full flex items-center justify-center"
+        className="absolute right-0 top-0 w-[54px] h-[54px] rounded-full flex items-center justify-center"
         style={{
-          background: `color-mix(in srgb, ${accent} 18%, var(--card))`,
-          border: `1px solid color-mix(in srgb, ${accent} 35%, var(--border))`,
-          boxShadow: `0 12px 35px color-mix(in srgb, ${accent} 22%, transparent)`,
+          background: `color-mix(in srgb, ${accent} 16%, var(--card))`,
+          border: `1px solid color-mix(in srgb, ${accent} 30%, var(--border))`,
+          boxShadow: `0 8px 24px color-mix(in srgb, ${accent} 18%, transparent)`,
         }}
       >
-        <div
-          className="w-[58px] h-[58px] rounded-full flex items-center justify-center"
-          style={{
-            background: `color-mix(in srgb, ${accent} 25%, var(--card))`,
-          }}
-        >
-          <Gift
-            size={26}
-            strokeWidth={1.8}
-            style={{ color: accent }}
-          />
-        </div>
+        <Gift
+          size={21}
+          strokeWidth={1.8}
+          style={{ color: accent }}
+        />
       </motion.div>
 
       <motion.div
         animate={{
-          y: [0, -5, 0],
-          rotate: [3, -2, 3],
+          y: [0, 3, 0],
         }}
         transition={{
-          duration: 3.2,
+          duration: 3,
           repeat: Infinity,
           ease: 'easeInOut',
         }}
-        className="absolute left-0 bottom-1 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5"
+        className="absolute left-0 bottom-0 flex items-center gap-1 px-2 py-1 rounded-md"
         style={{
           background: 'var(--card)',
           border: '1px solid var(--border)',
-          boxShadow: '0 8px 20px rgba(0,0,0,.16)',
+          boxShadow: '0 5px 14px rgba(0,0,0,.14)',
         }}
       >
-        <Sparkles size={10} style={{ color: accent }} />
+        <Sparkles
+          size={8}
+          style={{ color: accent }}
+        />
 
         <span
-          className="text-[8px] font-bold"
+          className="text-[6px] font-bold"
           style={{ color: 'var(--foreground)' }}
         >
-          +250 pts
+          +POINTS
         </span>
       </motion.div>
     </div>
@@ -138,24 +132,30 @@ function RewardsArt({ accent }: { accent: string }) {
 
 function SwapArt({ accent }: { accent: string }) {
   return (
-    <div className="relative w-[112px] h-[100px]" aria-hidden="true">
+    <div
+      className="relative w-[78px] h-[62px]"
+      aria-hidden="true"
+    >
       <motion.div
-        animate={{ rotate: [0, 4, 0] }}
+        animate={{
+          y: [0, -3, 0],
+          rotate: [0, 3, 0],
+        }}
         transition={{
-          duration: 4,
+          duration: 3.8,
           repeat: Infinity,
           ease: 'easeInOut',
         }}
-        className="absolute right-0 top-0 w-[72px] h-[72px] rounded-2xl flex items-center justify-center"
+        className="absolute right-0 top-0 w-[58px] h-[52px] rounded-xl flex items-center justify-center"
         style={{
-          background: `color-mix(in srgb, ${accent} 13%, var(--card))`,
-          border: `1px solid color-mix(in srgb, ${accent} 28%, var(--border))`,
-          boxShadow: `0 12px 35px color-mix(in srgb, ${accent} 18%, transparent)`,
+          background: `color-mix(in srgb, ${accent} 10%, var(--card))`,
+          border: `1px solid color-mix(in srgb, ${accent} 26%, var(--border))`,
+          boxShadow: `0 8px 24px color-mix(in srgb, ${accent} 14%, transparent)`,
         }}
       >
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-[8px] font-bold"
+            className="w-6 h-6 rounded-full flex items-center justify-center text-[5px] font-bold"
             style={{
               background: 'var(--muted)',
               color: 'var(--foreground)',
@@ -165,12 +165,12 @@ function SwapArt({ accent }: { accent: string }) {
           </div>
 
           <ArrowLeftRight
-            size={13}
+            size={10}
             style={{ color: accent }}
           />
 
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-[7px] font-bold"
+            className="w-6 h-6 rounded-full flex items-center justify-center text-[5px] font-bold"
             style={{
               background: 'var(--muted)',
               color: 'var(--foreground)',
@@ -180,97 +180,57 @@ function SwapArt({ accent }: { accent: string }) {
           </div>
         </div>
       </motion.div>
-
-      <motion.div
-        animate={{ y: [0, 4, 0] }}
-        transition={{
-          duration: 3,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
-        className="absolute left-0 bottom-1 w-9 h-9 rounded-xl flex items-center justify-center"
-        style={{
-          background: 'var(--card)',
-          border: '1px solid var(--border)',
-          boxShadow: '0 8px 20px rgba(0,0,0,.16)',
-        }}
-      >
-        <ArrowUpRight
-          size={15}
-          style={{ color: accent }}
-        />
-      </motion.div>
     </div>
   );
 }
 
 function BuyArt({ accent }: { accent: string }) {
   return (
-    <div className="relative w-[112px] h-[100px]" aria-hidden="true">
+    <div
+      className="relative w-[76px] h-[62px]"
+      aria-hidden="true"
+    >
       <motion.div
         animate={{
-          y: [0, -4, 0],
+          y: [0, -3, 0],
           rotate: [-2, 2, -2],
         }}
         transition={{
-          duration: 4,
+          duration: 3.8,
           repeat: Infinity,
           ease: 'easeInOut',
         }}
-        className="absolute right-0 top-0 w-[82px] h-[72px] rounded-2xl p-3"
+        className="absolute right-0 top-0 w-[55px] h-[53px] rounded-xl flex items-center justify-center"
         style={{
-          background: 'var(--card)',
+          background: `color-mix(in srgb, ${accent} 9%, var(--card))`,
           border: '1px solid var(--border)',
-          boxShadow: '0 12px 35px rgba(0,0,0,.18)',
-        }}
-      >
-        <div className="flex items-center justify-between">
-          <Wallet
-            size={15}
-            style={{ color: accent }}
-          />
-
-          <span
-            className="text-[7px] font-bold"
-            style={{ color: 'var(--muted-foreground)' }}
-          >
-            WALLET
-          </span>
-        </div>
-
-        <div
-          className="mt-3 text-[15px] font-bold tracking-tight"
-          style={{ color: 'var(--foreground)' }}
-        >
-          $4,820
-        </div>
-
-        <div
-          className="mt-2 h-1 rounded-full"
-          style={{ background: 'var(--muted)' }}
-        >
-          <div
-            className="h-full w-[72%] rounded-full"
-            style={{ background: accent }}
-          />
-        </div>
-      </motion.div>
-
-      <motion.div
-        animate={{ y: [0, 4, 0] }}
-        transition={{
-          duration: 3.2,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
-        className="absolute left-0 bottom-1 w-10 h-10 rounded-xl flex items-center justify-center"
-        style={{
-          background: `color-mix(in srgb, ${accent} 12%, var(--card))`,
-          border: '1px solid var(--border)',
+          boxShadow: '0 8px 24px rgba(0,0,0,.14)',
         }}
       >
         <Zap
-          size={17}
+          size={25}
+          strokeWidth={1.7}
+          style={{ color: accent }}
+        />
+      </motion.div>
+
+      <motion.div
+        animate={{
+          y: [0, 3, 0],
+        }}
+        transition={{
+          duration: 3,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+        className="absolute left-0 bottom-0 w-7 h-7 rounded-lg flex items-center justify-center"
+        style={{
+          background: 'var(--card)',
+          border: '1px solid var(--border)',
+        }}
+      >
+        <ArrowUpRight
+          size={12}
           style={{ color: accent }}
         />
       </motion.div>
@@ -280,66 +240,69 @@ function BuyArt({ accent }: { accent: string }) {
 
 function KycArt({ accent }: { accent: string }) {
   return (
-    <div className="relative w-[112px] h-[100px]" aria-hidden="true">
+    <div
+      className="relative w-[76px] h-[62px]"
+      aria-hidden="true"
+    >
       <motion.div
         animate={{
-          y: [0, -4, 0],
-          scale: [1, 1.015, 1],
+          y: [0, -3, 0],
+          scale: [1, 1.03, 1],
         }}
         transition={{
-          duration: 4,
+          duration: 3.8,
           repeat: Infinity,
           ease: 'easeInOut',
         }}
-        className="absolute right-0 top-0 w-[78px] h-[78px] rounded-full flex items-center justify-center"
+        className="absolute right-0 top-0 w-[55px] h-[55px] rounded-full flex items-center justify-center"
         style={{
           background: `color-mix(in srgb, ${accent} 12%, var(--card))`,
           border: `1px solid color-mix(in srgb, ${accent} 28%, var(--border))`,
-          boxShadow: `0 12px 35px color-mix(in srgb, ${accent} 18%, transparent)`,
+          boxShadow: `0 8px 24px color-mix(in srgb, ${accent} 17%, transparent)`,
         }}
       >
         <ShieldCheck
-          size={34}
+          size={25}
           strokeWidth={1.7}
           style={{ color: accent }}
         />
       </motion.div>
 
       <motion.div
-        animate={{ y: [0, 4, 0] }}
+        animate={{
+          y: [0, 3, 0],
+        }}
         transition={{
           duration: 3,
           repeat: Infinity,
           ease: 'easeInOut',
         }}
-        className="absolute left-0 bottom-1 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5"
+        className="absolute left-0 bottom-0 flex items-center gap-1 px-2 py-1 rounded-md"
         style={{
           background: 'var(--card)',
           border: '1px solid var(--border)',
-          boxShadow: '0 8px 20px rgba(0,0,0,.16)',
+          boxShadow: '0 5px 14px rgba(0,0,0,.14)',
         }}
       >
         <CheckCircle2
-          size={11}
-          style={{ color: 'var(--positive, #22c55e)' }}
+          size={8}
+          style={{
+            color: 'var(--positive, #22c55e)',
+          }}
         />
 
         <span
-          className="text-[8px] font-bold"
+          className="text-[6px] font-bold"
           style={{ color: 'var(--foreground)' }}
         >
-          Verified
+          VERIFIED
         </span>
       </motion.div>
     </div>
   );
 }
 
-function PromoArt({
-  slide,
-}: {
-  slide: PromoSlide;
-}) {
+function PromoArt({ slide }: { slide: PromoSlide }) {
   switch (slide.id) {
     case 'rewards':
       return <RewardsArt accent={slide.accent} />;
@@ -359,82 +322,62 @@ function PromoArt({
 }
 
 /* -------------------------------------------------------------------------- */
-/* Banner                                                                     */
+/* Promo Banner                                                               */
 /* -------------------------------------------------------------------------- */
+
+interface Props {
+  onNavigate: (screen: Screen) => void;
+}
 
 export function PromoBanner({ onNavigate }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const touchStart = useRef<number | null>(null);
-  const mouseStart = useRef<number | null>(null);
+  const touchStartX = useRef<number | null>(null);
+  const mouseStartX = useRef<number | null>(null);
+
   const paused = useRef(false);
   const dragged = useRef(false);
 
   const goTo = useCallback((index: number) => {
-    setActiveIndex(((index % SLIDES.length) + SLIDES.length) % SLIDES.length);
+    setActiveIndex(((index % N) + N) % N);
   }, []);
 
   const next = useCallback(() => {
-    setActiveIndex((current) => (current + 1) % SLIDES.length);
+    setActiveIndex((current) => (current + 1) % N);
   }, []);
 
   const previous = useCallback(() => {
-    setActiveIndex(
-      (current) => (current - 1 + SLIDES.length) % SLIDES.length,
-    );
+    setActiveIndex((current) => (current - 1 + N) % N);
   }, []);
 
+  /* Auto advance */
   useEffect(() => {
     const timer = window.setInterval(() => {
       if (!paused.current) {
-        setActiveIndex((current) => (current + 1) % SLIDES.length);
+        setActiveIndex((current) => (current + 1) % N);
       }
     }, AUTO_ADVANCE_MS);
 
     return () => window.clearInterval(timer);
   }, []);
 
-  const onTouchStart = (event: React.TouchEvent) => {
+  /* Touch */
+  const handleTouchStart = (event: React.TouchEvent) => {
     paused.current = true;
     dragged.current = false;
-    touchStart.current = event.touches[0].clientX;
+
+    touchStartX.current = event.touches[0].clientX;
   };
 
-  const onTouchEnd = (event: React.TouchEvent) => {
+  const handleTouchEnd = (event: React.TouchEvent) => {
     paused.current = false;
 
-    if (touchStart.current === null) return;
+    if (touchStartX.current === null) return;
 
     const distance =
-      event.changedTouches[0].clientX - touchStart.current;
+      event.changedTouches[0].clientX - touchStartX.current;
 
-    touchStart.current = null;
-
-    if (Math.abs(distance) < SWIPE_DISTANCE) return;
-
-    dragged.current = true;
-
-    if (distance < 0) {
-      next();
-    } else {
-      previous();
-    };
-  };
-
-  const onMouseDown = (event: React.MouseEvent) => {
-    paused.current = true;
-    dragged.current = false;
-    mouseStart.current = event.clientX;
-  };
-
-  const onMouseUp = (event: React.MouseEvent) => {
-    paused.current = false;
-
-    if (mouseStart.current === null) return;
-
-    const distance = event.clientX - mouseStart.current;
-
-    mouseStart.current = null;
+    touchStartX.current = null;
 
     if (Math.abs(distance) < SWIPE_DISTANCE) return;
 
@@ -447,8 +390,36 @@ export function PromoBanner({ onNavigate }: Props) {
     }
   };
 
-  const onMouseLeave = () => {
-    mouseStart.current = null;
+  /* Mouse support for desktop/testing */
+  const handleMouseDown = (event: React.MouseEvent) => {
+    paused.current = true;
+    dragged.current = false;
+
+    mouseStartX.current = event.clientX;
+  };
+
+  const handleMouseUp = (event: React.MouseEvent) => {
+    paused.current = false;
+
+    if (mouseStartX.current === null) return;
+
+    const distance = event.clientX - mouseStartX.current;
+
+    mouseStartX.current = null;
+
+    if (Math.abs(distance) < SWIPE_DISTANCE) return;
+
+    dragged.current = true;
+
+    if (distance < 0) {
+      next();
+    } else {
+      previous();
+    }
+  };
+
+  const handleMouseLeave = () => {
+    mouseStartX.current = null;
     paused.current = false;
   };
 
@@ -463,41 +434,41 @@ export function PromoBanner({ onNavigate }: Props) {
     }
   };
 
-  const slide = SLIDES[activeIndex];
+  const activeSlide = SLIDES[activeIndex];
 
   return (
     <div className="px-5 mb-4">
       <div
-        className="relative overflow-hidden rounded-[20px] select-none"
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
-        onMouseDown={onMouseDown}
-        onMouseUp={onMouseUp}
-        onMouseLeave={onMouseLeave}
+        className="relative overflow-hidden rounded-[17px] select-none touch-pan-y"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
         style={{
-          height: '122px',
+          height: '92px',
           background: 'var(--card)',
           border: '1px solid var(--border)',
-          boxShadow: '0 6px 20px rgba(0,0,0,.07)',
+          boxShadow: '0 5px 18px rgba(0,0,0,.06)',
         }}
       >
-        {/* Accent atmosphere */}
+        {/* Extremely subtle ambient light */}
         <motion.div
-          key={slide.id}
+          key={activeSlide.id}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="absolute -right-16 -top-20 w-[190px] h-[190px] rounded-full blur-3xl pointer-events-none"
+          className="absolute pointer-events-none -right-14 -top-16 w-[150px] h-[150px] rounded-full blur-3xl"
           style={{
-            background: slide.accent,
-            opacity: 0.08,
+            background: activeSlide.accent,
+            opacity: 0.07,
           }}
         />
 
-        {/* Content track */}
+        {/* Slide track */}
         <motion.div
           className="relative z-10 flex h-full"
           animate={{
-            x: `${-(activeIndex * 100) / SLIDES.length}%`,
+            x: `${-(activeIndex * 100) / N}%`,
           }}
           transition={{
             type: 'spring',
@@ -506,56 +477,54 @@ export function PromoBanner({ onNavigate }: Props) {
             mass: 0.8,
           }}
           style={{
-            width: `${SLIDES.length * 100}%`,
+            width: `${N * 100}%`,
           }}
         >
-          {SLIDES.map((item) => (
+          {SLIDES.map((slide) => (
             <button
-              key={item.id}
+              key={slide.id}
               type="button"
-              onClick={() => handleClick(item)}
+              onClick={() => handleClick(slide)}
               className="relative h-full shrink-0 text-left"
               style={{
-                width: `${100 / SLIDES.length}%`,
-                minWidth: `${100 / SLIDES.length}%`,
+                width: `${100 / N}%`,
+                minWidth: `${100 / N}%`,
                 WebkitTapHighlightColor: 'transparent',
               }}
             >
-              <div className="relative h-full px-4 py-3.5">
-                {/* Copy */}
-                <div className="relative z-10 w-[58%]">
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className="text-[7px] font-bold tracking-[0.12em]"
-                      style={{
-                        color: item.accent,
-                      }}
-                    >
-                      {item.label}
-                    </span>
+              <div className="relative h-full px-4 py-2.5">
+                {/* Text */}
+                <div className="relative z-10 w-[62%]">
+                  <div
+                    className="text-[6px] font-bold tracking-[0.13em]"
+                    style={{
+                      color: slide.accent,
+                    }}
+                  >
+                    {slide.label}
                   </div>
 
                   <h3
-                    className="mt-1.5 text-[17px] leading-[1.08] tracking-[-0.025em] font-bold"
+                    className="mt-1 text-[14px] leading-[1.05] tracking-[-0.02em] font-bold"
                     style={{
                       color: 'var(--foreground)',
                     }}
                   >
-                    {item.title}
+                    {slide.title}
                   </h3>
 
                   <p
-                    className="mt-1 text-[8px] leading-[1.35] max-w-[175px]"
+                    className="mt-1 text-[7px] leading-[1.2] max-w-[170px]"
                     style={{
                       color: 'var(--muted-foreground)',
                     }}
                   >
-                    {item.description}
+                    {slide.description}
                   </p>
 
-                  <div className="mt-2 flex items-center gap-1">
+                  <div className="mt-1.5 flex items-center gap-0.5">
                     <span
-                      className="text-[8px] font-bold"
+                      className="text-[7px] font-bold"
                       style={{
                         color: 'var(--foreground)',
                       }}
@@ -564,7 +533,7 @@ export function PromoBanner({ onNavigate }: Props) {
                     </span>
 
                     <ArrowUpRight
-                      size={9}
+                      size={8}
                       style={{
                         color: 'var(--foreground)',
                       }}
@@ -574,7 +543,7 @@ export function PromoBanner({ onNavigate }: Props) {
 
                 {/* Artwork */}
                 <div className="absolute right-3 top-3">
-                  <PromoArt slide={item} />
+                  <PromoArt slide={slide} />
                 </div>
               </div>
             </button>
@@ -582,15 +551,15 @@ export function PromoBanner({ onNavigate }: Props) {
         </motion.div>
 
         {/* Pagination */}
-        <div className="absolute left-4 bottom-2.5 z-30 flex items-center gap-1">
-          {SLIDES.map((item, index) => {
+        <div className="absolute left-4 bottom-2 z-30 flex items-center gap-1">
+          {SLIDES.map((slide, index) => {
             const active = index === activeIndex;
 
             return (
               <button
-                key={item.id}
+                key={slide.id}
                 type="button"
-                aria-label={`Show ${item.label}`}
+                aria-label={`Show ${slide.label}`}
                 aria-current={active ? 'true' : undefined}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -598,7 +567,7 @@ export function PromoBanner({ onNavigate }: Props) {
                 }}
                 className="p-0 rounded-full transition-all duration-300"
                 style={{
-                  width: active ? 15 : 4,
+                  width: active ? 14 : 4,
                   height: 3,
                   background: active
                     ? 'var(--foreground)'
@@ -609,19 +578,19 @@ export function PromoBanner({ onNavigate }: Props) {
           })}
         </div>
 
-        {/* Auto progress */}
+        {/* Auto-progress */}
         <motion.div
-          key={`progress-${activeIndex}`}
+          key={activeIndex}
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
           transition={{
             duration: AUTO_ADVANCE_MS / 1000,
             ease: 'linear',
           }}
-          className="absolute bottom-0 left-0 h-[1.5px] w-full origin-left z-30"
+          className="absolute bottom-0 left-0 z-30 h-[1.5px] w-full origin-left"
           style={{
-            background: slide.accent,
-            opacity: 0.7,
+            background: activeSlide.accent,
+            opacity: 0.65,
           }}
         />
       </div>
