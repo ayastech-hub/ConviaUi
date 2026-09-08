@@ -1,6 +1,6 @@
 import {
   Smartphone, Wifi, Zap, Receipt, Trophy, CreditCard, Landmark, Gift,
-  RefreshCw, ArrowRightLeft,
+  RefreshCw, ArrowRightLeft, Shield,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -46,6 +46,7 @@ export const SERVICE_GROUPS: ServiceGroup[] = [
     title: 'Finance',
     subtitle: 'Money in & out',
     items: [
+      { id: 'vault', label: 'Dollar Vault', icon: Shield, description: 'Hold value in USD-linked assets' },
       { id: 'onramp', label: 'Buy Crypto', icon: CreditCard, description: 'Card & bank deposit' },
       { id: 'offramp', label: 'Sell Crypto', icon: Landmark, description: 'Withdraw to bank' },
       { id: 'send', label: 'Send', icon: ArrowRightLeft, description: 'Transfer crypto' },

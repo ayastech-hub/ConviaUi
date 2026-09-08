@@ -4,7 +4,6 @@ import { TransactionReceipt } from '../../../shared/components/TransactionReceip
 import { AccountStatusBanners } from '../../../shared/components/AccountStatusBanners';
 import { CenteredBalance } from '../components/CenteredBalance';
 import { HubActions } from '../components/HubActions';
-import { VaultHomeCard } from '../components/VaultHomeCard';
 import { PromoBanner } from '../components/PromoBanner';
 import { HubAssetsList } from '../components/HubAssetsList';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
@@ -92,7 +91,6 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
 
       <HubActions onNavigate={navigate} />
 
-      <VaultHomeCard onNavigate={navigate} />
 
       <AccountStatusBanners onKyc={() => navigate('kyc')} />
 
