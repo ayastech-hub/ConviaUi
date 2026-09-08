@@ -9,6 +9,13 @@ import {
 } from 'react';
 import { listSupportedCountries } from '../api/banks';
 import { cacheGet, cacheSet } from '../cache/queryCache';
+import {
+  DEFAULT_USD_RATES,
+  getRate,
+  setLiveRates,
+  usdToLocal,
+  formatUsdAsLocal,
+} from '../rates/fx';
 
 export type Currency = {
   code: string;
@@ -36,8 +43,8 @@ function currencyFromCode(code: string): Currency {
   return {
     code: c,
     name: m.name || c,
-    symbol: m.symbol || c,
-    rate: m.rate || 1,
+    symbol: m.symbol || (DEFAULT_USD_RATES[c] ? c : c),
+    rate: getRate(c) || m.rate || 1,
     flag: m.flag || c.slice(0, 2),
   };
 }
@@ -52,8 +59,12 @@ interface CurrencyContextValue {
   currency: Currency;
   currencies: Currency[];
   setCurrency: (c: Currency) => void;
+  /** Format a USD amount in the active currency */
   format: (usdAmount: number) => string;
+  /** Convert USD → active currency units */
   convert: (usdAmount: number) => number;
+  /** Format an amount already in active currency units */
+  formatLocal: (localAmount: number) => string;
   loading: boolean;
 }
 
@@ -89,6 +100,8 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
         }
         const list = [...codes].map(currencyFromCode);
         if (!cancelled && list.length) {
+          // Keep central rate table in sync (USD base)
+          setLiveRates(Object.fromEntries(list.map((c) => [c.code, c.rate])));
           cacheSet(CACHE_KEY, list);
           setCurrencies(list);
           setCurrencyState((prev) => list.find((c) => c.code === prev.code) || list[0]);
@@ -116,12 +129,16 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   const convert = useCallback((usdAmount: number) => usdAmount * currency.rate, [currency.rate]);
 
   const format = useCallback(
-    (usdAmount: number) => {
-      const n = Number(usdAmount);
+    (usdAmount: number) => formatUsdAsLocal(usdAmount, currency.code, currency.symbol),
+    [currency],
+  );
+
+  const formatLocal = useCallback(
+    (localAmount: number) => {
+      const n = Number(localAmount);
       const safe = Number.isFinite(n) ? n : 0;
-      const converted = safe * (currency.rate || 1);
-      const decimals = (currency.rate || 1) > 100 ? 0 : 2;
-      return `${currency.symbol}${converted.toLocaleString('en', {
+      const decimals = (currency.rate || 1) > 50 ? 0 : 2;
+      return `${currency.symbol}${safe.toLocaleString('en', {
         minimumFractionDigits: decimals,
         maximumFractionDigits: decimals,
       })}`;
@@ -130,8 +147,8 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ currency, currencies, setCurrency, format, convert, loading }),
-    [currency, currencies, setCurrency, format, convert, loading],
+    () => ({ currency, currencies, setCurrency, format, convert, formatLocal, loading }),
+    [currency, currencies, setCurrency, format, convert, formatLocal, loading],
   );
 
   return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;

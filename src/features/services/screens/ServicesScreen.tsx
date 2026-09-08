@@ -302,6 +302,7 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
                 setSelectedAmount={setSelectedAmount}
                 customAmount={customAmount}
                 setCustomAmount={setCustomAmount}
+                amountCurrency={billerCurrency || currency.code}
                 provider={selectedProvider}
                 onChangeProvider={() => {
                   setSelectedProvider(null);
