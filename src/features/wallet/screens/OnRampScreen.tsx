@@ -5,7 +5,6 @@ import { ChevronLeft } from 'lucide-react';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { OnRampFormStep } from '../components/onramp/OnRampFormStep';
 import { OnRampReviewStep } from '../components/onramp/OnRampReviewStep';
-import { OnRampInstructionsStep } from '../components/onramp/OnRampInstructionsStep';
 import { OnRampProcessingStep, OnRampDoneStep } from '../components/onramp/OnRampStatusSteps';
 import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
@@ -55,7 +54,7 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
   const [newCard, setNewCard] = useState({ number: '', expiry: '', cvc: '', name: '' });
   const [amount, setAmount] = useState('');
   const [amountMode, setAmountMode] = useState<'fiat' | 'usd'>('fiat');
-  const [step, setStep] = useState<'form' | 'review' | 'payment-instructions' | 'processing' | 'done'>(
+  const [step, setStep] = useState<'form' | 'review' | 'processing' | 'done'>(
     'form',
   );
   const [showTokenDropdown, setShowTokenDropdown] = useState(false);
@@ -154,7 +153,14 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
       if (res.payment?.checkoutUrl && paymentMethod === 'card') {
         window.open(res.payment.checkoutUrl, '_blank', 'noopener,noreferrer');
       }
-      setStep('payment-instructions');
+      setStep('processing');
+      setTimeout(() => {
+        if (userId) {
+          void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.transactions(userId, 50) });
+        }
+        setStep('done');
+      }, 1800);
     } catch (err) {
       if (err instanceof ApiError) {
         setApiError({ code: err.code, message: err.body.message || err.message });
@@ -197,7 +203,7 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
       <div className="flex items-center gap-3 px-5 mb-5">
         <motion.button
           whileTap={{ scale: 0.9 }}
-          onClick={step === 'form' ? goBack : () => setStep('form')}
+          onClick={step === 'form' ? goBack : step === 'review' ? () => setStep('form') : goBack}
           className="w-10 h-10 rounded-2xl flex items-center justify-center "
           style={{ border: '1px solid var(--border)' }}
         >
@@ -262,12 +268,6 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
               }}
             />
           )}
-
-          {step === 'payment-instructions' && (
-            <OnRampInstructionsStep
-              currency={currency}
-              amount={order?.payment?.amount || amount}
-              rows={instructionRows()}
               copied={copied}
               onCopy={copyAccount}
               onPaid={() => {

@@ -1,7 +1,6 @@
 import { motion } from 'motion/react';
-import { Loader, CheckCircle2, Clock } from 'lucide-react';
+import { Loader, CheckCircle2 } from 'lucide-react';
 import type { Currency } from '../../../../shared/context/CurrencyContext';
-import { useLanguage } from '../../../../shared/context/LanguageContext';
 
 interface OnRampProcessingStepProps {
   currency: Currency;
@@ -10,17 +9,27 @@ interface OnRampProcessingStepProps {
   symbol: string;
 }
 
-/** On-Ramp step 4: brief "converting" spinner. */
 export function OnRampProcessingStep({ currency, amount, youGet, symbol }: OnRampProcessingStepProps) {
-  const { t } = useLanguage();
   return (
-    <motion.div key="processing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-20">
-      <div className="w-24 h-24 rounded-full flex items-center justify-center" style={{ background: 'var(--muted)' }}>
-        <Loader size={44} style={{ color: 'var(--foreground)' }} className="animate-spin" />
+    <motion.div
+      key="processing"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="flex flex-col items-center justify-center py-24 px-5"
+    >
+      <div
+        className="w-16 h-16 rounded-full flex items-center justify-center"
+        style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+      >
+        <Loader size={28} style={{ color: 'var(--foreground)' }} className="animate-spin" />
       </div>
-      <h3 style={{ color: 'var(--foreground)', fontWeight: 700, marginBottom: 8, marginTop: 24 }}>Processing...</h3>
-      <p style={{ color: 'var(--muted-foreground)', fontSize: 13, textAlign: 'center' }}>
-        Converting {currency.symbol}{Number(amount).toLocaleString()} to {youGet.toFixed(6)} {symbol}
+      <h3 style={{ color: 'var(--foreground)', fontWeight: 700, marginTop: 20, fontSize: 18 }}>
+        Processing
+      </h3>
+      <p style={{ color: 'var(--muted-foreground)', fontSize: 13, textAlign: 'center', marginTop: 8 }}>
+        {currency.symbol}
+        {Number(amount).toLocaleString()} → {youGet.toLocaleString(undefined, { maximumFractionDigits: 6 })}{' '}
+        {symbol}
       </p>
     </motion.div>
   );
@@ -32,21 +41,41 @@ interface OnRampDoneStepProps {
   onDone: () => void;
 }
 
-/** On-Ramp step 5: final success confirmation. */
 export function OnRampDoneStep({ youGet, symbol, onDone }: OnRampDoneStepProps) {
   return (
-    <motion.div key="done" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center py-12 text-center">
-      <div className="w-24 h-24 rounded-full flex items-center justify-center mb-6" style={{ background: 'var(--muted)' }}>
-        <CheckCircle2 size={52} style={{ color: 'var(--positive)' }} />
+    <motion.div
+      key="done"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex flex-col items-center py-16 px-5 text-center"
+    >
+      <div
+        className="w-16 h-16 rounded-full flex items-center justify-center mb-5"
+        style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+      >
+        <CheckCircle2 size={32} style={{ color: 'var(--primary)' }} />
       </div>
-      <h2 style={{ color: 'var(--foreground)', fontWeight: 800, marginBottom: 8 }}>{t('onramp.success')}</h2>
-      <p style={{ color: 'var(--foreground)', fontSize: 28, fontWeight: 800, marginBottom: 4 }}>{youGet.toFixed(6)} {symbol}</p>
-      <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginBottom: 6 }}>Credited to your wallet</p>
-      <div className="flex items-center gap-1.5 mb-10 px-3 py-1.5 rounded-full" style={{ background: 'var(--muted)' }}>
-        <Clock size={12} style={{ color: 'var(--foreground)' }} />
-        <span style={{ color: 'var(--foreground)', fontSize: 12, fontWeight: 600 }}>Completed</span>
-      </div>
-      <motion.button whileTap={{ scale: 0.97 }} onClick={onDone} className="w-full py-3.5 rounded-[16px] text-white" style={{ background: 'var(--primary)', fontWeight: 700, fontSize: 15 }}>
+      <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20, marginBottom: 8 }}>
+        Order submitted
+      </h2>
+      <p className="tabular-nums" style={{ color: 'var(--foreground)', fontSize: 24, fontWeight: 700 }}>
+        {youGet.toLocaleString(undefined, { maximumFractionDigits: 6 })} {symbol}
+      </p>
+      <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginTop: 6, marginBottom: 28 }}>
+        Credited when payment confirms
+      </p>
+      <motion.button
+        type="button"
+        whileTap={{ scale: 0.98 }}
+        onClick={onDone}
+        className="w-full py-4 rounded-full"
+        style={{
+          background: 'var(--primary)',
+          color: 'var(--primary-foreground, #fff)',
+          fontWeight: 700,
+          fontSize: 16,
+        }}
+      >
         Done
       </motion.button>
     </motion.div>
