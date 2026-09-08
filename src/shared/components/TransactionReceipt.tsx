@@ -168,17 +168,15 @@ export function TransactionReceipt({ tx, open, onClose }: TransactionReceiptProp
   const StatusIcon = status.icon;
 
   const rows = [
-    { label: 'Transaction Type', value: meta.label },
-    { label: 'Asset', value: tx.asset },
-    tx.assetTo ? { label: 'Received Asset', value: tx.assetTo } : null,
-    { label: 'Amount', value: `${meta.sign}${tx.amount} ${tx.asset}` },
-    tx.amountTo ? { label: 'Received Amount', value: `+${tx.amountTo} ${tx.assetTo}` } : null,
-    { label: 'Value', value: format(tx.valueUSD) },
-    tx.username ? { label: 'Counterparty', value: `@${tx.username}` } : null,
-    tx.address ? { label: 'Address', value: `${tx.address.slice(0, 12)}...${tx.address.slice(-8)}` } : null,
-    { label: 'Network', value: network },
-    { label: 'Status', value: status.label },
     { label: 'Date', value: timestamp },
+    { label: 'Network', value: network },
+    tx.username ? { label: 'Counterparty', value: `@${tx.username}` } : null,
+    tx.address
+      ? { label: 'Address', value: `${tx.address.slice(0, 10)}…${tx.address.slice(-6)}` }
+      : null,
+    hasRealHash && tx.hash
+      ? { label: 'Hash', value: `${tx.hash.slice(0, 10)}…${tx.hash.slice(-6)}` }
+      : null,
   ].filter(Boolean) as { label: string; value: string }[];
 
   const buildReceiptCanvas = () =>
@@ -265,64 +263,55 @@ export function TransactionReceipt({ tx, open, onClose }: TransactionReceiptProp
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-            className="absolute bottom-0 left-0 right-0 z-50 rounded-t-[28px] overflow-hidden"
-            style={{ background: 'var(--card)', borderTop: '1px solid var(--border)', maxHeight: '90%', overflowY: 'auto' }}
+            className="absolute bottom-0 left-0 right-0 z-50 rounded-t-[24px] overflow-hidden flex flex-col"
+            style={{ background: 'var(--card)', borderTop: '1px solid var(--border)', maxHeight: 'min(78dvh, 640px)' }}
             role="dialog"
             aria-modal="true"
             aria-label="Transaction receipt"
           >
             {/* Handle */}
-            <div className="w-12 h-1 rounded-full mx-auto mt-3" style={{ background: 'var(--muted)' }} />
+            <div className="w-10 h-1 rounded-full mx-auto mt-2.5 flex-shrink-0" style={{ background: 'var(--muted)' }} />
 
             {/* Header */}
-            <div className="flex items-center justify-between px-5 mt-3 mb-4">
-              <h3 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 18 }}>Transaction Receipt</h3>
+            <div className="flex items-center justify-between px-5 mt-2 mb-2 flex-shrink-0">
+              <h3 style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 16 }}>Receipt</h3>
               <button onClick={onClose} aria-label="Close" className="w-9 h-9 rounded-full flex items-center justify-center focus-visible:outline-none focus-visible:ring-2" style={{ background: 'var(--muted)' }}>
                 <X size={18} style={{ color: 'var(--foreground)' }} />
               </button>
             </div>
 
-            {/* Status badge */}
-            <div className="flex justify-center mb-5">
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full" style={{ background: status.bg }}>
-                {tx.status === 'pending' ? (
-                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.6, repeat: Infinity, ease: 'linear' }}>
-                    <StatusIcon size={18} style={{ color: status.color }} />
-                  </motion.div>
-                ) : (
-                  <StatusIcon size={18} style={{ color: status.color }} />
-                )}
-                <span style={{ color: status.color, fontSize: 14, fontWeight: 700 }}>{status.label}</span>
+            <div className="flex-1 overflow-y-auto overscroll-contain">
+            {/* Status + amount — compact */}
+            <div className="text-center px-5 mb-3">
+              <div className="flex items-center justify-center gap-1.5 mb-2">
+                <StatusIcon size={14} style={{ color: status.color }} />
+                <span style={{ color: status.color, fontSize: 12, fontWeight: 700 }}>{status.label}</span>
               </div>
-            </div>
-
-            {/* Amount hero */}
-            <div className="text-center px-5 mb-6">
-              <div className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-3" style={{ background: 'var(--muted)' }}>
-                <Icon size={32} style={{ color: meta.color }} strokeWidth={2} />
+              <div className="w-11 h-11 rounded-2xl flex items-center justify-center mx-auto mb-2" style={{ background: 'var(--muted)' }}>
+                <Icon size={22} style={{ color: meta.color }} strokeWidth={2} />
               </div>
-              <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginBottom: 4 }}>{meta.label}</p>
-              <p style={{ color: meta.color, fontSize: 32, fontWeight: 800, letterSpacing: -1 }}>
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginBottom: 2 }}>{meta.label}</p>
+              <p style={{ color: meta.color, fontSize: 26, fontWeight: 800, letterSpacing: -0.8 }}>
                 {meta.sign}{tx.amount} {tx.asset}
               </p>
               {tx.assetTo && (
-                <p style={{ color: 'var(--positive)', fontSize: 15, fontWeight: 600, marginTop: 4 }}>
+                <p style={{ color: 'var(--positive)', fontSize: 13, fontWeight: 600, marginTop: 2 }}>
                   +{tx.amountTo} {tx.assetTo}
                 </p>
               )}
-              <p style={{ color: 'var(--muted-foreground)', fontSize: 14, marginTop: 4 }}>
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 2 }}>
                 {meta.sign}{format(tx.valueUSD)}
               </p>
             </div>
 
             {/* Details card */}
-            <div className="mx-5 rounded-[20px] p-4 mb-4" style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}>
+            <div className="mx-5 rounded-[16px] px-3.5 py-1 mb-3" style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}>
               {rows.map((row, i) => {
                 const copyable = row.label === 'Address' && tx.address;
                 return (
                   <div
                     key={row.label}
-                    className="flex justify-between items-center py-2.5"
+                    className="flex justify-between items-center py-2"
                     style={{ borderBottom: i < rows.length - 1 ? '1px solid var(--border)' : 'none' }}
                   >
                     <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>{row.label}</span>
@@ -379,46 +368,44 @@ export function TransactionReceipt({ tx, open, onClose }: TransactionReceiptProp
               </div>
             )}
 
-            {/* Actions */}
-            <div className="flex gap-3 px-5 mb-6">
+            </div>
+            {/* Sticky actions */}
+            <div className="flex gap-2 px-5 pt-2 pb-5 flex-shrink-0" style={{ borderTop: '1px solid var(--border)', paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
               <button
                 onClick={() => void handleShare()}
                 disabled={shareState === 'busy'}
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-[14px] focus-visible:outline-none focus-visible:ring-2"
-                style={{ background: 'var(--muted)', border: '1px solid var(--border)', opacity: shareState === 'busy' ? 0.7 : 1 }}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-full"
+                style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
               >
                 {shareState === 'busy' ? (
-                  <Loader size={16} className="animate-spin" style={{ color: 'var(--foreground)' }} />
+                  <Loader size={14} className="animate-spin" style={{ color: 'var(--foreground)' }} />
                 ) : shareState === 'copied' ? (
-                  <Check size={16} style={{ color: 'var(--positive)' }} />
+                  <Check size={14} style={{ color: 'var(--positive)' }} />
                 ) : (
-                  <Share2 size={16} style={{ color: 'var(--foreground)' }} />
+                  <Share2 size={14} style={{ color: 'var(--foreground)' }} />
                 )}
-                <span style={{ color: shareState === 'copied' ? 'var(--positive)' : 'var(--foreground)', fontSize: 14, fontWeight: 600 }}>
+                <span style={{ color: shareState === 'copied' ? 'var(--positive)' : 'var(--foreground)', fontSize: 13, fontWeight: 600 }}>
                   {shareState === 'copied' ? 'Copied' : 'Share'}
                 </span>
               </button>
               <button
                 onClick={() => void handleDownload()}
                 disabled={downloadState === 'busy'}
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-[14px] focus-visible:outline-none focus-visible:ring-2"
-                style={{ background: 'var(--muted)', border: '1px solid var(--border)', opacity: downloadState === 'busy' ? 0.7 : 1 }}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-full"
+                style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
               >
                 {downloadState === 'busy' ? (
-                  <Loader size={16} className="animate-spin" style={{ color: 'var(--foreground)' }} />
+                  <Loader size={14} className="animate-spin" style={{ color: 'var(--foreground)' }} />
                 ) : (
-                  <Download size={16} style={{ color: 'var(--foreground)' }} />
+                  <Download size={14} style={{ color: 'var(--foreground)' }} />
                 )}
-                <span style={{ color: 'var(--foreground)', fontSize: 14, fontWeight: 600 }}>Download</span>
+                <span style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: 600 }}>Save</span>
               </button>
-            </div>
-
-            <div className="px-5 pb-8">
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={onClose}
-                className="w-full py-3.5 rounded-[16px] text-white focus-visible:outline-none focus-visible:ring-2"
-                style={{ background: 'var(--primary)', fontWeight: 700, fontSize: 15, boxShadow: 'none' }}
+                className="flex-1 py-2.5 rounded-full"
+                style={{ background: 'var(--primary)', color: 'var(--primary-foreground, #fff)', fontWeight: 700, fontSize: 13 }}
               >
                 Done
               </motion.button>
