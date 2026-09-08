@@ -16,7 +16,7 @@ import { SendAmountStep } from '../components/send/SendAmountStep';
 import { SendConfirmStep } from '../components/send/SendConfirmStep';
 import { SendSendingStep } from '../components/send/SendSendingStep';
 import { SendSuccessStep } from '../components/send/SendSuccessStep';
-import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
+import { PageTop } from '../../../shared/components/PageTop';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { withdrawCrypto } from '../../../shared/api/wallet';
@@ -398,13 +398,13 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
 
   return (
     <div className="flex flex-col h-full relative overflow-hidden" style={{ background: 'var(--background)' }}>
-      <div className="px-5 pt-12">
-        <WalletFeatureBanner feature="transfer" />
+      <PageTop />
+      <div className="px-5">
         {apiError && (
           <FeatureAlert reason={mapApiCodeToReason(apiError.code)} message={apiError.message} detail={apiError.code} />
         )}
       </div>
-      <div className="flex items-center gap-3 px-5 pt-3 pb-2" style={{ height: 56 }}>
+      <div className="flex items-center gap-3 px-5 mb-3">
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => {
@@ -416,7 +416,7 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
           }}
           aria-label="Go back"
           className="w-10 h-10 rounded-2xl flex items-center justify-center"
-          style={{ background: 'var(--muted)' }}
+          style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
         >
           <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
         </motion.button>

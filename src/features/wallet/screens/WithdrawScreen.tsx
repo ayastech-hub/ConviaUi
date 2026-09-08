@@ -9,14 +9,12 @@ import { WithdrawForm } from '../components/withdraw/WithdrawForm';
 import { WithdrawPinStep } from '../components/withdraw/WithdrawPinStep';
 import { WithdrawProcessingStep } from '../components/withdraw/WithdrawProcessingStep';
 import { WithdrawSuccessView } from '../components/withdraw/WithdrawSuccessView';
-import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { withdrawCrypto } from '../../../shared/api/wallet';
 import { newIdempotencyKey } from '../../../shared/api/client';
 import { useAccountGates } from '../../../shared/hooks/useAccountGates';
 import { queryClient, queryKeys } from '../../../shared/query/queryClient';
-import { GateHint } from '../../../shared/components/AccountStatusBanners';
 import { resolveChain, chainFamilyForKey } from '../../../shared/utils/chains';
 import { ApiError } from '../../../shared/api/types';
 import { usePortfolio } from '../../../shared/hooks/usePortfolio';
@@ -211,12 +209,9 @@ export function WithdrawScreen({ goBack, navigate }: WithdrawScreenProps) {
           >
             <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
           </motion.button>
-          <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22 }}>Cash out</h2>
+          <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22 }}>Withdraw</h2>
         </div>
-        <p className="px-5 mb-5" style={{ color: 'var(--muted-foreground)', fontSize: 14, lineHeight: 1.45 }}>
-          Move funds out of Convia — to a blockchain wallet, your bank, or another user.
-        </p>
-        <div className="flex-1 overflow-y-auto px-5 pb-8">
+                <div className="flex-1 overflow-y-auto px-5 pb-8">
           <MethodOptionRow
             title="Send to external wallet"
             subtitle="Withdraw crypto to any address on a supported network"
@@ -232,7 +227,7 @@ export function WithdrawScreen({ goBack, navigate }: WithdrawScreenProps) {
           />
           <MethodOptionRow
             title="Send to a Convia user"
-            subtitle="Transfer instantly by username or QR"
+            subtitle="Username or QR"
             Icon={Send}
             onClick={() => navigate?.('send') ?? setStep('select')}
           />
@@ -286,10 +281,7 @@ export function WithdrawScreen({ goBack, navigate }: WithdrawScreenProps) {
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <div className="px-5 pt-12">
-        <WalletFeatureBanner feature="withdraw" />
-        <GateHint mode="withdraw" />
-
+      <div className="px-5 pt-0">
         {apiError && (
           <FeatureAlert reason={mapApiCodeToReason(apiError.code)} message={apiError.message} detail={apiError.code} />
         )}

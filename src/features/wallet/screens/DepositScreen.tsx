@@ -10,7 +10,6 @@ import { TokenSelectionList } from '../components/deposit/TokenSelectionList';
 import { DepositSelectors } from '../components/deposit/DepositSelectors';
 import { DepositAddressCard } from '../components/deposit/DepositAddressCard';
 import { DepositInfoAndHistory } from '../components/deposit/DepositInfoAndHistory';
-import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { fetchDepositInfo, fetchAddresses } from '../../../shared/api/wallet';
@@ -120,28 +119,25 @@ export function DepositScreen({ goBack, navigate }: DepositScreenProps) {
           >
             <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
           </motion.button>
-          <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22 }}>Add funds</h2>
+          <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22 }}>Deposit</h2>
         </div>
-        <p className="px-5 mb-5" style={{ color: 'var(--muted-foreground)', fontSize: 14, lineHeight: 1.45 }}>
-          Choose how you want to top up your Convia balance.
-        </p>
-        <div className="flex-1 overflow-y-auto px-5 pb-8">
+        <div className="flex-1 overflow-y-auto px-5 pt-2 pb-8">
           <MethodOptionRow
-            title="Deposit crypto"
-            subtitle="Send tokens from another wallet to your Convia address"
+            title="Crypto address"
+            subtitle="Receive on-chain"
             Icon={Coins}
             onClick={() => setMode('crypto')}
           />
           <MethodOrDivider />
           <MethodOptionRow
-            title="Buy with card or bank"
-            subtitle="Pay in local currency and receive crypto in your wallet"
+            title="Buy"
+            subtitle="Card or bank"
             Icon={CreditCard}
             onClick={() => navigate?.('onramp') ?? setMode('crypto')}
           />
           <MethodOptionRow
-            title="Request from someone"
-            subtitle="Ask a contact to send you crypto on Convia"
+            title="Request"
+            subtitle="From a contact"
             Icon={HandCoins}
             onClick={() => navigate?.('request') ?? goBack()}
           />
@@ -157,15 +153,14 @@ export function DepositScreen({ goBack, navigate }: DepositScreenProps) {
   return (
     <div className="flex flex-col h-full relative" style={{ background: 'var(--background)' }}>
       <PageTop />
-      <div className="px-5 pt-2">
-        <WalletFeatureBanner feature="deposit" />
+      <div className="px-5">
         {status === 'anonymous' && (
-          <FeatureAlert reason="generic" message="Sign in to show your custodial deposit address." />
+          <FeatureAlert reason="generic" message="Sign in to show your deposit address." />
         )}
         {error && <FeatureAlert reason={mapApiCodeToReason(error.code)} message={error.message} detail={error.code} />}
       </div>
 
-      <div className="flex items-center gap-3 px-5 mb-5">
+      <div className="flex items-center gap-3 px-5 mb-4">
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => setAsset(null)}
@@ -175,12 +170,9 @@ export function DepositScreen({ goBack, navigate }: DepositScreenProps) {
         >
           <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
         </motion.button>
-        <div>
-          <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20 }}>{t('deposit.titleAsset')} {asset.symbol}</h2>
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
-            {address ? 'Live address from API' : 'Select network'}
-          </p>
-        </div>
+        <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20 }}>
+          {asset.symbol}
+        </h2>
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 pb-6">

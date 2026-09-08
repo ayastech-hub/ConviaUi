@@ -3,7 +3,7 @@ import { ChevronLeft, AlertCircle } from 'lucide-react';
 import type { Asset } from '../../../../shared/data/mockData';
 import { AssetIcon } from '../../../../shared/components/AssetIcon';
 import { useCurrency } from '../../../../shared/context/CurrencyContext';
-import { PageTop } from '../../../../shared/components/PageTop';;
+import { PageTop } from '../../../../shared/components/PageTop';
 
 interface WithdrawFormProps {
   asset: Asset;
@@ -35,7 +35,7 @@ export function WithdrawForm({
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
       <PageTop />
-      <div className="flex items-center gap-3 px-5 mb-6">
+      <div className="flex items-center gap-3 px-5 mb-4">
         <motion.button whileTap={{ scale: 0.9 }} onClick={onBack} aria-label="Back" className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
           <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
         </motion.button>
