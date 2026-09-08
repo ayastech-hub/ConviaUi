@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Bell, Globe, Moon, Sun, Mail, Smartphone, MessageSquare } from 'lucide-react';
+import { Bell, Globe, Moon, Sun, Mail, Smartphone, MessageSquare, Check, Loader } from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { ScreenHeader } from '../../../shared/components/ScreenHeader';
@@ -29,7 +29,7 @@ export function SettingsScreen({ goBack, darkMode: darkProp, toggleDark }: Setti
   const [darkMode, setDarkMode] = useState(darkProp ?? true);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const { userId } = useAuth();
-  const { locale, setLocale, t, labels, suggestedForCountry } = useLanguage();
+  const { locale, setLocale, t, labels } = useLanguage();
   const [prefs, setPrefs] = useState<Record<PrefChannel, boolean>>({
     in_app: true,
     email: false,
@@ -101,7 +101,7 @@ export function SettingsScreen({ goBack, darkMode: darkProp, toggleDark }: Setti
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <ScreenHeader title={t('settings.title')} onBack={goBack} />
+      <ScreenHeader title={t('settings.title')} subtitle="Display, language, and alerts" onBack={goBack} />
 
       <div className="flex-1 overflow-y-auto px-5 pb-28">
         {prefError && <FeatureAlert reason="generic" message={prefError} />}
@@ -110,6 +110,7 @@ export function SettingsScreen({ goBack, darkMode: darkProp, toggleDark }: Setti
           <ListRow
             icon={darkMode ? Moon : Sun}
             label={t('settings.darkMode')}
+            desc={darkMode ? 'Dark interface' : 'Light interface'}
             trailing={
               <ToggleSwitch
                 checked={darkMode}
@@ -123,39 +124,48 @@ export function SettingsScreen({ goBack, darkMode: darkProp, toggleDark }: Setti
           <ListRow
             icon={Globe}
             label={t('settings.currency')}
-            desc={currency.code}
+            desc={`${currency.code}${currency.name ? ` · ${currency.name}` : ''}`}
             onClick={() => setShowCurrencyPicker(true)}
           />
         </ListSection>
 
-        
-        <ListSection title={t('lang.title')}>
-          <p className="text-xs px-1 mb-2" style={{ color: 'var(--muted-foreground)' }}>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600, letterSpacing: '0.04em', marginBottom: 10, marginTop: 4 }}>
+          {t('lang.title').toUpperCase()}
+        </p>
+        <div className="rounded-[20px] p-4 mb-5" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginBottom: 12, lineHeight: 1.45 }}>
             {t('lang.hint')}
           </p>
-          <div className="flex flex-wrap gap-2 px-1 mb-3">
-            {(Object.keys(labels) as LocaleCode[]).map((code) => (
-              <button
-                key={code}
-                type="button"
-                onClick={() => setLocale(code)}
-                className="px-3 py-1.5 rounded-full text-xs font-bold"
-                style={{
-                  background: locale === code ? 'var(--primary)' : 'var(--muted)',
-                  color: locale === code ? '#fff' : 'var(--foreground)',
-                }}
-              >
-                {labels[code]}
-              </button>
-            ))}
+          <div className="flex flex-wrap gap-2">
+            {(Object.keys(labels) as LocaleCode[]).map((code) => {
+              const on = locale === code;
+              return (
+                <button
+                  key={code}
+                  type="button"
+                  onClick={() => setLocale(code)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+                  style={{
+                    background: on ? 'var(--foreground)' : 'var(--muted)',
+                    color: on ? 'var(--background)' : 'var(--foreground)',
+                    fontSize: 12,
+                    fontWeight: 600,
+                  }}
+                >
+                  {on && <Check size={12} strokeWidth={3} />}
+                  {labels[code]}
+                </button>
+              );
+            })}
           </div>
-        </ListSection>
+        </div>
 
         <ListSection title={t('settings.notifications')}>
           {loadingPrefs && (
-            <p className="text-xs px-1 mb-2" style={{ color: 'var(--muted-foreground)' }}>
-              Loading preferences…
-            </p>
+            <div className="flex items-center gap-2 px-1 mb-2">
+              <Loader size={14} className="animate-spin" style={{ color: 'var(--muted-foreground)' }} />
+              <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>Loading preferences…</span>
+            </div>
           )}
           <ListRow
             icon={Bell}

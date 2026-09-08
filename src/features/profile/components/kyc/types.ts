@@ -8,48 +8,57 @@ export interface UploadedFile {
   name: string;
   size: number;
   type: string;
+  dataUrl?: string;
 }
 
 export interface Country {
   code: string;
   name: string;
-  flag: string;
 }
 
 export const COUNTRIES: Country[] = [
-  { code: 'NG', name: 'Nigeria', flag: '🇳🇬' },
-  { code: 'GH', name: 'Ghana', flag: '🇬🇭' },
-  { code: 'KE', name: 'Kenya', flag: '🇰🇪' },
-  { code: 'ZA', name: 'South Africa', flag: '🇿🇦' },
-  { code: 'EG', name: 'Egypt', flag: '🇪🇬' },
-  { code: 'MA', name: 'Morocco', flag: '🇲🇦' },
-  { code: 'ET', name: 'Ethiopia', flag: '🇪🇹' },
-  { code: 'TZ', name: 'Tanzania', flag: '🇹🇿' },
-  { code: 'UG', name: 'Uganda', flag: '🇺🇬' },
-  { code: 'RW', name: 'Rwanda', flag: '🇷🇼' },
-  { code: 'SN', name: 'Senegal', flag: '🇸🇳' },
-  { code: 'CI', name: "Côte d'Ivoire", flag: '🇨🇮' },
-  { code: 'CM', name: 'Cameroon', flag: '🇨🇲' },
-  { code: 'AO', name: 'Angola', flag: '🇦🇴' },
-  { code: 'DZ', name: 'Algeria', flag: '🇩🇿' },
-  { code: 'TN', name: 'Tunisia', flag: '🇹🇳' },
-  { code: 'MZ', name: 'Mozambique', flag: '🇲🇿' },
-  { code: 'ZM', name: 'Zambia', flag: '🇿🇲' },
-  { code: 'BW', name: 'Botswana', flag: '🇧🇼' },
-  { code: 'NA', name: 'Namibia', flag: '🇳🇦' },
+  { code: 'NG', name: 'Nigeria' },
+  { code: 'GH', name: 'Ghana' },
+  { code: 'KE', name: 'Kenya' },
+  { code: 'ZA', name: 'South Africa' },
+  { code: 'EG', name: 'Egypt' },
+  { code: 'MA', name: 'Morocco' },
+  { code: 'ET', name: 'Ethiopia' },
+  { code: 'TZ', name: 'Tanzania' },
+  { code: 'UG', name: 'Uganda' },
+  { code: 'RW', name: 'Rwanda' },
+  { code: 'SN', name: 'Senegal' },
+  { code: 'CI', name: "Côte d'Ivoire" },
+  { code: 'CM', name: 'Cameroon' },
+  { code: 'AO', name: 'Angola' },
+  { code: 'DZ', name: 'Algeria' },
+  { code: 'TN', name: 'Tunisia' },
+  { code: 'MZ', name: 'Mozambique' },
+  { code: 'ZM', name: 'Zambia' },
+  { code: 'BW', name: 'Botswana' },
+  { code: 'NA', name: 'Namibia' },
 ];
 
-export const KYC_STEPS: { id: KYCStepId; label: string; icon: React.ComponentType<{ size?: number; style?: React.CSSProperties; className?: string }> }[] = [
-  { id: 'personal', label: 'Personal Info', icon: User },
-  { id: 'document', label: 'Document Upload', icon: FileText },
-  { id: 'selfie', label: 'Selfie Verification', icon: Camera },
+export const KYC_STEPS: {
+  id: KYCStepId;
+  label: string;
+  icon: React.ComponentType<{ size?: number; style?: React.CSSProperties; className?: string }>;
+}[] = [
+  { id: 'personal', label: 'Personal', icon: User },
+  { id: 'document', label: 'ID', icon: FileText },
+  { id: 'selfie', label: 'Selfie', icon: Camera },
   { id: 'review', label: 'Review', icon: ShieldCheck },
 ];
 
-export const DOC_TYPES: { id: DocType; label: string; desc: string; icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }> }[] = [
-  { id: 'id', label: 'National ID Card', desc: 'Government-issued national identity card', icon: IdCard },
-  { id: 'passport', label: 'International Passport', desc: 'Valid passport bio-data page', icon: BookUser },
-  { id: 'license', label: "Driver's License", desc: 'Official driving license card', icon: Car },
+export const DOC_TYPES: {
+  id: DocType;
+  label: string;
+  desc: string;
+  icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>;
+}[] = [
+  { id: 'id', label: 'National ID', desc: 'Government-issued identity card', icon: IdCard },
+  { id: 'passport', label: 'Passport', desc: 'Bio-data page of a valid passport', icon: BookUser },
+  { id: 'license', label: "Driver's license", desc: 'Official driving license', icon: Car },
 ];
 
 export function formatFileSize(bytes: number): string {
@@ -70,17 +79,17 @@ export interface PersonalInfo {
 
 export function validatePersonalInfo(info: PersonalInfo): Record<string, string> {
   const errors: Record<string, string> = {};
-  if (!info.fullName.trim()) errors.fullName = 'Full name is required';
-  else if (info.fullName.trim().length < 3) errors.fullName = 'Enter your full name';
+  if (!info.fullName.trim()) errors.fullName = 'Full legal name is required';
+  else if (info.fullName.trim().length < 3) errors.fullName = 'Enter your full legal name';
   if (!info.dob) {
     errors.dob = 'Date of birth is required';
   } else {
     const birth = new Date(info.dob);
     const age = (Date.now() - birth.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-    if (age < 18) errors.dob = 'You must be at least 18 years old';
-    if (age > 120) errors.dob = 'Please enter a valid date';
+    if (age < 18) errors.dob = 'You must be at least 18';
+    if (age > 120) errors.dob = 'Enter a valid date';
   }
-  if (!info.country) errors.country = 'Please select your country';
+  if (!info.country) errors.country = 'Select your country of residence';
   if (!info.address1.trim()) errors.address1 = 'Address is required';
   if (!info.city.trim()) errors.city = 'City is required';
   if (!info.postalCode.trim()) errors.postalCode = 'Postal code is required';

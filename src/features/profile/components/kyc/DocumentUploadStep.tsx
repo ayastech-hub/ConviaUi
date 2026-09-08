@@ -29,23 +29,37 @@ export function DocumentUploadStep({
   const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setUploadedFile({ name: file.name, size: file.size, type: file.type });
-      clearError('uploadedFile');
+      const reader = new FileReader();
+      reader.onload = () => {
+        setUploadedFile({
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          dataUrl: typeof reader.result === 'string' ? reader.result : undefined,
+        });
+        clearError('uploadedFile');
+      };
+      reader.readAsDataURL(file);
     }
     if (e.target.value) e.target.value = '';
   };
 
   const handleCameraCapture = (dataUrl: string) => {
     setShowCamera(false);
-    setUploadedFile({ name: 'document_camera_capture.jpg', size: Math.round(dataUrl.length * 0.75), type: 'image/jpeg' });
+    setUploadedFile({
+      name: 'document_capture.jpg',
+      size: Math.round(dataUrl.length * 0.75),
+      type: 'image/jpeg',
+      dataUrl,
+    });
     clearError('uploadedFile');
   };
 
   return (
     <div>
       <div className="mb-5">
-        <h3 style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 17, marginBottom: 4 }}>Document Upload</h3>
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Choose your document type and upload a clear photo.</p>
+        <h3 style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 18, letterSpacing: '-0.02em', marginBottom: 4 }}>Document</h3>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Choose a document type, then photograph or upload a clear image.</p>
       </div>
 
       <input ref={fileInputRef} type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={handleFileSelected} />
