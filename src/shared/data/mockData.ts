@@ -159,11 +159,46 @@ export const chatContacts: ChatContact[] = [
 ];
 
 export const notifications: Notification[] = [
-  { id: 'n1', type: 'receive', title: 'Received 0.15 ETH', body: '@kwame_builds sent you $492.63', time: '2h ago', read: false, icon: 'arrow-down-left' },
-  { id: 'n2', type: 'price', title: 'BTC Price Alert', body: 'Bitcoin crossed $67,000', time: '3h ago', read: false, icon: 'trending-up' },
-  { id: 'n3', type: 'reward', title: 'Daily Streak Bonus', body: 'You earned 50 Convia Points for 7-day streak', time: '8h ago', read: true, icon: 'flame' },
-  { id: 'n5', type: 'security', title: 'New Login Detected', body: 'Lagos, Nigeria · iPhone 15 Pro', time: '2d ago', read: true, icon: 'shield' },
-  { id: 'n6', type: 'kyc', title: 'KYC Approved', body: 'Your identity has been verified', time: '3d ago', read: true, icon: 'badge-check' },
+  {
+    id: 'n1', type: 'deposit_confirmed', title: 'Deposit confirmed',
+    body: '0.15 ETH is now available in your wallet · $492.63',
+    time: new Date(Date.now() - 2 * 3600e3).toISOString(), read: false, icon: 'arrow-down-left',
+  },
+  {
+    id: 'n2', type: 'swap', title: 'Swap completed',
+    body: '0.5 BNB → 206.15 USDC',
+    time: new Date(Date.now() - 5 * 3600e3).toISOString(), read: false, icon: 'refresh-cw',
+  },
+  {
+    id: 'n3', type: 'send', title: 'Payment sent',
+    body: '250 USDT sent to @amara_fintech',
+    time: new Date(Date.now() - 8 * 3600e3).toISOString(), read: false, icon: 'arrow-up-right',
+  },
+  {
+    id: 'n4', type: 'withdrawal_completed', title: 'Withdrawal completed',
+    body: '100 USDT cashed out to GTBank · ****6789',
+    time: new Date(Date.now() - 26 * 3600e3).toISOString(), read: true, icon: 'arrow-up-right',
+  },
+  {
+    id: 'n5', type: 'buy', title: 'Purchase successful',
+    body: 'You bought 5 SOL for $892.25',
+    time: new Date(Date.now() - 30 * 3600e3).toISOString(), read: true, icon: 'plus',
+  },
+  {
+    id: 'n6', type: 'security', title: 'New device login',
+    body: 'Lagos, Nigeria · Chrome on macOS. If this was not you, secure your account.',
+    time: new Date(Date.now() - 48 * 3600e3).toISOString(), read: true, icon: 'shield',
+  },
+  {
+    id: 'n7', type: 'kyc_approved', title: 'Identity verified',
+    body: 'KYC approved. You can now withdraw and cash out.',
+    time: new Date(Date.now() - 72 * 3600e3).toISOString(), read: true, icon: 'badge-check',
+  },
+  {
+    id: 'n8', type: 'reward', title: 'Points earned',
+    body: '+50 Convia Points for completing your first deposit',
+    time: new Date(Date.now() - 96 * 3600e3).toISOString(), read: true, icon: 'gift',
+  },
 ];
 
 export const marketData = [

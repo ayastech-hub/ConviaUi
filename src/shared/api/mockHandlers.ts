@@ -206,8 +206,9 @@ export function resolveMockResponse(method: string, path: string, body?: unknown
         title: n.title,
         body: n.body,
         type: n.type,
-        readAt: n.read ? new Date().toISOString() : null,
+        readAt: n.read ? n.time : null,
         createdAt: n.time,
+        payload: null,
       }));
     }
     if (pathname.includes('/profiles/me') || pathname.includes('/profile')) {
