@@ -8,10 +8,10 @@ const ACTIONS: { label: string; screen: Screen; Icon: typeof ArrowDownToLine }[]
   { label: 'Buy', screen: 'onramp', Icon: CreditCard },
 ];
 
-/** Circular actions: Deposit · Withdraw · Buy (Receive removed — use Deposit). */
+/** Circular hub actions under the balance. */
 export function HubActions({ onNavigate }: { onNavigate: (s: Screen) => void }) {
   return (
-    <div className="flex justify-center gap-10 px-5 mb-6">
+    <div className="flex justify-center gap-9 px-5 mb-7">
       {ACTIONS.map((a) => (
         <motion.button
           key={a.label}
@@ -23,11 +23,14 @@ export function HubActions({ onNavigate }: { onNavigate: (s: Screen) => void }) 
         >
           <div
             className="w-14 h-14 rounded-full flex items-center justify-center"
-            style={{ background: 'var(--primary)' }}
+            style={{
+              background: 'var(--muted)',
+              border: '1px solid var(--border)',
+            }}
           >
-            <a.Icon size={22} color="var(--primary-foreground, #fff)" strokeWidth={2.2} />
+            <a.Icon size={22} style={{ color: 'var(--foreground)' }} strokeWidth={2} />
           </div>
-          <span style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 500 }}>{a.label}</span>
+          <span style={{ color: 'var(--foreground)', fontSize: 12, fontWeight: 600 }}>{a.label}</span>
         </motion.button>
       ))}
     </div>
