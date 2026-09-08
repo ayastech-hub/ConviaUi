@@ -58,7 +58,6 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
     'form',
   );
   const [showTokenDropdown, setShowTokenDropdown] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
   const [quote, setQuote] = useState<LocalOnrampQuote | null>(null);
   const [order, setOrder] = useState<LocalOnrampOrder | null>(null);
@@ -126,15 +125,6 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
         : 0;
   const feeDisplay = quote ? Number(quote.feeAmount) : 0;
 
-  const copyAccount = (text: string) => {
-    try {
-      navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* ignore */
-    }
-  };
 
   const placeOrder = async () => {
     if (!userId || !gates.canOnramp) return;
@@ -172,19 +162,6 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
     }
   };
 
-  const instructionRows = () => {
-    const p = order?.payment;
-    if (!p) return [];
-    const rows: { label: string; value: string }[] = [];
-    if (p.bankName) rows.push({ label: 'Bank', value: p.bankName });
-    if (p.accountName) rows.push({ label: 'Account name', value: p.accountName });
-    if (p.accountNumber) rows.push({ label: 'Account number', value: p.accountNumber });
-    if (p.reference) rows.push({ label: 'Reference', value: p.reference });
-    if (p.amount) rows.push({ label: 'Amount', value: `${p.currency || fiatCurrency} ${p.amount}` });
-    if (p.checkoutUrl) rows.push({ label: 'Checkout', value: p.checkoutUrl });
-    if (!rows.length && p.externalId) rows.push({ label: 'Payment id', value: p.externalId });
-    return rows;
-  };
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
@@ -265,21 +242,6 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
               onConfirm={() => {
                 if (!gates.canOnramp || submitting) return;
                 void placeOrder();
-              }}
-            />
-          )}
-              copied={copied}
-              onCopy={copyAccount}
-              onPaid={() => {
-                setStep('processing');
-                // Webhook credits ledger; refresh portfolio shortly then show done
-                setTimeout(() => {
-                  if (userId) {
-                    void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
-                    void queryClient.invalidateQueries({ queryKey: queryKeys.transactions(userId, 50) });
-                  }
-                  setStep('done');
-                }, 1500);
               }}
             />
           )}
