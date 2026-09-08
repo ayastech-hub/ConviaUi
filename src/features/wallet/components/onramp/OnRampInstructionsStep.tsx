@@ -27,7 +27,7 @@ export function OnRampInstructionsStep({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -30 }}
     >
-      <div className="rounded-[20px] p-5 mb-4 glass-card" style={{ border: '1px solid var(--border)' }}>
+      <div className="rounded-[20px] p-5 mb-4 " style={{ border: '1px solid var(--border)' }}>
         <h3 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 17, marginBottom: 4 }}>
           Payment instructions
         </h3>

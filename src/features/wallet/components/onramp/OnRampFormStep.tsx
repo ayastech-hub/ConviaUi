@@ -237,18 +237,7 @@ export function OnRampFormStep({
         )}
       </div>
 
-      <PaymentMethodSelector
-        method={paymentMethod}
-        setMethod={setPaymentMethod}
-        cards={cards}
-        selectedCardId={selectedCardId}
-        setSelectedCardId={setSelectedCardId}
-        showNewCard={showNewCard}
-        setShowNewCard={setShowNewCard}
-        newCard={newCard}
-        setNewCard={setNewCard}
-        onAddCard={onAddCard}
-      />
+      <PaymentMethodSelector method={paymentMethod} setMethod={setPaymentMethod} />
 
       <div
         className="fixed bottom-0 left-0 right-0 z-30 px-5 pt-3"

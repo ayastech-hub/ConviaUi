@@ -52,6 +52,7 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
       },
   );
   const [paymentMethod, setPaymentMethod] = useState<'bank' | 'card'>('bank');
+  const [newCard, setNewCard] = useState({ number: '', expiry: '', cvc: '', name: '' });
   const [amount, setAmount] = useState('');
   const [amountMode, setAmountMode] = useState<'fiat' | 'usd'>('fiat');
   const [step, setStep] = useState<'form' | 'review' | 'payment-instructions' | 'processing' | 'done'>(
@@ -197,7 +198,7 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={step === 'form' ? goBack : () => setStep('form')}
-          className="w-10 h-10 rounded-2xl flex items-center justify-center glass-card"
+          className="w-10 h-10 rounded-2xl flex items-center justify-center "
           style={{ border: '1px solid var(--border)' }}
         >
           <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
@@ -228,8 +229,8 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
               setSelectedCardId={() => {}}
               showNewCard={false}
               setShowNewCard={() => {}}
-              newCard={{ number: '', expiry: '', cvc: '' }}
-              setNewCard={() => {}}
+              newCard={newCard}
+              setNewCard={setNewCard}
               onAddCard={() => {}}
               fee={feeDisplay}
               youGet={youGet}
@@ -252,7 +253,9 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
               youGet={youGet}
               fee={feeDisplay}
               paymentMethod={paymentMethod === 'card' ? 'card' : 'bank'}
-              selectedCard={undefined}
+              newCard={newCard}
+              setNewCard={setNewCard}
+              confirming={submitting}
               onConfirm={() => {
                 if (!gates.canOnramp || submitting) return;
                 void placeOrder();
