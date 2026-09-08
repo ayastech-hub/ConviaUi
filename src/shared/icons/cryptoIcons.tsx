@@ -3,7 +3,7 @@ import { useState, useMemo, type CSSProperties } from 'react';
 type SvgProps = { size?: number; className?: string; style?: CSSProperties };
 
 type AssetIconProps = SvgProps & {
-  /** Token ticker symbol (e.g. 'USDC', 'ETH', 'WBTC') */
+  /** Token ticker symbol (e.g. 'USDC', 'ETH', 'USDT') */
   symbol: string;
   /** Numerical EVM or non-EVM Chain ID (e.g., 1 = Ethereum, 8453 = Base, 137 = Polygon) */
   chainId?: number;
@@ -53,17 +53,29 @@ const TRUSTWALLET_NATIVE_MAP: Record<string, string> = {
   POL: 'polygon',
 };
 
+// Contract address fallbacks for multi-chain tokens when chainId/address aren't provided
+const COMMON_TOKEN_FALLBACKS: Record<string, { chainId: number; address: string }> = {
+  USDT: { chainId: 1, address: '0xdAC17F958D2ee523a2206206994597C13D831ec7' },
+  USDC: { chainId: 1, address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' },
+  DAI:  { chainId: 1, address: '0x6B175474E89094C44Da98b954EedeAC495271d0F' },
+  BUSD: { chainId: 1, address: '0x4Fabb145d64652a948d72533023f6E7A623C7C53' },
+};
+
 /**
  * Returns the TrustWallet Asset CDN URL
  */
 function getAssetUrl(symbol: string, chainId?: number, address?: string): string | null {
-  const sym = symbol.toUpperCase();
+  const sym = (symbol || '').toUpperCase();
 
-  // 1. Fetch by Contract Address & Chain ID (Most reliable for tokens)
-  if (chainId && address && address.toLowerCase() !== 'native') {
-    const chainSlug = TRUSTWALLET_CHAIN_SLUGS[chainId];
+  // Handle explicit contract lookup OR fallback to default mainnet contract
+  const targetChainId = chainId ?? COMMON_TOKEN_FALLBACKS[sym]?.chainId;
+  const targetAddress = address ?? COMMON_TOKEN_FALLBACKS[sym]?.address;
+
+  // 1. Fetch by Contract Address & Chain ID (Most reliable for tokens like USDT/USDC)
+  if (targetChainId && targetAddress && targetAddress.toLowerCase() !== 'native') {
+    const chainSlug = TRUSTWALLET_CHAIN_SLUGS[targetChainId];
     if (chainSlug) {
-      return `https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/${chainSlug}/assets/${address}/logo.png`;
+      return `https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/${chainSlug}/assets/${targetAddress}/logo.png`;
     }
   }
 
@@ -194,5 +206,8 @@ export function ChainIcon({ chainKey, size = 28, className, style }: ChainIconPr
   );
 }
 
-export const KNOWN_TOKEN_SYMBOLS = Object.keys(TRUSTWALLET_NATIVE_MAP);
+export const KNOWN_TOKEN_SYMBOLS = [
+  ...Object.keys(TRUSTWALLET_NATIVE_MAP),
+  ...Object.keys(COMMON_TOKEN_FALLBACKS),
+];
 export const KNOWN_CHAIN_KEYS = Object.keys(TRUSTWALLET_CHAIN_SLUGS);
