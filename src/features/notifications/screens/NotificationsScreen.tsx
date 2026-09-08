@@ -21,7 +21,7 @@ import * as notifApi from '../../../shared/api/notifications';
 import type { NotificationRow } from '../../../shared/api/notifications';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { ApiError } from '../../../shared/api/types';
-import { PageTop } from '../../../shared/components/PageTop';;
+import { PageTop } from '../../../shared/components/PageTop';
 
 interface NotificationsScreenProps {
   goBack: () => void;
@@ -270,7 +270,7 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
           >
             <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
           </motion.button>
-          <h2 style={{ color: 'var(--foreground)', fontWeight: 800 }}>{t('notif.title')}</h2>
+          <h2 style={{ color: 'var(--foreground)', fontWeight: 800 }}>Notifications</h2>
           {unreadCount > 0 && (
             <span
               aria-live="polite"
@@ -312,28 +312,37 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
         </button>
       </div>
 
-      {/* Filter tabs — only worth showing once there's something to filter */}
+      {/* Segment filter */}
       {notifs.length > 0 && (
-        <div className="flex items-center gap-2 px-5 mb-4" role="tablist" aria-label="Filter notifications">
-          {(['all', 'unread'] as Filter[]).map((f) => (
-            <button
-              key={f}
-              role="tab"
-              aria-selected={filter === f}
-              onClick={() => setFilter(f)}
-              className="px-3.5 py-1.5 rounded-full relative"
-              style={{
-                fontSize: 12.5,
-                fontWeight: 600,
-                color: filter === f ? 'var(--primary-foreground, var(--background))' : 'var(--muted-foreground)',
-                background: filter === f ? 'var(--primary)' : 'var(--muted)',
-                border: '1px solid var(--border)',
-                transition: 'color 0.15s ease',
-              }}
-            >
-              {f === 'all' ? 'All' : `Unread${unreadCount > 0 ? ` (${unreadCount})` : ''}`}
-            </button>
-          ))}
+        <div className="px-5 mb-4">
+          <div
+            className="flex p-1 rounded-2xl"
+            role="tablist"
+            aria-label="Filter notifications"
+            style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+          >
+            {(['all', 'unread'] as Filter[]).map((f) => {
+              const on = filter === f;
+              return (
+                <button
+                  key={f}
+                  role="tab"
+                  aria-selected={on}
+                  onClick={() => setFilter(f)}
+                  className="flex-1 py-2 rounded-xl"
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: on ? 'var(--foreground)' : 'var(--muted-foreground)',
+                    background: on ? 'var(--card)' : 'transparent',
+                    boxShadow: on ? '0 1px 4px rgba(0,0,0,0.12)' : 'none',
+                  }}
+                >
+                  {f === 'all' ? 'All' : unreadCount > 0 ? `Unread · ${unreadCount}` : 'Unread'}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 

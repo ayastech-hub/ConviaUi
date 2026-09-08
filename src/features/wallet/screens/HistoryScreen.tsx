@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
-import { motion } from 'motion/react';
+import { useMemo, useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   ChevronLeft,
   ChevronDown,
+  Check,
   ArrowUpRight,
   ArrowDownLeft,
   RefreshCw,
@@ -30,7 +31,6 @@ type TypeFilter =
   | 'withdraw'
   | 'onramp'
   | 'offramp';
-
 type StatusFilter = 'all' | 'confirmed' | 'pending' | 'failed';
 
 const TYPE_OPTIONS: { id: TypeFilter; label: string }[] = [
@@ -71,13 +71,11 @@ const TX_META: Record<
 function meta(type: string) {
   return TX_META[type] ?? TX_META.receive;
 }
-
 function statusColor(s: string) {
   if (s === 'confirmed') return 'var(--positive)';
   if (s === 'failed') return 'var(--destructive)';
   return 'var(--warning, #F59E0B)';
 }
-
 function groupKey(time: string): string {
   const t = (time || '').toLowerCase();
   if (t.includes('m ago') || t.includes('h ago') || t.includes('just') || t === 'today') return 'Today';
@@ -85,44 +83,105 @@ function groupKey(time: string): string {
   if (t.includes('d ago') || t.includes('day')) return 'This week';
   return 'Earlier';
 }
-
 const GROUP_ORDER = ['Today', 'Yesterday', 'This week', 'Earlier'];
 
-function FilterSelect<T extends string>({
+function DropdownFilter<T extends string>({
   value,
   onChange,
   options,
-  ariaLabel,
+  label,
 }: {
   value: T;
   onChange: (v: T) => void;
   options: { id: T; label: string }[];
-  ariaLabel: string;
+  label: string;
 }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const selected = options.find((o) => o.id === value)?.label ?? label;
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
   return (
-    <div className="relative flex-1 min-w-0">
-      <select
-        aria-label={ariaLabel}
-        value={value}
-        onChange={(e) => onChange(e.target.value as T)}
-        className="w-full appearance-none h-11 pl-3.5 pr-9 rounded-2xl text-sm font-semibold outline-none"
+    <div className="relative flex-1 min-w-0" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-2 h-11 px-3.5 rounded-2xl text-left"
         style={{
-          background: 'var(--card)',
-          border: '1px solid var(--border)',
-          color: 'var(--foreground)',
+          background: open ? 'var(--muted)' : 'var(--card)',
+          border: `1px solid ${open ? 'var(--primary)' : 'var(--border)'}`,
         }}
       >
-        {options.map((o) => (
-          <option key={o.id} value={o.id}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDown
-        size={16}
-        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
-        style={{ color: 'var(--muted-foreground)' }}
-      />
+        <div className="min-w-0">
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 10, fontWeight: 600, letterSpacing: 0.3 }}>
+            {label}
+          </p>
+          <p
+            className="truncate"
+            style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: 600, marginTop: 1 }}
+          >
+            {selected}
+          </p>
+        </div>
+        <ChevronDown
+          size={16}
+          style={{
+            color: 'var(--muted-foreground)',
+            transform: open ? 'rotate(180deg)' : undefined,
+            transition: 'transform 0.15s',
+            flexShrink: 0,
+          }}
+        />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.15 }}
+            className="absolute left-0 right-0 top-[calc(100%+6px)] z-40 rounded-2xl overflow-hidden max-h-56 overflow-y-auto"
+            style={{
+              background: 'var(--card)',
+              border: '1px solid var(--border)',
+              boxShadow: '0 16px 40px rgba(0,0,0,0.35)',
+            }}
+          >
+            {options.map((o) => {
+              const active = o.id === value;
+              return (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => {
+                    onChange(o.id);
+                    setOpen(false);
+                  }}
+                  className="w-full flex items-center justify-between gap-2 px-3.5 py-2.5 text-left"
+                  style={{
+                    background: active ? 'var(--muted)' : 'transparent',
+                    borderBottom: '1px solid var(--border)',
+                  }}
+                >
+                  <span style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: active ? 700 : 500 }}>
+                    {o.label}
+                  </span>
+                  {active && <Check size={14} style={{ color: 'var(--primary)' }} />}
+                </button>
+              );
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -131,7 +190,6 @@ interface Props {
   goBack: () => void;
 }
 
-/** Activity history with type + status dropdown filters. */
 export function HistoryScreen({ goBack }: Props) {
   const { format } = useCurrency();
   const { data, loading } = useTransactions(80);
@@ -140,14 +198,15 @@ export function HistoryScreen({ goBack }: Props) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
   const all = useMemo(() => filterHistoryForUi(data.map(apiTxToUi)), [data]);
-
-  const filtered = useMemo(() => {
-    return all.filter((tx) => {
-      if (typeFilter !== 'all' && tx.type !== typeFilter) return false;
-      if (statusFilter !== 'all' && tx.status !== statusFilter) return false;
-      return true;
-    });
-  }, [all, typeFilter, statusFilter]);
+  const filtered = useMemo(
+    () =>
+      all.filter((tx) => {
+        if (typeFilter !== 'all' && tx.type !== typeFilter) return false;
+        if (statusFilter !== 'all' && tx.status !== statusFilter) return false;
+        return true;
+      }),
+    [all, typeFilter, statusFilter],
+  );
 
   const groups = useMemo(() => {
     const map = new Map<string, Transaction[]>();
@@ -156,10 +215,7 @@ export function HistoryScreen({ goBack }: Props) {
       if (!map.has(k)) map.set(k, []);
       map.get(k)!.push(tx);
     }
-    return GROUP_ORDER.filter((g) => map.has(g)).map((g) => ({
-      title: g,
-      items: map.get(g)!,
-    }));
+    return GROUP_ORDER.filter((g) => map.has(g)).map((g) => ({ title: g, items: map.get(g)! }));
   }, [filtered]);
 
   const filtersOn = typeFilter !== 'all' || statusFilter !== 'all';
@@ -179,14 +235,9 @@ export function HistoryScreen({ goBack }: Props) {
         >
           <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
         </motion.button>
-        <div className="flex-1 min-w-0">
-          <h1 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22, lineHeight: 1.1 }}>
-            History
-          </h1>
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 2 }}>
-            {loading ? 'Loading…' : `${filtered.length} transaction${filtered.length === 1 ? '' : 's'}`}
-          </p>
-        </div>
+        <h1 className="flex-1" style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22 }}>
+          History
+        </h1>
         {filtersOn && (
           <button
             type="button"
@@ -201,16 +252,10 @@ export function HistoryScreen({ goBack }: Props) {
         )}
       </div>
 
-      {/* Dropdown filters */}
-      <div className="flex gap-2.5 px-5 mb-4">
-        <FilterSelect
-          ariaLabel="Filter by type"
-          value={typeFilter}
-          onChange={setTypeFilter}
-          options={TYPE_OPTIONS}
-        />
-        <FilterSelect
-          ariaLabel="Filter by status"
+      <div className="flex gap-2.5 px-5 mb-4 relative z-30">
+        <DropdownFilter label="Type" value={typeFilter} onChange={setTypeFilter} options={TYPE_OPTIONS} />
+        <DropdownFilter
+          label="Status"
           value={statusFilter}
           onChange={setStatusFilter}
           options={STATUS_OPTIONS}
@@ -289,9 +334,7 @@ export function HistoryScreen({ goBack }: Props) {
                           ? `${tx.asset || '—'} → ${tx.assetTo || '—'}`
                           : `${m.label}${tx.asset ? ` · ${tx.asset}` : ''}`}
                       </p>
-                      <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 2 }}>
-                        {tx.time}
-                      </p>
+                      <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 2 }}>{tx.time}</p>
                     </div>
                     <div className="text-right flex-shrink-0 pl-2">
                       <p

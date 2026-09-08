@@ -259,22 +259,18 @@ export function TransactionReceipt({ tx, open, onClose }: TransactionReceiptProp
             style={{ background: 'rgba(0,0,0,0.6)' }}
           />
           <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-            className="absolute bottom-0 left-0 right-0 z-50 rounded-t-[24px] overflow-hidden flex flex-col"
-            style={{ background: 'var(--card)', borderTop: '1px solid var(--border)', maxHeight: 'min(78dvh, 640px)' }}
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 340 }}
+            className="absolute inset-0 z-50 flex flex-col"
+            style={{ background: 'var(--background)' }}
             role="dialog"
             aria-modal="true"
             aria-label="Transaction receipt"
           >
-            {/* Handle */}
-            <div className="w-10 h-1 rounded-full mx-auto mt-2.5 flex-shrink-0" style={{ background: 'var(--muted)' }} />
-
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 mt-2 mb-2 flex-shrink-0">
-              <h3 style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 16 }}>Receipt</h3>
+            <div className="flex items-center justify-between px-5 pb-2 flex-shrink-0" style={{ paddingTop: 'max(12px, env(safe-area-inset-top))' }}>
+              <h3 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20 }}>Receipt</h3>
               <button onClick={onClose} aria-label="Close" className="w-9 h-9 rounded-full flex items-center justify-center focus-visible:outline-none focus-visible:ring-2" style={{ background: 'var(--muted)' }}>
                 <X size={18} style={{ color: 'var(--foreground)' }} />
               </button>
@@ -282,16 +278,16 @@ export function TransactionReceipt({ tx, open, onClose }: TransactionReceiptProp
 
             <div className="flex-1 overflow-y-auto overscroll-contain">
             {/* Status + amount — compact */}
-            <div className="text-center px-5 mb-3">
-              <div className="flex items-center justify-center gap-1.5 mb-2">
-                <StatusIcon size={14} style={{ color: status.color }} />
-                <span style={{ color: status.color, fontSize: 12, fontWeight: 700 }}>{status.label}</span>
+            <div className="text-center px-5 mb-5 mt-2">
+              <div className="flex items-center justify-center gap-1.5 mb-3">
+                <StatusIcon size={16} style={{ color: status.color }} />
+                <span style={{ color: status.color, fontSize: 13, fontWeight: 700 }}>{status.label}</span>
               </div>
-              <div className="w-11 h-11 rounded-2xl flex items-center justify-center mx-auto mb-2" style={{ background: 'var(--muted)' }}>
-                <Icon size={22} style={{ color: meta.color }} strokeWidth={2} />
+              <div className="w-14 h-14 rounded-3xl flex items-center justify-center mx-auto mb-3" style={{ background: 'var(--muted)' }}>
+                <Icon size={28} style={{ color: meta.color }} strokeWidth={2} />
               </div>
-              <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginBottom: 2 }}>{meta.label}</p>
-              <p style={{ color: meta.color, fontSize: 26, fontWeight: 800, letterSpacing: -0.8 }}>
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginBottom: 4 }}>{meta.label}</p>
+              <p style={{ color: meta.color, fontSize: 32, fontWeight: 800, letterSpacing: -1 }}>
                 {meta.sign}{tx.amount} {tx.asset}
               </p>
               {tx.assetTo && (
@@ -370,7 +366,7 @@ export function TransactionReceipt({ tx, open, onClose }: TransactionReceiptProp
 
             </div>
             {/* Sticky actions */}
-            <div className="flex gap-2 px-5 pt-2 pb-5 flex-shrink-0" style={{ borderTop: '1px solid var(--border)', paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+            <div className="flex gap-2 px-5 pt-3 flex-shrink-0" style={{ borderTop: '1px solid var(--border)', background: 'var(--background)', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
               <button
                 onClick={() => void handleShare()}
                 disabled={shareState === 'busy'}
