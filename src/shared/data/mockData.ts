@@ -2,7 +2,7 @@ export type Screen =
   | 'onboarding' | 'pin-setup'
   | 'login' | 'signup' | 'forgot-password'
   | 'home' | 'wallet' | 'profile'
-  | 'deposit' | 'withdraw' | 'swap' | 'offramp' | 'onramp'
+  | 'deposit' | 'withdraw' | 'swap' | 'offramp' | 'onramp' | 'vault'
   | 'send' | 'request' | 'receive' | 'scan' | 'history' | 'notifications' | 'rewards'
   | 'settings' | 'security' | 'kyc' | 'chat' | 'portfolio'
   | 'help-center' | 'about' | 'support-center' | 'payment-methods' | 'services' | 'edit-profile';
@@ -23,7 +23,7 @@ export interface Asset {
 
 export interface Transaction {
   id: string;
-  type: 'send' | 'receive' | 'swap' | 'buy' | 'sell' | 'offramp' | 'onramp' | 'deposit' | 'withdraw';
+  type: 'send' | 'receive' | 'swap' | 'buy' | 'sell' | 'offramp' | 'onramp' | 'deposit' | 'withdraw' | 'vault_in' | 'vault_out';
   asset: string;
   assetTo?: string;
   amount: number;

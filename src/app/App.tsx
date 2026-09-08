@@ -22,6 +22,7 @@ import { OnRampScreen } from '../features/wallet/screens/OnRampScreen';
 import { DepositScreen } from '../features/wallet/screens/DepositScreen';
 import { WithdrawScreen } from '../features/wallet/screens/WithdrawScreen';
 import { HistoryScreen } from '../features/wallet/screens/HistoryScreen';
+import { VaultScreen } from '../features/wallet/screens/VaultScreen';
 import { PaymentMethodsScreen } from '../features/wallet/screens/PaymentMethodsScreen';
 
 import { ProfileScreen } from '../features/profile/screens/ProfileScreen';
@@ -212,6 +213,12 @@ export default function App() {
         return (
           <motion.div key="scan" {...slideRight} className="absolute inset-0">
             <ScanScreen goBack={goBack} navigate={navigate} />
+          </motion.div>
+        );
+      case 'vault':
+        return (
+          <motion.div key="vault" {...slideRight} className="absolute inset-0">
+            <VaultScreen goBack={goBack} />
           </motion.div>
         );
       case 'history':

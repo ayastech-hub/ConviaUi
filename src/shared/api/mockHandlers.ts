@@ -90,6 +90,40 @@ export function resolveMockResponse(method: string, path: string, body?: unknown
 
   // Soft-success mutations so flows complete offline
   if (m !== 'GET' && m !== 'HEAD') {
+    
+    if (pathname.includes('/vault/quote') || pathname.includes('/vault/execute')) {
+      const b = (body || {}) as Record<string, string>;
+      const amount = Number(b.amountNgn || b.amountUsd || b.amountStable || 100);
+      const rate = 1500;
+      const feeBps = 100; // 1%
+      const gross = b.amountNgn ? amount / rate : amount;
+      const fee = gross * (feeBps / 10000);
+      const net = gross - fee;
+      if (pathname.includes('/execute')) {
+        return {
+          ok: true,
+          ledgerTransactionId: `vault-tx-${Date.now()}`,
+          quoteId: b.quoteId || 'q-mock',
+          amountIn: String(amount),
+          amountOut: net.toFixed(2),
+          status: 'completed',
+        };
+      }
+      return {
+        quoteId: `q-${Date.now()}`,
+        side: 'ngn_to_vault',
+        amountIn: String(amount),
+        assetIn: b.amountNgn ? 'NGN' : 'USDT',
+        amountOut: net.toFixed(2),
+        assetOut: 'USDT',
+        rate: String(rate),
+        feeAmount: fee.toFixed(2),
+        feeAsset: 'USDT',
+        feeBps,
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      };
+    }
+
     if (pathname.includes('/swap')) {
       const b = (body || {}) as Record<string, string>;
       return {
@@ -121,7 +155,8 @@ export function resolveMockResponse(method: string, path: string, body?: unknown
       pathname.includes('/security') ||
       pathname.includes('/pin') ||
       pathname.includes('/send') ||
-      pathname.includes('/transfer')
+      pathname.includes('/transfer') ||
+      pathname.includes('/vault')
     ) {
       return {
         ok: true,
@@ -211,6 +246,39 @@ export function resolveMockResponse(method: string, path: string, body?: unknown
         payload: null,
       }));
     }
+    
+    if (pathname.includes('/vault/') && pathname.includes('/activity')) {
+      return {
+        items: [
+          {
+            id: 'v1',
+            type: 'vault_in',
+            amountUsd: '66.00',
+            amountNgn: '99000',
+            status: 'completed',
+            createdAt: new Date(Date.now() - 3600e3).toISOString(),
+          },
+          {
+            id: 'v2',
+            type: 'vault_out',
+            amountUsd: '20.00',
+            amountNgn: '30000',
+            status: 'completed',
+            createdAt: new Date(Date.now() - 86400e3).toISOString(),
+          },
+        ],
+      };
+    }
+    if (pathname.includes('/vault')) {
+      return {
+        totalUsd: '1240.00',
+        usdt: '800.00',
+        usdc: '440.00',
+        ngnEquivalent: '1860000',
+        rateNgnPerUsd: '1500',
+      };
+    }
+
     if (pathname.includes('/profiles/me') || pathname.includes('/profile')) {
       return profilePayload();
     }
