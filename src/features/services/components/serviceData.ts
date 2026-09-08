@@ -90,5 +90,19 @@ export const AMOUNTS: Record<string, number[]> = {
   betting: [10, 20, 50, 100],
 };
 
+/** Preset data plans for ServiceAmountInput */
+export const DATA_BUNDLES: { label: string; value: number; popular?: boolean }[] = [
+  { label: '1GB · 30 days', value: 3 },
+  { label: '2GB · 30 days', value: 5, popular: true },
+  { label: '5GB · 30 days', value: 10 },
+  { label: '10GB · 30 days', value: 18 },
+  { label: '20GB · 30 days', value: 30 },
+  { label: '50GB · 30 days', value: 60 },
+];
+
+/** Preset airtime amounts (USD-equivalent display) */
+export const AIRTIME_AMOUNTS = [1, 2, 5, 10, 20, 50];
+
 export const isBillService = (id: string) =>
   ['data', 'airtime', 'electricity', 'bills', 'betting'].includes(id);
+
