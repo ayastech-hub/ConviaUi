@@ -1,17 +1,18 @@
 import { motion } from 'motion/react';
-import { ArrowDownToLine, ArrowUpFromLine, CreditCard } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpFromLine, CreditCard, History } from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
 
 const ACTIONS: { label: string; screen: Screen; Icon: typeof ArrowDownToLine }[] = [
   { label: 'Deposit', screen: 'deposit', Icon: ArrowDownToLine },
   { label: 'Withdraw', screen: 'withdraw', Icon: ArrowUpFromLine },
   { label: 'Buy', screen: 'onramp', Icon: CreditCard },
+  { label: 'History', screen: 'history', Icon: History },
 ];
 
 /** Circular hub actions under the balance. */
 export function HubActions({ onNavigate }: { onNavigate: (s: Screen) => void }) {
   return (
-    <div className="flex justify-center gap-9 px-5 mb-7">
+    <div className="flex justify-center gap-6 px-5 mb-7">
       {ACTIONS.map((a) => (
         <motion.button
           key={a.label}

@@ -12,7 +12,6 @@ import { OnboardingScreen } from '../features/onboarding/screens/OnboardingScree
 import { AuthScreen } from '../features/auth/screens/AuthScreen';
 import { HomeScreen } from '../features/home/screens/HomeScreen';
 
-import { WalletScreen } from '../features/wallet/screens/WalletScreen';
 import { SendScreen } from '../features/wallet/screens/SendScreen';
 import { RequestMoneyScreen } from '../features/wallet/screens/RequestMoneyScreen';
 import { ReceiveScreen } from '../features/wallet/screens/ReceiveScreen';
@@ -22,7 +21,7 @@ import { OffRampScreen } from '../features/wallet/screens/OffRampScreen';
 import { OnRampScreen } from '../features/wallet/screens/OnRampScreen';
 import { DepositScreen } from '../features/wallet/screens/DepositScreen';
 import { WithdrawScreen } from '../features/wallet/screens/WithdrawScreen';
-import { PortfolioScreen } from '../features/wallet/screens/PortfolioScreen';
+import { HistoryScreen } from '../features/wallet/screens/HistoryScreen';
 import { PaymentMethodsScreen } from '../features/wallet/screens/PaymentMethodsScreen';
 
 import { ProfileScreen } from '../features/profile/screens/ProfileScreen';
@@ -214,6 +213,12 @@ export default function App() {
         return (
           <motion.div key="scan" {...slideRight} className="absolute inset-0">
             <ScanScreen goBack={goBack} navigate={navigate} />
+          </motion.div>
+        );
+      case 'history':
+        return (
+          <motion.div key="history" {...slideRight} className="absolute inset-0">
+            <HistoryScreen goBack={goBack} />
           </motion.div>
         );
       case 'swap':

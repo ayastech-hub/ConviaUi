@@ -23,7 +23,7 @@ function splitAmount(n: number, decimals: number) {
 
 /**
  * Enterprise wallet hero.
- * Currency picker sits ABOVE the digits; code/symbol uses muted/primary,
+ * Currency picker sits ABOVE the digits; code/symbol uses muted white,
  * the number uses high-contrast tabular figures.
  */
 export function CenteredBalance({ balanceVisible, onToggle }: Props) {
@@ -114,7 +114,7 @@ export function CenteredBalance({ balanceVisible, onToggle }: Props) {
             <>
               <span
                 style={{
-                  color: 'var(--primary)',
+                  color: 'var(--muted-foreground)',
                   fontSize: 22,
                   fontWeight: 600,
                   marginRight: 6,
