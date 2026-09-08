@@ -183,7 +183,6 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
       <PageTop />
       <div className="px-5 pt-2">
-        <WalletFeatureBanner feature="onramp" />
         <GateHint mode="onramp" />
         {apiError && (
           <FeatureAlert

@@ -85,7 +85,6 @@ export function OffRampScreen({ goBack, navigate }: OffRampScreenProps) {
       <PageTop />
       <div className="px-5 pt-2">
         <GateHint mode="offramp" />
-        <WalletFeatureBanner feature="offramp" onGoKyc={() => navigate('kyc')} />
         {apiError && (
           <FeatureAlert reason={mapApiCodeToReason(apiError.code)} message={apiError.message} detail={apiError.code} />
         )}

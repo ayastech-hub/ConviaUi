@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Clock, Loader2, ChevronDown, Shield } from 'lucide-react';
+import { ChevronDown, Loader2 } from 'lucide-react';
 import type { Asset } from '../../../../shared/data/mockData';
 import type { Currency } from '../../../../shared/context/CurrencyContext';
 import type { SavedCard } from '../../../../shared/context/PaymentMethodsContext';
@@ -37,10 +37,10 @@ interface OnRampFormStepProps {
   onPreview: () => void;
 }
 
-const QUICK_LOCAL = [1000, 5000, 10000, 25000, 50000];
-const QUICK_USD = [5, 10, 25, 50, 100];
+const QUICK_LOCAL = [5000, 10000, 25000, 50000];
+const QUICK_USD = [10, 25, 50, 100];
 
-/** Enterprise Buy form — large amount hero, quote card, payment rails. */
+/** Buy form — amount, asset, quote, payment. No marketing copy. */
 export function OnRampFormStep({
   currency,
   format,
@@ -48,7 +48,6 @@ export function OnRampFormStep({
   setAmount,
   amountMode,
   setAmountMode,
-  usdAmount,
   rampAssets,
   selectedAsset,
   setSelectedAsset,
@@ -70,47 +69,40 @@ export function OnRampFormStep({
   quoting,
   onPreview,
 }: OnRampFormStepProps) {
-  const payLabel = amountMode === 'usd' ? 'USD' : currency.code;
   const paySymbol = amountMode === 'usd' ? '$' : currency.symbol;
   const quick = amountMode === 'usd' ? QUICK_USD : QUICK_LOCAL;
   const canContinue = Number(amount) > 0 && !quoting && !!quote;
 
-  const rateLine =
-    quote && Number(quote.rate || 0) > 0
-      ? `1 ${selectedAsset.symbol} ≈ ${Number(quote.rate).toLocaleString(undefined, { maximumFractionDigits: 4 })} ${quote.fiatCurrency || currency.code}`
-      : null;
-
   return (
-    <motion.div key="form" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="pb-28">
-      {/* Trust strip */}
+    <motion.div
+      key="form"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      className="pb-28"
+    >
+      {/* Amount */}
       <div
-        className="flex items-center gap-2 px-3 py-2.5 rounded-xl mb-5"
-        style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
-      >
-        <Shield size={14} style={{ color: 'var(--primary)' }} />
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
-          Bank-grade checkout · funds credited after payment confirms
-        </p>
-      </div>
-
-      {/* Amount hero */}
-      <div
-        className="rounded-[20px] p-5 mb-4"
+        className="rounded-[24px] p-5 mb-3"
         style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
       >
-        <div className="flex items-center justify-between mb-3">
-          <span style={{ color: 'var(--muted-foreground)', fontSize: 13, fontWeight: 500 }}>You pay</span>
+        <div className="flex items-center justify-between mb-4">
+          <span style={{ color: 'var(--muted-foreground)', fontSize: 13, fontWeight: 600 }}>You pay</span>
           <div className="flex rounded-full p-0.5" style={{ background: 'var(--muted)' }}>
             {(['fiat', 'usd'] as const).map((m) => (
               <button
                 key={m}
                 type="button"
-                onClick={() => setAmountMode(m)}
-                className="px-3 py-1 rounded-full text-xs font-semibold"
+                onClick={() => {
+                  setAmountMode(m);
+                  setAmount('');
+                }}
+                className="px-3 py-1 rounded-full"
                 style={{
+                  fontSize: 12,
+                  fontWeight: 600,
                   background: amountMode === m ? 'var(--card)' : 'transparent',
                   color: amountMode === m ? 'var(--foreground)' : 'var(--muted-foreground)',
-                  boxShadow: amountMode === m ? '0 1px 4px rgba(0,0,0,0.15)' : undefined,
                 }}
               >
                 {m === 'usd' ? 'USD' : currency.code}
@@ -119,7 +111,7 @@ export function OnRampFormStep({
           </div>
         </div>
 
-        <div className="flex items-baseline gap-2 mb-2">
+        <div className="flex items-baseline gap-2">
           <span style={{ color: 'var(--muted-foreground)', fontSize: 28, fontWeight: 600 }}>{paySymbol}</span>
           <input
             type="text"
@@ -127,7 +119,7 @@ export function OnRampFormStep({
             placeholder="0"
             value={amount}
             onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
-            className="flex-1 bg-transparent outline-none min-w-0"
+            className="flex-1 bg-transparent outline-none min-w-0 tabular-nums"
             style={{
               color: amount ? 'var(--foreground)' : 'var(--muted-foreground)',
               fontSize: 40,
@@ -137,137 +129,107 @@ export function OnRampFormStep({
           />
         </div>
 
-        {amountMode === 'usd' && Number(amount) > 0 && (
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
-            ≈ {format(Number(amount) * currency.rate)} charged in {currency.code}
-          </p>
-        )}
-        {amountMode === 'fiat' && Number(amount) > 0 && (
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
-            ≈ ${usdAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD
-          </p>
-        )}
-
-        <div className="flex flex-wrap gap-2 mt-4">
-          {quick.map((q) => (
+        <div className="flex gap-2 mt-4">
+          {quick.map((n) => (
             <button
-              key={q}
+              key={n}
               type="button"
-              onClick={() => setAmount(String(q))}
-              className="px-3.5 py-1.5 rounded-full"
+              onClick={() => setAmount(String(n))}
+              className="flex-1 py-2 rounded-full tabular-nums"
               style={{
-                background: amount === String(q) ? 'var(--primary)' : 'var(--muted)',
-                color: amount === String(q) ? 'var(--primary-foreground, #fff)' : 'var(--foreground)',
+                background: amount === String(n) ? 'var(--foreground)' : 'var(--muted)',
+                color: amount === String(n) ? 'var(--background)' : 'var(--foreground)',
                 fontSize: 12,
                 fontWeight: 600,
+                border: amount === String(n) ? 'none' : '1px solid var(--border)',
               }}
             >
-              {amountMode === 'usd' ? `$${q}` : `${currency.symbol}${Number(q).toLocaleString()}`}
+              {amountMode === 'usd' ? `$${n}` : `${currency.symbol}${n >= 1000 ? `${n / 1000}k` : n}`}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Receive token */}
-      <div className="mb-4">
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 13, fontWeight: 500 }} className="mb-2 px-0.5">
-          You receive
-        </p>
-        <button
-          type="button"
-          onClick={() => setShowTokenDropdown(!showTokenDropdown)}
-          className="w-full flex items-center gap-3 p-4 rounded-[16px] text-left"
+      {/* Asset */}
+      <button
+        type="button"
+        onClick={() => setShowTokenDropdown(!showTokenDropdown)}
+        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-[20px] mb-3 text-left"
+        style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+      >
+        <AssetIcon symbol={selectedAsset.symbol} size={36} />
+        <div className="flex-1 min-w-0">
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 600 }}>You receive</p>
+          <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 15 }}>{selectedAsset.symbol}</p>
+        </div>
+        <ChevronDown size={16} style={{ color: 'var(--muted-foreground)' }} />
+      </button>
+
+      {showTokenDropdown && (
+        <div
+          className="mb-3 rounded-[20px] overflow-hidden max-h-52 overflow-y-auto"
           style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
         >
-          <AssetIcon symbol={selectedAsset.symbol} size={40} />
-          <div className="flex-1 min-w-0">
-            <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 15 }}>{selectedAsset.symbol}</p>
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>{selectedAsset.name}</p>
-          </div>
-          <div className="text-right mr-1">
-            <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 16 }}>
-              {quoting ? '…' : youGet > 0 ? youGet.toLocaleString(undefined, { maximumFractionDigits: 6 }) : '0'}
-            </p>
-          </div>
-          <ChevronDown size={16} style={{ color: 'var(--muted-foreground)' }} />
-        </button>
-
-        {showTokenDropdown && (
-          <div
-            className="mt-2 rounded-[16px] overflow-hidden max-h-48 overflow-y-auto"
-            style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-          >
-            {rampAssets.map((a) => (
-              <button
-                key={a.id}
-                type="button"
-                onClick={() => {
-                  setSelectedAsset(a);
-                  setShowTokenDropdown(false);
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left"
-                style={{
-                  background: a.id === selectedAsset.id ? 'var(--muted)' : 'transparent',
-                  borderBottom: '1px solid var(--border)',
-                }}
-              >
-                <AssetIcon symbol={a.symbol} size={32} />
-                <div>
-                  <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>{a.symbol}</p>
-                  <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>{a.name}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Quote breakdown */}
-      {Number(amount) > 0 && (
-        <div
-          className="rounded-[16px] p-4 mb-4 space-y-2.5"
-          style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
-        >
-          {quoting && (
-            <div className="flex items-center gap-2">
-              <Loader2 size={14} className="animate-spin" style={{ color: 'var(--muted-foreground)' }} />
-              <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Fetching live quote…</span>
-            </div>
-          )}
-          {!quoting && !quote && (
-            <p style={{ color: 'var(--destructive)', fontSize: 13 }}>Quote unavailable — try again shortly</p>
-          )}
-          {quote && !quoting && (
-            <>
-              {rateLine && (
-                <div className="flex justify-between">
-                  <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>Rate</span>
-                  <span style={{ color: 'var(--foreground)', fontSize: 12, fontWeight: 600 }}>{rateLine}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>Network / service fee</span>
-                <span style={{ color: 'var(--foreground)', fontSize: 12, fontWeight: 600 }}>
-                  {fee > 0 ? format(fee) : 'Included'}
-                </span>
-              </div>
-              <div
-                className="flex justify-between pt-2"
-                style={{ borderTop: '1px solid var(--border)' }}
-              >
-                <span style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: 600 }}>You receive</span>
-                <span style={{ color: 'var(--primary)', fontSize: 14, fontWeight: 700 }}>
-                  {youGet.toLocaleString(undefined, { maximumFractionDigits: 6 })} {selectedAsset.symbol}
-                </span>
-              </div>
-            </>
-          )}
-          <div className="flex items-center gap-1.5 pt-1">
-            <Clock size={12} style={{ color: 'var(--muted-foreground)' }} />
-            <span style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>Typical credit: a few minutes after payment</span>
-          </div>
+          {rampAssets.map((a, i) => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => {
+                setSelectedAsset(a);
+                setShowTokenDropdown(false);
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-left"
+              style={{
+                background: a.id === selectedAsset.id ? 'var(--muted)' : 'transparent',
+                borderBottom: i < rampAssets.length - 1 ? '1px solid var(--border)' : 'none',
+              }}
+            >
+              <AssetIcon symbol={a.symbol} size={32} />
+              <span style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>{a.symbol}</span>
+            </button>
+          ))}
         </div>
       )}
+
+      {/* Quote */}
+      <div
+        className="rounded-[20px] px-4 py-3.5 mb-4 space-y-2.5"
+        style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+      >
+        {quoting && (
+          <div className="flex items-center gap-2 py-1">
+            <Loader2 size={14} className="animate-spin" style={{ color: 'var(--muted-foreground)' }} />
+            <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Getting quote…</span>
+          </div>
+        )}
+        {!quoting && (
+          <>
+            {quote?.rate != null && (
+              <div className="flex justify-between">
+                <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Rate</span>
+                <span className="tabular-nums" style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: 600 }}>
+                  1 {selectedAsset.symbol} ≈ {Number(quote.rate).toLocaleString(undefined, { maximumFractionDigits: 2 })}{' '}
+                  {quote.fiatCurrency || currency.code}
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Fee</span>
+              <span className="tabular-nums" style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: 600 }}>
+                {fee > 0 ? format(fee) : '—'}
+              </span>
+            </div>
+            <div className="flex justify-between pt-2" style={{ borderTop: '1px solid var(--border)' }}>
+              <span style={{ color: 'var(--foreground)', fontSize: 14, fontWeight: 700 }}>You receive</span>
+              <span className="tabular-nums" style={{ color: 'var(--primary)', fontSize: 15, fontWeight: 800 }}>
+                {youGet > 0
+                  ? `${youGet.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${selectedAsset.symbol}`
+                  : `0 ${selectedAsset.symbol}`}
+              </span>
+            </div>
+          </>
+        )}
+      </div>
 
       <PaymentMethodSelector
         method={paymentMethod}
@@ -282,7 +244,6 @@ export function OnRampFormStep({
         onAddCard={onAddCard}
       />
 
-      {/* Sticky CTA */}
       <div
         className="fixed bottom-0 left-0 right-0 z-30 px-5 pt-3"
         style={{
@@ -304,13 +265,7 @@ export function OnRampFormStep({
             fontSize: 16,
           }}
         >
-          {!Number(amount)
-            ? 'Enter an amount'
-            : quoting
-              ? 'Getting quote…'
-              : !quote
-                ? 'Quote unavailable'
-                : 'Continue'}
+          {!Number(amount) ? 'Enter amount' : quoting ? 'Getting quote…' : !quote ? 'Quote unavailable' : 'Continue'}
         </motion.button>
       </div>
     </motion.div>

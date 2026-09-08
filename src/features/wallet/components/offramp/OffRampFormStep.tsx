@@ -1,27 +1,24 @@
 import { motion } from 'motion/react';
-import { Clock, ChevronDown, Shield } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import type { Asset } from '../../../../shared/data/mockData';
 import type { Currency } from '../../../../shared/context/CurrencyContext';
-import type { BankAccount } from '../../../../shared/context/PaymentMethodsContext';
+import type { BankAccount } from '../../../../shared/api/banks';
 import { AssetIcon } from '../../../../shared/components/AssetIcon';
-import { PayoutAccountSelector } from './PayoutAccountSelector';
-
-const QUICK_AMOUNTS = ['25', '50', '100', '250'];
 
 interface OffRampFormStepProps {
   currency: Currency;
   format: (n: number) => string;
+  amount: string;
+  setAmount: (v: string) => void;
   stablecoins: Asset[];
   selectedAsset: Asset;
   setSelectedAsset: (a: Asset) => void;
   showTokenDropdown: boolean;
   setShowTokenDropdown: (v: boolean) => void;
-  amount: string;
-  setAmount: (v: string) => void;
   compatibleAccounts: BankAccount[];
   selectedAccountId: string | null;
-  setSelectedAccountId: (id: string) => void;
-  selectedAccount?: BankAccount;
+  setSelectedAccountId: (id: string | null) => void;
+  selectedAccount: BankAccount | undefined;
   showAccountDropdown: boolean;
   setShowAccountDropdown: (v: boolean) => void;
   onAddAccount: () => void;
@@ -30,17 +27,19 @@ interface OffRampFormStepProps {
   onPreview: () => void;
 }
 
-/** Enterprise Sell form — crypto out, fiat in, bank payout. */
+const QUICK_PCT = [0.25, 0.5, 0.75, 1];
+
+/** Sell form — amount, asset, bank, quote. No marketing copy. */
 export function OffRampFormStep({
   currency,
   format,
+  amount,
+  setAmount,
   stablecoins,
   selectedAsset,
   setSelectedAsset,
   showTokenDropdown,
   setShowTokenDropdown,
-  amount,
-  setAmount,
   compatibleAccounts,
   selectedAccountId,
   setSelectedAccountId,
@@ -52,34 +51,34 @@ export function OffRampFormStep({
   youGet,
   onPreview,
 }: OffRampFormStepProps) {
-  const canContinue = Number(amount) > 0 && Number(amount) <= selectedAsset.balance && !!selectedAccountId;
+  const bal = selectedAsset.balance || 0;
+  const over = Number(amount) > bal && Number(amount) > 0;
+  const canContinue = Number(amount) > 0 && !over && !!selectedAccountId;
+
+  const bankLine = selectedAccount
+    ? `${selectedAccount.bankName || 'Bank'} · ${(selectedAccount.accountNumber || selectedAccount.last4 || '').toString().slice(-4)}`
+    : 'Select bank account';
 
   return (
-    <motion.div key="form" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="pb-28">
+    <motion.div
+      key="form"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      className="pb-28"
+    >
       <div
-        className="flex items-center gap-2 px-3 py-2.5 rounded-xl mb-5"
-        style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
-      >
-        <Shield size={14} style={{ color: 'var(--primary)' }} />
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
-          Payout to your verified bank account · KYC required
-        </p>
-      </div>
-
-      {/* Sell amount */}
-      <div
-        className="rounded-[20px] p-5 mb-4"
+        className="rounded-[24px] p-5 mb-3"
         style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
       >
-        <div className="flex items-center justify-between mb-3">
-          <span style={{ color: 'var(--muted-foreground)', fontSize: 13, fontWeight: 500 }}>You sell</span>
+        <div className="flex items-center justify-between mb-4">
+          <span style={{ color: 'var(--muted-foreground)', fontSize: 13, fontWeight: 600 }}>You sell</span>
           <button
             type="button"
-            onClick={() => setAmount(String(selectedAsset.balance))}
+            onClick={() => setAmount(String(bal))}
             style={{ color: 'var(--primary)', fontSize: 12, fontWeight: 700 }}
           >
-            MAX · {selectedAsset.balance.toLocaleString(undefined, { maximumFractionDigits: 4 })}{' '}
-            {selectedAsset.symbol}
+            Max · {bal.toLocaleString(undefined, { maximumFractionDigits: 4 })}
           </button>
         </div>
 
@@ -87,12 +86,10 @@ export function OffRampFormStep({
           <button
             type="button"
             onClick={() => setShowTokenDropdown(!showTokenDropdown)}
-            className="flex items-center gap-2 shrink-0"
+            className="flex items-center gap-2 flex-shrink-0"
           >
             <AssetIcon symbol={selectedAsset.symbol} size={36} />
-            <span style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 16 }}>
-              {selectedAsset.symbol}
-            </span>
+            <span style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 16 }}>{selectedAsset.symbol}</span>
             <ChevronDown size={14} style={{ color: 'var(--muted-foreground)' }} />
           </button>
           <input
@@ -101,79 +98,75 @@ export function OffRampFormStep({
             placeholder="0"
             value={amount}
             onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
-            className="flex-1 bg-transparent outline-none text-right min-w-0"
+            className="flex-1 bg-transparent outline-none text-right min-w-0 tabular-nums"
             style={{
               color: amount ? 'var(--foreground)' : 'var(--muted-foreground)',
               fontSize: 36,
               fontWeight: 700,
-              letterSpacing: -0.5,
+              letterSpacing: -1,
             }}
           />
         </div>
 
-        {Number(amount) > selectedAsset.balance && (
-          <p className="mt-2" style={{ color: 'var(--destructive)', fontSize: 12 }}>
-            Amount exceeds available balance
+        {over && (
+          <p className="mt-2" style={{ color: 'var(--destructive)', fontSize: 12, fontWeight: 600 }}>
+            Exceeds available balance
           </p>
         )}
 
-        <div className="flex flex-wrap gap-2 mt-4">
-          {QUICK_AMOUNTS.map((q) => (
-            <button
-              key={q}
-              type="button"
-              onClick={() => setAmount(q)}
-              className="px-3.5 py-1.5 rounded-full"
-              style={{
-                background: amount === q ? 'var(--primary)' : 'var(--muted)',
-                color: amount === q ? 'var(--primary-foreground, #fff)' : 'var(--foreground)',
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              {q}
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => setAmount(String(selectedAsset.balance))}
-            className="px-3.5 py-1.5 rounded-full"
-            style={{
-              background: 'var(--muted)',
-              color: 'var(--foreground)',
-              fontSize: 12,
-              fontWeight: 600,
-            }}
-          >
-            Max
-          </button>
+        <div className="flex gap-2 mt-4">
+          {QUICK_PCT.map((p) => {
+            const v = bal * p;
+            const label = p === 1 ? 'Max' : `${p * 100}%`;
+            const active =
+              (p === 1 && amount === String(bal)) ||
+              (p !== 1 && amount === String(Number(v.toFixed(6))));
+            return (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setAmount(p === 1 ? String(bal) : String(Number(v.toFixed(6))))}
+                className="flex-1 py-2 rounded-full"
+                style={{
+                  background: active ? 'var(--foreground)' : 'var(--muted)',
+                  color: active ? 'var(--background)' : 'var(--foreground)',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  border: active ? 'none' : '1px solid var(--border)',
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {showTokenDropdown && (
         <div
-          className="mb-4 rounded-[16px] overflow-hidden max-h-48 overflow-y-auto"
+          className="mb-3 rounded-[20px] overflow-hidden max-h-52 overflow-y-auto"
           style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
         >
-          {stablecoins.map((a) => (
+          {stablecoins.map((a, i) => (
             <button
               key={a.id}
               type="button"
               onClick={() => {
                 setSelectedAsset(a);
                 setShowTokenDropdown(false);
+                setAmount('');
               }}
               className="w-full flex items-center gap-3 px-4 py-3 text-left"
               style={{
                 background: a.id === selectedAsset.id ? 'var(--muted)' : 'transparent',
-                borderBottom: '1px solid var(--border)',
+                borderBottom: i < stablecoins.length - 1 ? '1px solid var(--border)' : 'none',
               }}
             >
               <AssetIcon symbol={a.symbol} size={32} />
               <div className="flex-1">
                 <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>{a.symbol}</p>
-                <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>
-                  Bal {a.balance.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                <p className="tabular-nums" style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>
+                  {a.balance.toLocaleString(undefined, { maximumFractionDigits: 4 })}
                 </p>
               </div>
             </button>
@@ -181,49 +174,86 @@ export function OffRampFormStep({
         </div>
       )}
 
-      {/* You receive fiat */}
+      {/* Bank */}
+      <button
+        type="button"
+        onClick={() => {
+          if (!compatibleAccounts.length) {
+            onAddAccount();
+            return;
+          }
+          setShowAccountDropdown(!showAccountDropdown);
+        }}
+        className="w-full flex items-center justify-between px-4 py-3.5 rounded-[20px] mb-3 text-left"
+        style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+      >
+        <div>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 600 }}>Payout to</p>
+          <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14, marginTop: 2 }}>{bankLine}</p>
+        </div>
+        <ChevronDown size={16} style={{ color: 'var(--muted-foreground)' }} />
+      </button>
+
+      {showAccountDropdown && (
+        <div
+          className="mb-3 rounded-[20px] overflow-hidden"
+          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+        >
+          {compatibleAccounts.map((a, i) => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => {
+                setSelectedAccountId(a.id);
+                setShowAccountDropdown(false);
+              }}
+              className="w-full px-4 py-3 text-left"
+              style={{
+                background: a.id === selectedAccountId ? 'var(--muted)' : 'transparent',
+                borderBottom: i < compatibleAccounts.length - 1 ? '1px solid var(--border)' : 'none',
+              }}
+            >
+              <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>
+                {a.bankName || 'Bank'}
+              </p>
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
+                •••• {(a.accountNumber || a.last4 || '').toString().slice(-4)}
+              </p>
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => {
+              setShowAccountDropdown(false);
+              onAddAccount();
+            }}
+            className="w-full px-4 py-3 text-left"
+            style={{ color: 'var(--primary)', fontWeight: 600, fontSize: 13 }}
+          >
+            Add bank account
+          </button>
+        </div>
+      )}
+
       <div
-        className="rounded-[16px] p-4 mb-4 space-y-2.5"
+        className="rounded-[20px] px-4 py-3.5 mb-4 space-y-2.5"
         style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
       >
         <div className="flex justify-between">
-          <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>Est. fee (~1.5%)</span>
-          <span style={{ color: 'var(--foreground)', fontSize: 12, fontWeight: 600 }}>
+          <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Fee</span>
+          <span className="tabular-nums" style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: 600 }}>
             {fee > 0 ? format(fee) : '—'}
           </span>
         </div>
         <div className="flex justify-between pt-2" style={{ borderTop: '1px solid var(--border)' }}>
-          <span style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: 600 }}>You receive</span>
-          <span style={{ color: 'var(--primary)', fontSize: 15, fontWeight: 700 }}>
+          <span style={{ color: 'var(--foreground)', fontSize: 14, fontWeight: 700 }}>You receive</span>
+          <span className="tabular-nums" style={{ color: 'var(--primary)', fontSize: 15, fontWeight: 800 }}>
             {youGet > 0
               ? `${currency.symbol}${youGet.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
               : `${currency.symbol}0`}
           </span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <Clock size={12} style={{ color: 'var(--muted-foreground)' }} />
-          <span style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>
-            Bank transfer usually 1–2 business days
-          </span>
-        </div>
       </div>
-
-      <p style={{ color: 'var(--muted-foreground)', fontSize: 13, fontWeight: 500 }} className="mb-2 px-0.5">
-        Payout account
-      </p>
-      <PayoutAccountSelector
-        currencyCode={currency.code}
-        compatibleAccounts={compatibleAccounts}
-        selectedAccount={selectedAccount}
-        open={showAccountDropdown}
-        onToggle={() => setShowAccountDropdown(!showAccountDropdown)}
-        onSelect={(id) => {
-          setSelectedAccountId(id);
-          setShowAccountDropdown(false);
-        }}
-        onAddAccount={onAddAccount}
-        onClose={() => setShowAccountDropdown(false)}
-      />
 
       <div
         className="fixed bottom-0 left-0 right-0 z-30 px-5 pt-3"
@@ -247,11 +277,11 @@ export function OffRampFormStep({
           }}
         >
           {!Number(amount)
-            ? 'Enter an amount'
-            : Number(amount) > selectedAsset.balance
+            ? 'Enter amount'
+            : over
               ? 'Insufficient balance'
               : !selectedAccountId
-                ? 'Add a bank account'
+                ? 'Select bank account'
                 : 'Continue'}
         </motion.button>
       </div>
