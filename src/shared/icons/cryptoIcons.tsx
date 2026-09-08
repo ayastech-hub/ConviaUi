@@ -1,152 +1,124 @@
+import { useState, useMemo, type CSSProperties } from 'react';
+
+type AssetIconProps = {
+  /** Numerical Chain ID (e.g., 1 = Ethereum, 8453 = Base, 137 = Polygon) */
+  chainId?: number;
+  /** Smart contract address (0x...). Leave blank or use 'native' for native gas tokens (ETH, SOL, BTC) */
+  contractAddress?: string;
+  /** Ticker symbol used for local hardcoded SVG overrides and letter fallback */
+  symbol: string;
+  size?: number;
+  className?: string;
+  style?: CSSProperties;
+};
+
+// TrustWallet mapped blockchain slugs (uses Chain IDs for exact precision)
+const CHAIN_SLUG_MAP: Record<number, string> = {
+  1: 'ethereum',
+  10: 'optimism',
+  56: 'smartchain',
+  137: 'polygon',
+  8453: 'base',
+  42161: 'arbitrum',
+  43114: 'avalanchec',
+};
+
+// TrustWallet mapped native coin slugs
+const NATIVE_COIN_MAP: Record<string, string> = {
+  BTC: 'bitcoin',
+  ETH: 'ethereum',
+  BNB: 'binance',
+  SOL: 'solana',
+  TRX: 'tron',
+  MATIC: 'polygon',
+  POL: 'polygon',
+};
+
 /**
- * Canonical token + chain logos for Convia.
- * Import AssetIcon / ChainIcon everywhere — no blank letter badges for known assets.
- *
- * Real, official brand marks are pulled from CDN sources rather than hand-drawn,
- * so the icons stay pixel-accurate to each project's actual logo:
- *   - Coins:  cryptocurrency-icons (CC0)  → https://github.com/atomiclabs/cryptocurrency-icons
- *   - Chains: simple-icons (CC0)          → https://simpleicons.org
- * Both are widely used, license-clean icon sets — no reverse-engineered paths.
+  Builds a CDN URL pointing to TrustWallet's official repo via jsDelivr CDN
  */
-import { useState, type CSSProperties } from 'react';
+function getAssetUrl(symbol: string, chainId?: number, address?: string): string | null {
+  const sym = symbol.toUpperCase();
 
-type SvgProps = { size?: number; className?: string; style?: CSSProperties };
+  // 1. ERC-20 / SPL / BEP-20 Tokens (via Chain ID & Contract Address)
+  if (chainId && address && address.toLowerCase() !== 'native') {
+    const chainSlug = CHAIN_SLUG_MAP[chainId];
+    if (chainSlug) {
+      // TrustWallet expects checksummed addresses for EVM chains
+      return `https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/${chainSlug}/assets/${address}/logo.png`;
+    }
+  }
 
-const CRYPTO_ICONS_VERSION = '0.18.1';
-const cryptoIconUrl = (slug: string) =>
-  `https://cdn.jsdelivr.net/npm/cryptocurrency-icons@${CRYPTO_ICONS_VERSION}/svg/color/${slug}.svg`;
+  // 2. Native Coins (BTC, ETH, SOL, etc.)
+  const nativeSlug = NATIVE_COIN_MAP[sym];
+  if (nativeSlug) {
+    return `https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/${nativeSlug}/info/logo.png`;
+  }
 
-// simple-icons CDN recolors the mark to the given hex — used for chains that
-// aren't "coins" (L2s, etc.) so they don't exist in cryptocurrency-icons.
-const simpleIconUrl = (slug: string, hex: string) => `https://cdn.simpleicons.org/${slug}/${hex}`;
+  return null;
+}
 
-/** symbol (as used in-app) -> cryptocurrency-icons slug */
-const TOKEN_SLUG: Record<string, string> = {
-  ETH: 'eth',
-  WETH: 'eth',
-  BTC: 'btc',
-  WBTC: 'btc',
-  USDT: 'usdt',
-  USDC: 'usdc',
-  SOL: 'sol',
-  TRX: 'trx',
-  BNB: 'bnb',
-  POL: 'matic', // POL is MATIC's rebrand; icon set hasn't caught up yet
-  MATIC: 'matic',
-  BUSD: 'busd',
-};
+export function AssetIcon({
+  symbol,
+  chainId,
+  contractAddress,
+  size = 32,
+  className,
+  style,
+}: AssetIconProps) {
+  const [hasError, setHasError] = useState(false);
 
-/** chainKey (lowercase, as used in-app) -> { source, slug/hex } */
-type ChainEntry = { kind: 'crypto'; slug: string } | { kind: 'simple'; slug: string; hex: string };
+  // Compute image URL once per prop change
+  const imageUrl = useMemo(() => {
+    setHasError(false);
+    return getAssetUrl(symbol, chainId, contractAddress);
+  }, [symbol, chainId, contractAddress]);
 
-const CHAIN_ENTRY: Record<string, ChainEntry> = {
-  ethereum: { kind: 'crypto', slug: 'eth' },
-  sepolia: { kind: 'crypto', slug: 'eth' },
-  bitcoin: { kind: 'crypto', slug: 'btc' },
-  solana: { kind: 'crypto', slug: 'sol' },
-  tron: { kind: 'crypto', slug: 'trx' },
-  bnb: { kind: 'crypto', slug: 'bnb' },
-  bsc: { kind: 'crypto', slug: 'bnb' },
-  polygon: { kind: 'crypto', slug: 'matic' },
-  base: { kind: 'simple', slug: 'base', hex: '0052FF' },
-  arbitrum: { kind: 'simple', slug: 'arbitrum', hex: '12AAFF' },
-};
+  // Fallback state: Render styled letter badge
+  if (!imageUrl || hasError) {
+    const displayChar = (symbol || '?').slice(0, 1).toUpperCase();
+    return (
+      <span
+        className={className}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: '50%',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#475569',
+          color: '#FFFFFF',
+          fontSize: size * 0.38,
+          fontWeight: 700,
+          userSelect: 'none',
+          flexShrink: 0,
+          ...style,
+        }}
+        title={symbol}
+      >
+        {displayChar}
+      </span>
+    );
+  }
 
-function letterFallback(label: string, size: number, bg: string) {
   return (
-    <span
+    <img
+      src={imageUrl}
+      alt={`${symbol} logo`}
+      width={size}
+      height={size}
+      className={className}
+      loading="lazy"
+      onError={() => setHasError(true)}
       style={{
         width: size,
         height: size,
         borderRadius: '50%',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: bg,
-        color: '#fff',
-        fontSize: size * 0.36,
-        fontWeight: 800,
+        objectFit: 'cover',
         flexShrink: 0,
+        ...style,
       }}
-    >
-      {(label || '?').slice(0, 1).toUpperCase()}
-    </span>
-  );
-}
-
-function LogoImg({
-  src,
-  alt,
-  size,
-  className,
-  style,
-  fallbackLabel,
-  fallbackBg,
-}: {
-  src: string;
-  alt: string;
-  size: number;
-  className?: string;
-  style?: CSSProperties;
-  fallbackLabel: string;
-  fallbackBg: string;
-}) {
-  const [errored, setErrored] = useState(false);
-
-  if (errored) return letterFallback(fallbackLabel, size, fallbackBg);
-
-  return (
-    <img
-      src={src}
-      alt={alt}
-      width={size}
-      height={size}
-      className={className}
-      style={{ width: size, height: size, borderRadius: '50%', flexShrink: 0, ...style }}
-      onError={() => setErrored(true)}
     />
   );
 }
-
-export function AssetIcon({ symbol, size = 32, className, style }: SvgProps & { symbol: string }) {
-  const key = (symbol || '').toUpperCase();
-  const slug = TOKEN_SLUG[key] ?? TOKEN_SLUG[key.replace(/^W/, '')]; // WETH/WBTC fallback
-
-  if (!slug) return letterFallback(symbol || '?', size, '#64748b');
-
-  return (
-    <LogoImg
-      src={cryptoIconUrl(slug)}
-      alt={symbol}
-      size={size}
-      className={className}
-      style={style}
-      fallbackLabel={symbol}
-      fallbackBg="#64748b"
-    />
-  );
-}
-
-export function ChainIcon({ chainKey, size = 28, className, style }: SvgProps & { chainKey: string }) {
-  const key = (chainKey || '').toLowerCase().replace(/\s+/g, '');
-  const entry = CHAIN_ENTRY[key];
-
-  if (!entry) return letterFallback(chainKey || '?', size, '#475569');
-
-  const src = entry.kind === 'crypto' ? cryptoIconUrl(entry.slug) : simpleIconUrl(entry.slug, entry.hex);
-
-  return (
-    <LogoImg
-      src={src}
-      alt={chainKey}
-      size={size}
-      className={className}
-      style={style}
-      fallbackLabel={chainKey}
-      fallbackBg="#475569"
-    />
-  );
-}
-
-export const KNOWN_TOKEN_SYMBOLS = Object.keys(TOKEN_SLUG);
-export const KNOWN_CHAIN_KEYS = Object.keys(CHAIN_ENTRY);
