@@ -175,7 +175,13 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
   return (
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
       <PageTop />
-      {/* Hub is a main tab — no back / no page title */}
+      {step === 'hub' && (
+        <div className="px-5 mb-2">
+          <h1 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22, letterSpacing: -0.3 }}>
+            More
+          </h1>
+        </div>
+      )}
       {step !== 'hub' && (
         <div className="flex items-center gap-3 px-5 mb-4">
           <motion.button
@@ -188,19 +194,14 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
               } else setStep('hub');
             }}
             className="w-10 h-10 rounded-2xl flex items-center justify-center"
-            style={{ background: 'var(--muted)' }}
+            style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
             aria-label="Back"
           >
             <ArrowLeft size={20} style={{ color: 'var(--foreground)' }} />
           </motion.button>
-          <div>
-            <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20 }}>
-              {step === 'success' ? t('common.done') : activeItem?.label || 'Service'}
-            </h2>
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
-              {step === 'success' ? 'Payment complete' : 'Choose provider & amount'}
-            </p>
-          </div>
+          <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20 }}>
+            {step === 'success' ? 'Done' : activeItem?.label || 'Service'}
+          </h2>
         </div>
       )}
 
