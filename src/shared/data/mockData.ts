@@ -50,7 +50,7 @@ export interface ChatContact {
 
 export interface Notification {
   id: string;
-  type: 'receive' | 'price' | 'security' | 'reward' | 'kyc';
+  type: string;
   title: string;
   body: string;
   time: string;
