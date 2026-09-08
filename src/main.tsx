@@ -8,7 +8,6 @@ import './styles/index.css';
  * Capture referral deep links:
  * - https://convia.app/ref/CODE
  * - https://convia.app/?ref=CODE
- * so registration can attach the code (no more blank 404 on /ref/* when the SPA hosts the domain).
  */
 function captureReferralFromUrl() {
   try {
@@ -18,7 +17,6 @@ function captureReferralFromUrl() {
     const code = (pathMatch?.[1] || q || '').trim();
     if (code) {
       localStorage.setItem('convia_ref', code);
-      // Normalize to home with query so refresh keeps the code without requiring a server route
       if (pathMatch && pathMatch[1]) {
         const url = new URL(window.location.href);
         url.pathname = '/';

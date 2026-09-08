@@ -106,9 +106,8 @@ const fadeIn = {
   transition: { duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] as const },
 };
 
+
 function initialScreen(): import('../shared/data/mockData').Screen {
-  // First browser visit → onboarding. Returning visitors skip straight to
-  // login (or home once AuthProvider hydrates a stored session).
   if (!hasSeenOnboarding()) return 'onboarding';
   try {
     const raw = localStorage.getItem('convia.session');
