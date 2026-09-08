@@ -144,37 +144,43 @@ export function OffRampFormStep({
 
       {showTokenDropdown && (
         <div
-          className="mb-3 rounded-[20px] overflow-hidden max-h-52 overflow-y-auto"
-          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+          className="fixed inset-0 z-40 flex items-end"
+          style={{ background: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setShowTokenDropdown(false)}
         >
-          {stablecoins.map((a, i) => (
-            <button
-              key={a.id}
-              type="button"
-              onClick={() => {
-                setSelectedAsset(a);
-                setShowTokenDropdown(false);
-                setAmount('');
-              }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-left"
-              style={{
-                background: a.id === selectedAsset.id ? 'var(--muted)' : 'transparent',
-                borderBottom: i < stablecoins.length - 1 ? '1px solid var(--border)' : 'none',
-              }}
-            >
-              <AssetIcon symbol={a.symbol} size={32} />
-              <div className="flex-1">
-                <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>{a.symbol}</p>
-                <p className="tabular-nums" style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>
-                  {a.balance.toLocaleString(undefined, { maximumFractionDigits: 4 })}
-                </p>
-              </div>
-            </button>
-          ))}
+          <div
+            className="w-full max-h-[50vh] overflow-y-auto rounded-t-[20px] px-4 pt-3 pb-8"
+            style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-9 h-1 rounded-full mx-auto mb-3" style={{ background: 'var(--border)' }} />
+            <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 15, marginBottom: 8 }}>Sell</p>
+            {stablecoins.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => {
+                  setSelectedAsset(a);
+                  setShowTokenDropdown(false);
+                  setAmount('');
+                }}
+                className="w-full flex items-center gap-3 px-2 py-3 text-left rounded-xl"
+                style={{ background: a.id === selectedAsset.id ? 'var(--muted)' : 'transparent' }}
+              >
+                <AssetIcon symbol={a.symbol} size={32} />
+                <div className="flex-1">
+                  <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>{a.symbol}</p>
+                  <p className="tabular-nums" style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>
+                    {a.balance.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Bank */}
+            {/* Bank */}
       <button
         type="button"
         onClick={() => {
@@ -196,42 +202,50 @@ export function OffRampFormStep({
 
       {showAccountDropdown && (
         <div
-          className="mb-3 rounded-[20px] overflow-hidden"
-          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+          className="fixed inset-0 z-40 flex items-end"
+          style={{ background: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setShowAccountDropdown(false)}
         >
-          {compatibleAccounts.map((a, i) => (
+          <div
+            className="w-full max-h-[50vh] overflow-y-auto rounded-t-[20px] px-4 pt-3 pb-8"
+            style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-9 h-1 rounded-full mx-auto mb-3" style={{ background: 'var(--border)' }} />
+            <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 15, marginBottom: 8 }}>
+              Payout account
+            </p>
+            {compatibleAccounts.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => {
+                  setSelectedAccountId(a.id);
+                  setShowAccountDropdown(false);
+                }}
+                className="w-full px-2 py-3 text-left rounded-xl"
+                style={{ background: a.id === selectedAccountId ? 'var(--muted)' : 'transparent' }}
+              >
+                <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>
+                  {a.bankName || 'Bank'}
+                </p>
+                <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
+                  •••• {(a.accountNumber || a.last4 || '').toString().slice(-4)}
+                </p>
+              </button>
+            ))}
             <button
-              key={a.id}
               type="button"
               onClick={() => {
-                setSelectedAccountId(a.id);
                 setShowAccountDropdown(false);
+                onAddAccount();
               }}
-              className="w-full px-4 py-3 text-left"
-              style={{
-                background: a.id === selectedAccountId ? 'var(--muted)' : 'transparent',
-                borderBottom: i < compatibleAccounts.length - 1 ? '1px solid var(--border)' : 'none',
-              }}
+              className="w-full px-2 py-3 text-left"
+              style={{ color: 'var(--primary)', fontWeight: 600, fontSize: 13 }}
             >
-              <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>
-                {a.bankName || 'Bank'}
-              </p>
-              <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
-                •••• {(a.accountNumber || a.last4 || '').toString().slice(-4)}
-              </p>
+              Add bank account
             </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => {
-              setShowAccountDropdown(false);
-              onAddAccount();
-            }}
-            className="w-full px-4 py-3 text-left"
-            style={{ color: 'var(--primary)', fontWeight: 600, fontSize: 13 }}
-          >
-            Add bank account
-          </button>
+          </div>
         </div>
       )}
 

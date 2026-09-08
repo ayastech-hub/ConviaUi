@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Check, AlertTriangle } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { NETWORKS } from './types';
 
 interface NetworkDropdownProps {
@@ -10,7 +10,7 @@ interface NetworkDropdownProps {
   onClose: () => void;
 }
 
-/** Bottom-sheet network picker (Bitcoin/Ethereum/Solana/etc), used by Deposit. */
+/** Compact bottom sheet for deposit network. */
 export function NetworkDropdown({ open, networks, selected, onSelect, onClose }: NetworkDropdownProps) {
   return (
     <AnimatePresence>
@@ -20,45 +20,61 @@ export function NetworkDropdown({ open, networks, selected, onSelect, onClose }:
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', zIndex: 50, display: 'flex', alignItems: 'flex-end' }}
+          className="absolute inset-0 z-50 flex items-end"
+          style={{ background: 'rgba(0,0,0,0.5)' }}
           onClick={onClose}
         >
           <motion.div
-            initial={{ y: 40, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 40, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 320, damping: 30 }}
+            initial={{ y: 24 }}
+            animate={{ y: 0 }}
+            exit={{ y: 24 }}
+            transition={{ type: 'spring', stiffness: 360, damping: 32 }}
             onClick={(e) => e.stopPropagation()}
-            style={{ width: '100%', background: 'var(--card)', borderRadius: '24px 24px 0 0', padding: '20px 16px 28px', border: '1px solid var(--border)' }}
+            className="w-full rounded-t-[20px] px-4 pt-3 pb-6"
+            style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
           >
-            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 16px' }} />
-            <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 16, marginBottom: 12 }}>Select network</p>
-            {networks.map((n) => {
-              const info = NETWORKS[n];
-              const active = selected === n;
-              return (
-                <motion.button
-                  key={n}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => { onSelect(n); onClose(); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '14px 12px', borderRadius: 14, background: active ? 'var(--muted)' : 'transparent', border: '1px solid transparent', marginBottom: 4 }}
-                >
-                  <div style={{ width: 38, height: 38, borderRadius: 10, background: info.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: n === 'BSC' || n === 'BASE' ? '#000' : '#FFF', fontWeight: 800, fontSize: 13, flexShrink: 0 }}>
-                    {info.label.slice(0, 3)}
-                  </div>
-                  <div style={{ flex: 1, textAlign: 'left' }}>
-                    <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14 }}>{info.name}</p>
-                    <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>{info.label} · ~{info.estTime}</p>
-                  </div>
-                  {active && <Check size={18} style={{ color: 'var(--foreground)' }} />}
-                </motion.button>
-              );
-            })}
-            <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 12, background: 'var(--muted)', border: '1px solid var(--muted)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-              <AlertTriangle size={14} style={{ color: 'var(--warning)', flexShrink: 0, marginTop: 2 }} />
-              <p style={{ color: 'var(--warning)', fontSize: 11, lineHeight: 1.45 }}>
-                Make sure the sender uses the same network. Cross-network transfers will be lost.
-              </p>
+            <div className="w-9 h-1 rounded-full mx-auto mb-3" style={{ background: 'var(--border)' }} />
+            <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 15, marginBottom: 8 }}>
+              Network
+            </p>
+            <div className="max-h-[40vh] overflow-y-auto">
+              {networks.map((n) => {
+                const info = NETWORKS[n] || { label: n, name: n, estTime: '—', color: 'var(--muted)' };
+                const active = selected === n;
+                return (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => {
+                      onSelect(n);
+                      onClose();
+                    }}
+                    className="w-full flex items-center gap-3 px-2.5 py-2.5 rounded-xl text-left"
+                    style={{ background: active ? 'var(--muted)' : 'transparent' }}
+                  >
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{
+                        background: info.color || 'var(--muted)',
+                        color: '#fff',
+                        fontWeight: 800,
+                        fontSize: 10,
+                      }}
+                    >
+                      {(info.label || n).slice(0, 3)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>
+                        {info.name || n}
+                      </p>
+                      <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>
+                        {info.label} · {info.estTime}
+                      </p>
+                    </div>
+                    {active && <Check size={16} style={{ color: 'var(--foreground)' }} />}
+                  </button>
+                );
+              })}
             </div>
           </motion.div>
         </motion.div>

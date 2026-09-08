@@ -267,6 +267,13 @@ export function WithdrawScreen({ goBack, navigate }: WithdrawScreenProps) {
       <WithdrawPinStep
         pin={pin}
         onPinChange={handlePinChange}
+        onPinUpdate={(next) => {
+          setPin(next);
+          setError('');
+          if (next.every((d) => d !== '') && next.length >= 4) {
+            void submitWithdraw();
+          }
+        }}
         error={error}
         onCancel={() => {
           setStep('form');

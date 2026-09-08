@@ -167,27 +167,33 @@ export function OnRampFormStep({
 
       {showTokenDropdown && (
         <div
-          className="mb-3 rounded-[20px] overflow-hidden max-h-52 overflow-y-auto"
-          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+          className="fixed inset-0 z-40 flex items-end"
+          style={{ background: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setShowTokenDropdown(false)}
         >
-          {rampAssets.map((a, i) => (
-            <button
-              key={a.id}
-              type="button"
-              onClick={() => {
-                setSelectedAsset(a);
-                setShowTokenDropdown(false);
-              }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-left"
-              style={{
-                background: a.id === selectedAsset.id ? 'var(--muted)' : 'transparent',
-                borderBottom: i < rampAssets.length - 1 ? '1px solid var(--border)' : 'none',
-              }}
-            >
-              <AssetIcon symbol={a.symbol} size={32} />
-              <span style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>{a.symbol}</span>
-            </button>
-          ))}
+          <div
+            className="w-full max-h-[50vh] overflow-y-auto rounded-t-[20px] px-4 pt-3 pb-8"
+            style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-9 h-1 rounded-full mx-auto mb-3" style={{ background: 'var(--border)' }} />
+            <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 15, marginBottom: 8 }}>Receive</p>
+            {rampAssets.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => {
+                  setSelectedAsset(a);
+                  setShowTokenDropdown(false);
+                }}
+                className="w-full flex items-center gap-3 px-2 py-3 text-left rounded-xl"
+                style={{ background: a.id === selectedAsset.id ? 'var(--muted)' : 'transparent' }}
+              >
+                <AssetIcon symbol={a.symbol} size={32} />
+                <span style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>{a.symbol}</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
