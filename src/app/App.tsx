@@ -39,6 +39,7 @@ import { SupportCenterScreen } from '../features/support/screens/SupportCenterSc
 import { NotificationsScreen } from '../features/notifications/screens/NotificationsScreen';
 import { RewardsScreen } from '../features/rewards/screens/RewardsScreen';
 import { ServicesScreen } from '../features/services/screens/ServicesScreen';
+import { TokenDetailScreen } from '../features/wallet/screens/TokenDetailScreen';
 import { fetchPlatformStatus } from '../shared/api/platform';
 
 const MAIN_TABS: Screen[] = ['home', 'wallet']; // legacy tab ids for home hub
@@ -352,6 +353,12 @@ export default function App() {
         return (
           <motion.div key="edit-profile" {...slideRight} className="absolute inset-0">
             <EditProfileScreen goBack={goBack} />
+          </motion.div>
+        );
+      case 'token':
+        return (
+          <motion.div key={`token-${navParam || 'na'}`} {...slideRight} className="absolute inset-0">
+            <TokenDetailScreen symbol={navParam || ''} goBack={goBack} navigate={navigate} />
           </motion.div>
         );
       default:

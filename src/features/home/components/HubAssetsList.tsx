@@ -8,11 +8,12 @@ interface Props {
   loading?: boolean;
   hideSmall: boolean;
   onToggleHide: () => void;
-  onSeeAll?: () => void; // optional; portfolio removed
+  onSeeAll?: () => void;
+  onSelect?: (asset: Asset) => void;
 }
 
 /** Asset rows: name, price + 24h %, qty, USD — Crypto-Bot list structure. */
-export function HubAssetsList({ assets, loading, hideSmall, onToggleHide, onSeeAll }: Props) {
+export function HubAssetsList({ assets, loading, hideSmall, onToggleHide, onSelect }: Props) {
   const { format } = useCurrency();
   const list = hideSmall
     ? assets.filter((a) => Number(a.valueUSD) >= 1 || Number(a.balance) > 0)
@@ -46,10 +47,12 @@ export function HubAssetsList({ assets, loading, hideSmall, onToggleHide, onSeeA
           {list.map((asset, i) => {
             const up = asset.change24h >= 0;
             return (
-              <motion.div
+              <motion.button
+                type="button"
                 key={asset.id || asset.symbol}
                 whileTap={{ scale: 0.99 }}
-                className="flex items-center justify-between py-3.5"
+                onClick={() => onSelect?.(asset)}
+                className="w-full flex items-center justify-between py-3.5 text-left"
                 style={{
                   borderBottom: i < list.length - 1 ? '1px solid var(--border)' : 'none',
                 }}
@@ -80,7 +83,7 @@ export function HubAssetsList({ assets, loading, hideSmall, onToggleHide, onSeeA
                     {format(Number(asset.valueUSD) || 0)}
                   </p>
                 </div>
-              </motion.div>
+              </motion.button>
             );
           })}
         </div>
