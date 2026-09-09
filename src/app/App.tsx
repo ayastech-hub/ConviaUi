@@ -231,31 +231,31 @@ export default function App() {
       case 'swap':
         return (
           <motion.div key="swap" {...slideRight} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
-            <SwapScreen goBack={goBack} />
+            <SwapScreen goBack={goBack} presetSymbol={navParam} />
           </motion.div>
         );
       case 'offramp':
         return (
           <motion.div key="offramp" {...slideRight} className="absolute inset-0">
-            <OffRampScreen goBack={goBack} />
+            <OffRampScreen goBack={goBack} navigate={navigate} presetSymbol={navParam} />
           </motion.div>
         );
       case 'onramp':
         return (
           <motion.div key="onramp" {...slideRight} className="absolute inset-0">
-            <OnRampScreen goBack={goBack} />
+            <OnRampScreen goBack={goBack} presetSymbol={navParam} />
           </motion.div>
         );
       case 'deposit':
         return (
           <motion.div key="deposit" {...slideRight} className="absolute inset-0">
-            <DepositScreen goBack={goBack} navigate={navigate} />
+            <DepositScreen goBack={goBack} navigate={navigate} presetSymbol={navParam} />
           </motion.div>
         );
       case 'withdraw':
         return (
           <motion.div key="withdraw" {...slideRight} className="absolute inset-0">
-            <WithdrawScreen goBack={goBack} navigate={navigate} />
+            <WithdrawScreen goBack={goBack} navigate={navigate} presetSymbol={navParam} />
           </motion.div>
         );
       case 'notifications':

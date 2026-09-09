@@ -21,13 +21,14 @@ import { PageTop } from '../../../shared/components/PageTop';
 
 interface OnRampScreenProps {
   goBack: () => void;
+  presetSymbol?: string;
 }
 
 /**
  * Live local on-ramp: quote → order (Paystack/Flutterwave by country) → bank details or checkout URL.
  * No mock bank accounts.
  */
-export function OnRampScreen({ goBack }: OnRampScreenProps) {
+export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
   const { t } = useLanguage();
   const { assets: cryptoAssets } = useWalletAssets();
   const { userId, email: authEmail } = useAuth();
@@ -63,6 +64,12 @@ export function OnRampScreen({ goBack }: OnRampScreenProps) {
   const [order, setOrder] = useState<LocalOnrampOrder | null>(null);
   const [quoting, setQuoting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!presetSymbol || !cryptoAssets.length) return;
+    const hit = cryptoAssets.find((a) => a.symbol.toUpperCase() === presetSymbol.toUpperCase());
+    if (hit && selectedAsset.symbol !== hit.symbol) setSelectedAsset(hit);
+  }, [presetSymbol, cryptoAssets]);
 
   const fiatCurrency = (currency.code || 'NGN').toUpperCase();
   // Quote/order always in local fiat; USD mode converts via currency.rate (local per 1 USD)

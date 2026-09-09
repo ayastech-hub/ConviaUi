@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { ChevronLeft, Wallet, Landmark, Send } from 'lucide-react';
 import { MethodOptionRow, MethodOrDivider } from '../components/MethodOptionRow';
@@ -25,9 +25,10 @@ import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
 interface WithdrawScreenProps {
   goBack: () => void;
   navigate?: (s: import('../../../shared/data/mockData').Screen) => void;
+  presetSymbol?: string;
 }
 
-export function WithdrawScreen({ goBack, navigate }: WithdrawScreenProps) {
+export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScreenProps) {
   const { assets: cryptoAssets, loading: registryLoading, chainKeysForSymbol } = useWalletAssets();
   const { chains } = useTokenRegistry();
   const { userId } = useAuth();
@@ -36,7 +37,7 @@ export function WithdrawScreen({ goBack, navigate }: WithdrawScreenProps) {
   const liveAssets = (portfolioData?.holdings || []).map(holdingToAsset);
   const assets = cryptoAssets.length ? cryptoAssets : liveAssets;
 
-  const [step, setStep] = useState<'hub' | 'select' | 'form' | 'pin' | 'processing' | 'success'>('hub');
+  const [step, setStep] = useState<'hub' | 'select' | 'form' | 'pin' | 'processing' | 'success'>(presetSymbol ? 'form' : 'hub');
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [selectedChain, setSelectedChain] = useState<string>('');
   const [address, setAddress] = useState('');
@@ -85,6 +86,14 @@ export function WithdrawScreen({ goBack, navigate }: WithdrawScreenProps) {
     setError('');
     setApiError(null);
   };
+
+  useEffect(() => {
+    if (!presetSymbol || !assets.length) return;
+    const hit = assets.find((a) => a.symbol.toUpperCase() === presetSymbol.toUpperCase());
+    if (hit && selectedAsset?.symbol !== hit.symbol) {
+      handleSelectAsset(hit);
+    }
+  }, [presetSymbol, assets]);
 
   const validateAddress = (val: string) => {
     setAddress(val);
@@ -284,7 +293,16 @@ export function WithdrawScreen({ goBack, navigate }: WithdrawScreenProps) {
     );
   }
 
-  if (!selectedAsset) return null;
+  if (!selectedAsset) {
+    if (presetSymbol) {
+      return (
+        <div className="flex flex-col h-full items-center justify-center" style={{ background: 'var(--background)' }}>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Loading…</p>
+        </div>
+      );
+    }
+    return null;
+  }
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
@@ -306,8 +324,8 @@ export function WithdrawScreen({ goBack, navigate }: WithdrawScreenProps) {
         error={error}
         fee={fee}
         feeUSD={feeUSD}
-        onChangeAsset={() => setStep('select')}
-        onBack={() => setStep('select')}
+        onChangeAsset={() => { if (!presetSymbol) setStep('select'); }}
+        onBack={() => (presetSymbol ? goBack() : setStep('select'))}
         onContinue={() => {
           if (!gates.canWithdraw) {
             setError(gates.isFrozen ? 'Account frozen' : 'Complete KYC to withdraw');

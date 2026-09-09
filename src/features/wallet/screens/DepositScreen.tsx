@@ -23,10 +23,11 @@ import { PageTop } from '../../../shared/components/PageTop';
 interface DepositScreenProps {
   goBack: () => void;
   navigate?: (s: import('../../../shared/data/mockData').Screen) => void;
+  presetSymbol?: string;
 }
 
 /** Deposit hub → crypto address flow or buy / request. */
-export function DepositScreen({ goBack, navigate }: DepositScreenProps) {
+export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenProps) {
   const { t } = useLanguage();
   const { assets: cryptoAssets, loading: registryLoading, chainKeysForSymbol } = useWalletAssets();
   const { chains } = useTokenRegistry();
@@ -41,7 +42,7 @@ export function DepositScreen({ goBack, navigate }: DepositScreenProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<{ code?: string; message?: string } | null>(null);
   /** hub = method picker; crypto = existing deposit address flow */
-  const [mode, setMode] = useState<'hub' | 'crypto'>('hub');
+  const [mode, setMode] = useState<'hub' | 'crypto'>(presetSymbol ? 'crypto' : 'hub');
 
   const netInfo = NETWORKS[network] || NETWORKS.Ethereum;
 
@@ -81,6 +82,15 @@ export function DepositScreen({ goBack, navigate }: DepositScreenProps) {
     setAsset(a);
     setNetwork(a.chains[0] || 'Ethereum');
   };
+
+  useEffect(() => {
+    if (!presetSymbol || !cryptoAssets.length) return;
+    const hit = cryptoAssets.find((a) => a.symbol.toUpperCase() === presetSymbol.toUpperCase());
+    if (hit && (!asset || asset.symbol !== hit.symbol)) {
+      handleAssetSelect(hit);
+      setMode('crypto');
+    }
+  }, [presetSymbol, cryptoAssets]);
 
   const handleCopy = useCallback(() => {
     if (!address) return;
@@ -147,6 +157,13 @@ export function DepositScreen({ goBack, navigate }: DepositScreenProps) {
   }
 
   if (!asset) {
+    if (presetSymbol) {
+      return (
+        <div className="flex flex-col h-full items-center justify-center" style={{ background: 'var(--background)' }}>
+          <Loader className="animate-spin" style={{ color: 'var(--muted-foreground)' }} />
+        </div>
+      );
+    }
     return <TokenSelectionList assets={cryptoAssets.length ? cryptoAssets : []} goBack={() => setMode('hub')} onSelect={handleAssetSelect} />;
   }
 
@@ -163,7 +180,7 @@ export function DepositScreen({ goBack, navigate }: DepositScreenProps) {
       <div className="flex items-center gap-3 px-5 mb-4">
         <motion.button
           whileTap={{ scale: 0.9 }}
-          onClick={() => setAsset(null)}
+          onClick={() => (presetSymbol ? goBack() : setAsset(null))}
           aria-label="Go back"
           className="w-10 h-10 rounded-2xl flex items-center justify-center"
           style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}

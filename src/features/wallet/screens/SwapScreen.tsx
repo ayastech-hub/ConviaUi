@@ -28,11 +28,12 @@ import { PageTop } from '../../../shared/components/PageTop';;
 
 interface SwapScreenProps {
   goBack: () => void;
+  presetSymbol?: string;
 }
 
 type SwapPhase = 'idle' | 'review' | 'swapping' | 'success';
 
-export function SwapScreen({ goBack }: SwapScreenProps) {
+export function SwapScreen({ goBack, presetSymbol }: SwapScreenProps) {
   const { t } = useLanguage();
   const { swapAssets: cryptoAssets, loading: registryLoading } = useWalletAssets();
   useEffect(() => {
@@ -74,6 +75,20 @@ export function SwapScreen({ goBack }: SwapScreenProps) {
   chains: [],
   sparkline: [],
 } as Asset);
+  useEffect(() => {
+    if (!presetSymbol || !cryptoAssets.length) return;
+    const hit = cryptoAssets.find((a) => a.symbol.toUpperCase() === presetSymbol.toUpperCase());
+    if (!hit) return;
+    if (fromAsset.symbol !== hit.symbol) {
+      setFromAsset(hit);
+      // avoid same from/to
+      if (toAsset.symbol === hit.symbol) {
+        const other = cryptoAssets.find((a) => a.symbol !== hit.symbol);
+        if (other) setToAsset(other);
+      }
+    }
+  }, [presetSymbol, cryptoAssets]);
+
   const [fromAmount, setFromAmount] = useState<string>('');
   const [slippage, setSlippage] = useState<string>('0.5%');
   const [customSlippage, setCustomSlippage] = useState<string>('');

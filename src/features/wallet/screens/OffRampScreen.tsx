@@ -21,10 +21,11 @@ import { PageTop } from '../../../shared/components/PageTop';
 
 interface OffRampScreenProps {
   goBack: () => void;
-  navigate: (s: Screen) => void;
+  navigate?: (s: Screen) => void;
+  presetSymbol?: string;
 }
 
-export function OffRampScreen({ goBack, navigate }: OffRampScreenProps) {
+export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenProps) {
   const { t } = useLanguage();
   const { assets: cryptoAssets, loading: registryLoading } = useWalletAssets();
   useEffect(() => {
@@ -72,6 +73,12 @@ export function OffRampScreen({ goBack, navigate }: OffRampScreenProps) {
   const [step, setStep] = useState<'form' | 'review' | 'processing' | 'done'>('form');
   const [showTokenDropdown, setShowTokenDropdown] = useState(false);
   const [showAccountDropdown, setShowAccountDropdown] = useState(false);
+
+  useEffect(() => {
+    if (!presetSymbol || !cryptoAssets.length) return;
+    const hit = cryptoAssets.find((a) => a.symbol.toUpperCase() === presetSymbol.toUpperCase());
+    if (hit && selectedAsset.symbol !== hit.symbol) setSelectedAsset(hit);
+  }, [presetSymbol, cryptoAssets]);
 
   const stablecoins = cryptoAssets;
   const fee = Number(amount) * selectedAsset.price * 0.015;
