@@ -7,6 +7,7 @@ import { AssetIcon } from '../../../shared/components/AssetIcon';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { GiftCard } from '../components/GiftCard';
+import { QRScanner } from '../../../shared/components/QRScanner';
 import {
   cancelGift,
   claimGift,
@@ -32,6 +33,7 @@ const EXPIRY = [
 export function GiveawayScreen({ goBack }: Props) {
   const [mode, setMode] = useState<Mode>('hub');
   const [detailId, setDetailId] = useState('');
+  const [hubKey, setHubKey] = useState(0);
   const detail = detailId ? getGift(detailId) : null;
 
   return (
@@ -44,6 +46,7 @@ export function GiveawayScreen({ goBack }: Props) {
             else {
               setMode('hub');
               setDetailId('');
+              setHubKey((k) => k + 1);
             }
           }}
         />
@@ -52,11 +55,12 @@ export function GiveawayScreen({ goBack }: Props) {
         </h1>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto flex flex-col">
         <AnimatePresence mode="wait">
           {mode === 'hub' && (
             <motion.div key="hub" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <Hub
+                key={hubKey}
                 onCreate={() => setMode('create')}
                 onJoin={() => setMode('join')}
                 onOpen={(id) => {
@@ -67,7 +71,7 @@ export function GiveawayScreen({ goBack }: Props) {
             </motion.div>
           )}
           {mode === 'create' && (
-            <motion.div key="create" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            <motion.div key="create" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col" style={{ minHeight: '100%' }}>
               <CreateForm
                 onDone={(id) => {
                   setDetailId(id);
@@ -269,8 +273,8 @@ function CreateForm({ onDone }: { onDone: (id: string) => void }) {
   };
 
   return (
-    <div className="flex flex-col min-h-full">
-      <div className="px-5 pb-28 space-y-4">
+    <div className="flex flex-col" style={{ minHeight: '100%' }}>
+      <div className="px-5 space-y-4 flex-1">
         {/* Split mode */}
         <div className="relative">
           <button
@@ -439,14 +443,11 @@ function CreateForm({ onDone }: { onDone: (id: string) => void }) {
         {error && <p style={{ color: 'var(--destructive, #ef4444)', fontSize: 13 }}>{error}</p>}
       </div>
 
-      {/* Sticky footer */}
       <div
-        className="fixed bottom-0 left-0 right-0 px-5 pt-3 pb-6"
+        className="mt-auto px-5 pt-3 pb-6"
         style={{
           background: 'var(--background)',
           borderTop: '1px solid var(--border)',
-          maxWidth: 480,
-          margin: '0 auto',
         }}
       >
         <div className="flex justify-between mb-3" style={{ fontSize: 13 }}>
@@ -472,11 +473,23 @@ function CreateForm({ onDone }: { onDone: (id: string) => void }) {
   );
 }
 
+function extractCode(raw: string): string {
+  const s = raw.trim();
+  try {
+    const u = new URL(s);
+    const q = u.searchParams.get('claim') || u.pathname.split('/').filter(Boolean).pop() || '';
+    return q.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
+  } catch {
+    return s.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
+  }
+}
+
 function JoinForm() {
   const { userId } = useAuth();
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState<{ amount: number; asset: string } | null>(null);
+  const [scanning, setScanning] = useState(false);
   const recent = useMemo(() => listRecentClaims(6), [success]);
 
   const paste = async () => {
@@ -554,12 +567,29 @@ function JoinForm() {
           type="button"
           className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl"
           style={{ background: 'var(--muted)', color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}
-          onClick={() => setError('Open the shared card QR, or paste the passcode above.')}
+          onClick={() => {
+            setError('');
+            setScanning(true);
+          }}
         >
           <ScanLine size={18} />
           Scan
         </button>
       </div>
+
+      {scanning && (
+        <div className="fixed inset-0 z-50" style={{ background: 'var(--background)' }}>
+          <QRScanner
+            onScan={(text) => {
+              const c = extractCode(text);
+              if (c) setCode(c);
+              setScanning(false);
+            }}
+            onClose={() => setScanning(false)}
+            onManualEntry={() => setScanning(false)}
+          />
+        </div>
+      )}
 
       {recent.length > 0 && (
         <div className="pt-4">
