@@ -16,6 +16,19 @@
   --secondary-foreground: #0A0A0A;
   --muted: #F4F4F5;
   --muted-foreground: #71717A;
+
+  /* Liquid glass (BackButton, BottomNav) — light */
+  --liquid-bar-bg: rgba(255, 255, 255, 0.72);
+  --liquid-bar-border: rgba(0, 0, 0, 0.08);
+  --liquid-bar-shadow: 0 8px 28px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --liquid-pill-bg: linear-gradient(165deg, rgba(255, 255, 255, 0.95) 0%, rgba(244, 244, 245, 0.75) 50%, rgba(255, 255, 255, 0.45) 100%);
+  --liquid-pill-border: rgba(0, 0, 0, 0.08);
+  --liquid-pill-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 0 rgba(0, 0, 0, 0.04), 0 2px 10px rgba(0, 0, 0, 0.06);
+  --liquid-icon-active: #0A0A0A;
+  --liquid-icon-inactive: #71717A;
+  --liquid-control-bg: linear-gradient(165deg, rgba(255, 255, 255, 0.9) 0%, rgba(244, 244, 245, 0.75) 50%, rgba(255, 255, 255, 0.55) 100%);
+  --liquid-control-border: rgba(0, 0, 0, 0.1);
+  --liquid-control-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 0 rgba(0, 0, 0, 0.05), 0 2px 10px rgba(0, 0, 0, 0.06);
   --accent: #4A9B92;
   --accent-foreground: #FFFFFF;
   --destructive: #DC2626;
@@ -67,6 +80,19 @@
   --secondary-foreground: #FAFAFA;
   --muted: #2A2A2E;
   --muted-foreground: #9B9BA1;
+
+  /* Liquid glass — dark */
+  --liquid-bar-bg: rgba(28, 28, 30, 0.55);
+  --liquid-bar-border: rgba(255, 255, 255, 0.12);
+  --liquid-bar-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  --liquid-pill-bg: linear-gradient(165deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.08) 45%, rgba(255, 255, 255, 0.04) 100%);
+  --liquid-pill-border: rgba(255, 255, 255, 0.22);
+  --liquid-pill-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -1px 0 rgba(0, 0, 0, 0.15), 0 2px 12px rgba(0, 0, 0, 0.15);
+  --liquid-icon-active: rgba(255, 255, 255, 0.95);
+  --liquid-icon-inactive: rgba(255, 255, 255, 0.45);
+  --liquid-control-bg: linear-gradient(165deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.08) 48%, rgba(255, 255, 255, 0.04) 100%);
+  --liquid-control-border: rgba(255, 255, 255, 0.22);
+  --liquid-control-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -1px 0 rgba(0, 0, 0, 0.18), 0 2px 10px rgba(0, 0, 0, 0.2);
   --accent: #4A9B92;
   --accent-foreground: #FFFFFF;
   --destructive: #EF4444;

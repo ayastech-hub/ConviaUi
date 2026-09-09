@@ -15,8 +15,7 @@ interface BottomNavProps {
 }
 
 /**
- * Floating pill with liquid Apple-glass active indicator.
- * Wallet · Swap · More · Profile
+ * Floating pill with liquid glass active indicator — light + dark via CSS vars.
  */
 export function BottomNav({ activeTab, onNavigate, onSwap }: BottomNavProps) {
   const { t } = useLanguage();
@@ -69,10 +68,9 @@ export function BottomNav({ activeTab, onNavigate, onSwap }: BottomNavProps) {
           width: 'min(92%, 380px)',
           height: 64,
           borderRadius: 999,
-          background: 'rgba(28, 28, 30, 0.55)',
-          border: '1px solid rgba(255, 255, 255, 0.12)',
-          boxShadow:
-            '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(0,0,0,0.2)',
+          background: 'var(--liquid-bar-bg)',
+          border: '1px solid var(--liquid-bar-border)',
+          boxShadow: 'var(--liquid-bar-shadow)',
           backdropFilter: 'blur(28px) saturate(180%)',
           WebkitBackdropFilter: 'blur(28px) saturate(180%)',
         }}
@@ -102,11 +100,9 @@ export function BottomNav({ activeTab, onNavigate, onSwap }: BottomNavProps) {
                     bottom: 3,
                     left: 2,
                     right: 2,
-                    background:
-                      'linear-gradient(165deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.08) 45%, rgba(255,255,255,0.04) 100%)',
-                    border: '1px solid rgba(255,255,255,0.22)',
-                    boxShadow:
-                      'inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(0,0,0,0.15), 0 2px 12px rgba(0,0,0,0.15)',
+                    background: 'var(--liquid-pill-bg)',
+                    border: '1px solid var(--liquid-pill-border)',
+                    boxShadow: 'var(--liquid-pill-shadow)',
                     backdropFilter: 'blur(12px) saturate(200%)',
                     WebkitBackdropFilter: 'blur(12px) saturate(200%)',
                   }}
@@ -117,13 +113,13 @@ export function BottomNav({ activeTab, onNavigate, onSwap }: BottomNavProps) {
                 strokeWidth={isActive ? 2.3 : 1.6}
                 className="relative z-[1]"
                 style={{
-                  color: isActive ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
+                  color: isActive ? 'var(--liquid-icon-active)' : 'var(--liquid-icon-inactive)',
                 }}
               />
               <span
                 className="relative z-[1] text-[9px] tracking-wide truncate max-w-full px-0.5"
                 style={{
-                  color: isActive ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
+                  color: isActive ? 'var(--liquid-icon-active)' : 'var(--liquid-icon-inactive)',
                   fontWeight: isActive ? 650 : 400,
                 }}
               >

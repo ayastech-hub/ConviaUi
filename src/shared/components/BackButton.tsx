@@ -4,23 +4,20 @@ import { ChevronLeft } from 'lucide-react';
 
 interface BackButtonProps {
   onClick: () => void;
-  /** Accessible label */
   label?: string;
   className?: string;
   size?: number;
 }
 
 const glassStyle: CSSProperties = {
-  background:
-    'linear-gradient(165deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.08) 48%, rgba(255,255,255,0.04) 100%)',
-  border: '1px solid rgba(255,255,255,0.22)',
-  boxShadow:
-    'inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(0,0,0,0.18), 0 2px 10px rgba(0,0,0,0.2)',
+  background: 'var(--liquid-control-bg)',
+  border: '1px solid var(--liquid-control-border)',
+  boxShadow: 'var(--liquid-control-shadow)',
   backdropFilter: 'blur(16px) saturate(180%)',
   WebkitBackdropFilter: 'blur(16px) saturate(180%)',
 };
 
-/** Liquid Apple-glass circular back control — use everywhere instead of ad-hoc chevrons. */
+/** Liquid glass back control — theme tokens for light + dark. */
 export function BackButton({ onClick, label = 'Go back', className = '', size = 40 }: BackButtonProps) {
   return (
     <motion.button
@@ -35,7 +32,11 @@ export function BackButton({ onClick, label = 'Go back', className = '', size = 
         ...glassStyle,
       }}
     >
-      <ChevronLeft size={Math.round(size * 0.5)} style={{ color: 'rgba(255,255,255,0.95)' }} strokeWidth={2.25} />
+      <ChevronLeft
+        size={Math.round(size * 0.5)}
+        style={{ color: 'var(--liquid-icon-active)' }}
+        strokeWidth={2.25}
+      />
     </motion.button>
   );
 }
