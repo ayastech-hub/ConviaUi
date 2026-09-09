@@ -6,7 +6,7 @@ import {
   ArrowUpFromLine,
   RefreshCw,
   CreditCard,
-  Landmark,
+  CircleDollarSign,
 } from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
 import { AssetIcon } from '../../../shared/components/AssetIcon';
@@ -43,7 +43,7 @@ const ACTIONS: { label: string; screen: Screen; Icon: typeof ArrowDownToLine }[]
   { label: 'Deposit', screen: 'deposit', Icon: ArrowDownToLine },
   { label: 'Withdraw', screen: 'withdraw', Icon: ArrowUpFromLine },
   { label: 'Buy', screen: 'onramp', Icon: CreditCard },
-  { label: 'Sell', screen: 'offramp', Icon: Landmark },
+  { label: 'Sell', screen: 'offramp', Icon: CircleDollarSign },
 ];
 
 export function TokenDetailScreen({ symbol, goBack, navigate }: TokenDetailScreenProps) {

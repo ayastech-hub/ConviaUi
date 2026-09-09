@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft, Wallet, Landmark, Send } from 'lucide-react';
+import { ChevronLeft, Wallet, CircleDollarSign, Send } from 'lucide-react';
 import { MethodOptionRow, MethodOrDivider } from '../components/MethodOptionRow';
 import { PageTop } from '../../../shared/components/PageTop';
 import { type Asset, type Transaction } from '../../../shared/data/mockData';
@@ -231,7 +231,7 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
           <MethodOptionRow
             title="Withdraw to bank"
             subtitle="Sell crypto and receive money in your local bank account"
-            Icon={Landmark}
+            Icon={CircleDollarSign}
             onClick={() => navigate?.('offramp') ?? setStep('select')}
           />
           <MethodOptionRow
