@@ -1,5 +1,5 @@
-import type { Gift, GiftKind } from './types';
-import { refreshStatus, remainingAmount } from './types';
+import type { Gift, GiftKind, SplitMode } from './types';
+import { refreshStatus, remainingAmount, remainingSlots } from './types';
 
 const KEY = 'convia.gifts.v1';
 
@@ -8,7 +8,13 @@ function read(): Gift[] {
     const raw = localStorage.getItem(KEY);
     if (!raw) return [];
     const list = JSON.parse(raw) as Gift[];
-    return (Array.isArray(list) ? list : []).map((g) => refreshStatus(g));
+    return (Array.isArray(list) ? list : []).map((g) =>
+      refreshStatus({
+        ...g,
+        claims: g.claims || [],
+        splitMode: g.splitMode || 'equal',
+      }),
+    );
   } catch {
     return [];
   }
@@ -29,8 +35,31 @@ function codeGen(): string {
   return s;
 }
 
-export function listGifts(): Gift[] {
-  return read().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+function maskId(id: string): string {
+  if (!id || id.length < 4) return 'user****';
+  return `${id.slice(0, 3)}***@****`;
+}
+
+export function listGifts(kind?: GiftKind): Gift[] {
+  return read()
+    .filter((g) => (kind ? g.kind === kind : true))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export function listRecentClaims(limit = 8): { gift: Gift; amount: number; at: string; claimerMask: string; note: string }[] {
+  const out: { gift: Gift; amount: number; at: string; claimerMask: string; note: string }[] = [];
+  for (const g of read()) {
+    for (const c of g.claims || []) {
+      out.push({
+        gift: g,
+        amount: c.amount,
+        at: c.at,
+        claimerMask: c.claimerMask,
+        note: g.note,
+      });
+    }
+  }
+  return out.sort((a, b) => b.at.localeCompare(a.at)).slice(0, limit);
 }
 
 export function getGift(idOrCode: string): Gift | null {
@@ -47,9 +76,11 @@ export function createGift(input: {
   note: string;
   expiresAt: string;
   creatorId: string;
+  splitMode?: SplitMode;
 }): Gift {
   const slots = Math.max(1, Math.floor(input.slots));
   const totalAmount = Number(input.totalAmount);
+  const splitMode = input.splitMode || 'equal';
   const perClaimAmount = Number((totalAmount / slots).toFixed(8));
   const gift: Gift = {
     id: `gift_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -60,11 +91,13 @@ export function createGift(input: {
     perClaimAmount,
     slots,
     claimedCount: 0,
+    splitMode,
     note: input.note || '',
     expiresAt: input.expiresAt,
     status: 'open',
     createdAt: new Date().toISOString(),
     creatorId: input.creatorId || 'local',
+    claims: [],
   };
   const list = read();
   list.unshift(gift);
@@ -84,12 +117,15 @@ export function cancelGift(id: string): Gift | null {
   return g;
 }
 
-export function claimGift(code: string, claimerId: string): { ok: true; gift: Gift } | { ok: false; error: string } {
+export function claimGift(
+  code: string,
+  claimerId: string,
+): { ok: true; gift: Gift; amount: number } | { ok: false; error: string } {
   const list = read();
   const i = list.findIndex((g) => g.code.toUpperCase() === code.trim().toUpperCase());
-  if (i < 0) return { ok: false, error: 'Invalid code' };
+  if (i < 0) return { ok: false, error: 'Invalid passcode' };
   let g = refreshStatus(list[i]);
-  if (g.status === 'expired') return { ok: false, error: 'This giveaway/cheque has expired' };
+  if (g.status === 'expired') return { ok: false, error: 'This giveaway has expired' };
   if (g.status === 'cancelled') return { ok: false, error: 'Cancelled by creator' };
   if (g.status === 'claimed' || g.claimedCount >= g.slots) {
     return { ok: false, error: 'Fully claimed' };
@@ -97,14 +133,42 @@ export function claimGift(code: string, claimerId: string): { ok: true; gift: Gi
   if (g.creatorId && claimerId && g.creatorId === claimerId) {
     return { ok: false, error: "You can't claim your own" };
   }
+
+  const leftSlots = remainingSlots(g);
+  const leftAmt = remainingAmount(g);
+  if (leftSlots <= 0 || leftAmt <= 0) return { ok: false, error: 'Fully claimed' };
+
+  let amount: number;
+  if (g.splitMode === 'equal' || leftSlots === 1) {
+    amount = leftSlots === 1 ? leftAmt : Number((g.totalAmount / g.slots).toFixed(8));
+    if (amount > leftAmt) amount = leftAmt;
+  } else {
+    // random: between 30% and 170% of equal share, capped by remaining
+    const base = leftAmt / leftSlots;
+    const factor = 0.3 + Math.random() * 1.4;
+    amount = Number(Math.min(leftAmt * 0.85, Math.max(base * 0.2, base * factor)).toFixed(8));
+    if (leftSlots === 1) amount = leftAmt;
+  }
+
   g = {
     ...g,
     claimedCount: g.claimedCount + 1,
+    claims: [
+      ...(g.claims || []),
+      {
+        amount,
+        at: new Date().toISOString(),
+        claimerMask: maskId(claimerId),
+        note: g.note,
+      },
+    ],
   };
-  if (g.claimedCount >= g.slots) g = { ...g, status: 'claimed' };
+  if (g.claimedCount >= g.slots || remainingAmount(g) <= 0) {
+    g = { ...g, status: 'claimed' };
+  }
   list[i] = g;
   write(list);
-  return { ok: true, gift: g };
+  return { ok: true, gift: g, amount };
 }
 
-export { remainingAmount };
+export { remainingAmount, remainingSlots };

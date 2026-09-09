@@ -1,23 +1,31 @@
 export type GiftKind = 'cheque' | 'giveaway';
 export type GiftStatus = 'open' | 'claimed' | 'expired' | 'cancelled';
+export type SplitMode = 'equal' | 'random';
+
+export interface GiftClaimRecord {
+  amount: number;
+  at: string;
+  claimerMask: string;
+  note?: string;
+}
 
 export interface Gift {
   id: string;
   kind: GiftKind;
   code: string;
   asset: string;
-  /** Total locked at create */
   totalAmount: number;
-  /** Equal per-slot for giveaway; same as total for cheque */
+  /** Fixed for equal; average for random display */
   perClaimAmount: number;
-  /** Max claims (1 for cheque) */
   slots: number;
   claimedCount: number;
+  splitMode: SplitMode;
   note: string;
   expiresAt: string;
   status: GiftStatus;
   createdAt: string;
   creatorId: string;
+  claims: GiftClaimRecord[];
 }
 
 export function remainingSlots(g: Gift): number {
@@ -25,7 +33,8 @@ export function remainingSlots(g: Gift): number {
 }
 
 export function remainingAmount(g: Gift): number {
-  return Math.max(0, g.totalAmount - g.claimedCount * g.perClaimAmount);
+  const taken = g.claims.reduce((s, c) => s + c.amount, 0);
+  return Math.max(0, Number((g.totalAmount - taken).toFixed(8)));
 }
 
 export function claimUrl(code: string): string {
@@ -40,7 +49,7 @@ export function refreshStatus(g: Gift, now = Date.now()): Gift {
   if (new Date(g.expiresAt).getTime() <= now) {
     return { ...g, status: 'expired' };
   }
-  if (g.claimedCount >= g.slots) {
+  if (g.claimedCount >= g.slots || remainingAmount(g) <= 0) {
     return { ...g, status: 'claimed' };
   }
   return g;
