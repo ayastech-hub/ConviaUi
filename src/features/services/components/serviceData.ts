@@ -11,6 +11,8 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
   Shield,
+  Link2,
+  Ticket,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -46,6 +48,15 @@ export const SERVICE_GROUPS: ServiceGroup[] = [
       { id: 'send', label: 'Send', icon: ArrowUpRight },
       { id: 'receive', label: 'Receive', icon: ArrowDownLeft },
       { id: 'swap', label: 'Swap', icon: RefreshCw },
+    ],
+  },
+  {
+    title: 'Share',
+    items: [
+      { id: 'gifts', label: 'Gifts', icon: Gift },
+      { id: 'gift-create-cheque', label: 'Cheque link', icon: Link2 },
+      { id: 'gift-create-giveaway', label: 'Giveaway', icon: Ticket },
+      { id: 'claim', label: 'Claim code', icon: Ticket },
     ],
   },
   {

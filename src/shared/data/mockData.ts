@@ -5,7 +5,8 @@ export type Screen =
   | 'deposit' | 'withdraw' | 'swap' | 'offramp' | 'onramp' | 'vault'
   | 'send' | 'request' | 'receive' | 'scan' | 'history' | 'notifications' | 'rewards'
   | 'settings' | 'security' | 'kyc' | 'chat' | 'portfolio'
-  | 'help-center' | 'about' | 'support-center' | 'payment-methods' | 'services' | 'edit-profile' | 'token';
+  | 'help-center' | 'about' | 'support-center' | 'payment-methods' | 'services' | 'edit-profile' | 'token'
+  | 'gifts' | 'gift-create-cheque' | 'gift-create-giveaway' | 'gift-detail' | 'claim';
 
 export interface Asset {
   id: string;

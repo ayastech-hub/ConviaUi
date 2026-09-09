@@ -40,6 +40,11 @@ import { NotificationsScreen } from '../features/notifications/screens/Notificat
 import { RewardsScreen } from '../features/rewards/screens/RewardsScreen';
 import { ServicesScreen } from '../features/services/screens/ServicesScreen';
 import { TokenDetailScreen } from '../features/wallet/screens/TokenDetailScreen';
+import { GiftsHubScreen } from '../features/gifts/screens/GiftsHubScreen';
+import { CreateChequeScreen } from '../features/gifts/screens/CreateChequeScreen';
+import { CreateGiveawayScreen } from '../features/gifts/screens/CreateGiveawayScreen';
+import { GiftDetailScreen } from '../features/gifts/screens/GiftDetailScreen';
+import { ClaimScreen } from '../features/gifts/screens/ClaimScreen';
 import { fetchPlatformStatus } from '../shared/api/platform';
 
 const MAIN_TABS: Screen[] = ['home', 'wallet']; // legacy tab ids for home hub
@@ -359,6 +364,36 @@ export default function App() {
         return (
           <motion.div key={`token-${navParam || 'na'}`} {...slideRight} className="absolute inset-0">
             <TokenDetailScreen symbol={navParam || ''} goBack={goBack} navigate={navigate} />
+          </motion.div>
+        );
+      case 'gifts':
+        return (
+          <motion.div key="gifts" {...slideRight} className="absolute inset-0">
+            <GiftsHubScreen goBack={goBack} navigate={navigate} />
+          </motion.div>
+        );
+      case 'gift-create-cheque':
+        return (
+          <motion.div key="gift-create-cheque" {...slideRight} className="absolute inset-0">
+            <CreateChequeScreen goBack={goBack} navigate={navigate} />
+          </motion.div>
+        );
+      case 'gift-create-giveaway':
+        return (
+          <motion.div key="gift-create-giveaway" {...slideRight} className="absolute inset-0">
+            <CreateGiveawayScreen goBack={goBack} navigate={navigate} />
+          </motion.div>
+        );
+      case 'gift-detail':
+        return (
+          <motion.div key={`gift-detail-${navParam || 'na'}`} {...slideRight} className="absolute inset-0">
+            <GiftDetailScreen giftId={navParam || ''} goBack={goBack} navigate={navigate} />
+          </motion.div>
+        );
+      case 'claim':
+        return (
+          <motion.div key={`claim-${navParam || 'na'}`} {...slideRight} className="absolute inset-0">
+            <ClaimScreen goBack={goBack} navigate={navigate} initialCode={navParam || ''} />
           </motion.div>
         );
       default:
