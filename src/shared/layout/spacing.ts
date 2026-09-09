@@ -6,7 +6,7 @@ export const LAYOUT = {
   top: 16,
   topWithHeader: 16,
   x: 20,
-  bottomNav: 88,
+  bottomNav: 94,
   bottom: 16,
   headerBottom: 20,
 } as const;

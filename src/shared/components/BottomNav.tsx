@@ -64,10 +64,10 @@ export function BottomNav({ activeTab, onNavigate, onSwap }: BottomNavProps) {
       style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
     >
       <nav
-        className="pointer-events-auto relative flex items-center justify-between gap-0.5 px-1.5 py-1.5"
+        className="pointer-events-auto relative flex items-center justify-between gap-0.5 px-1.5 py-2"
         style={{
           width: 'min(92%, 380px)',
-          height: 58,
+          height: 64,
           borderRadius: 999,
           background: 'rgba(28, 28, 30, 0.55)',
           border: '1px solid rgba(255, 255, 255, 0.12)',
@@ -89,15 +89,19 @@ export function BottomNav({ activeTab, onNavigate, onSwap }: BottomNavProps) {
               whileTap={{ scale: 0.9 }}
               aria-label={tab.label}
               aria-current={isActive ? 'page' : undefined}
-              className="relative flex flex-col items-center justify-center gap-0.5 flex-1 min-w-0 h-full rounded-full z-[1]"
-              style={{ background: 'transparent' }}
+              className="relative flex flex-col items-center justify-center gap-1 flex-1 min-w-0 h-full rounded-full z-[1]"
+              style={{ background: 'transparent', paddingTop: 6, paddingBottom: 5 }}
             >
               {isActive && (
                 <motion.span
                   layoutId="nav-liquid-glass"
-                  className="absolute inset-y-1 inset-x-0.5 rounded-full pointer-events-none"
+                  className="absolute rounded-full pointer-events-none"
                   transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                   style={{
+                    top: 3,
+                    bottom: 3,
+                    left: 2,
+                    right: 2,
                     background:
                       'linear-gradient(165deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.08) 45%, rgba(255,255,255,0.04) 100%)',
                     border: '1px solid rgba(255,255,255,0.22)',
