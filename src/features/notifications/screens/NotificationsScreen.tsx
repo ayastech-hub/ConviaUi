@@ -21,6 +21,7 @@ import type { NotificationRow } from '../../../shared/api/notifications';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { ApiError } from '../../../shared/api/types';
 import { PageTop } from '../../../shared/components/PageTop';
+import { BackButton } from '../../../shared/components/BackButton';
 
 interface NotificationsScreenProps {
   goBack: () => void;

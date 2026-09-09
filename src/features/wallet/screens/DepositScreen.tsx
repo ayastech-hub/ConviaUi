@@ -19,6 +19,7 @@ import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
 import { useLanguage } from '../../../shared/context/LanguageContext';
 import { PageTop } from '../../../shared/components/PageTop';
+import { BackButton } from '../../../shared/components/BackButton';
 
 interface DepositScreenProps {
   goBack: () => void;

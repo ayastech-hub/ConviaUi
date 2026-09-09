@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { MessageCircle, Check, CheckCheck, Send } from 'lucide-react';
 import type { ChatMessage } from './chatData';
 import { quickReplies } from './chatData';
+import { BackButton } from '../../../../shared/components/BackButton';
 
 interface SupportChatViewProps {
   messages: ChatMessage[];

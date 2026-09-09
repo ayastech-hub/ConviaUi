@@ -21,6 +21,7 @@ import { usePortfolio } from '../../../shared/hooks/usePortfolio';
 import { holdingToAsset } from '../../../shared/utils/mapApiToUi';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
+import { BackButton } from '../../../shared/components/BackButton';
 
 interface WithdrawScreenProps {
   goBack: () => void;

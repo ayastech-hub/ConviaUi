@@ -18,6 +18,7 @@ import { ApiError } from '../../../shared/api/types';
 import { queryClient, queryKeys } from '../../../shared/query/queryClient';
 import { useLanguage } from '../../../shared/context/LanguageContext';
 import { PageTop } from '../../../shared/components/PageTop';
+import { BackButton } from '../../../shared/components/BackButton';
 
 interface OnRampScreenProps {
   goBack: () => void;

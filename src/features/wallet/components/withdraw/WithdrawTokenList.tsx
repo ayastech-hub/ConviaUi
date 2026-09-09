@@ -6,6 +6,7 @@ import { AssetIcon } from '../../../../shared/components/AssetIcon';
 import { useLanguage } from '../../../../shared/context/LanguageContext';
 import { useCurrency } from '../../../../shared/context/CurrencyContext';
 import { PageTop } from '../../../../shared/components/PageTop';
+import { BackButton } from '../../../../shared/components/BackButton';
 
 interface WithdrawTokenListProps {
   assets: Asset[];

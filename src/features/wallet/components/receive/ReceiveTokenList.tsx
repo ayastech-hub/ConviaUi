@@ -4,6 +4,7 @@ import type { Asset } from '../../../../shared/data/mockData';
 import { AssetIcon } from '../../../../shared/components/AssetIcon';
 import { useLanguage } from '../../../../shared/context/LanguageContext';
 import { PageTop } from '../../../../shared/components/PageTop';;
+import { BackButton } from '../../../../shared/components/BackButton';
 
 interface ReceiveTokenListProps {
   assets: Asset[];

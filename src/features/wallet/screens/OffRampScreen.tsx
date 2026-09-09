@@ -18,6 +18,7 @@ import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/Fea
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useLanguage } from '../../../shared/context/LanguageContext';
 import { PageTop } from '../../../shared/components/PageTop';
+import { BackButton } from '../../../shared/components/BackButton';
 
 interface OffRampScreenProps {
   goBack: () => void;

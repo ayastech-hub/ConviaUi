@@ -13,6 +13,7 @@ import { PageTop } from '../../../shared/components/PageTop';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { PriceChart } from '../components/token/PriceChart';
+import { BackButton } from '../../../shared/components/BackButton';
 
 type Range = '24H' | '7D' | '30D';
 

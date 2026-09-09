@@ -4,6 +4,7 @@ import { ChevronRight, Search } from 'lucide-react';
 import type { Asset } from '../../../../shared/data/mockData';
 import { AssetIcon } from '../../../../shared/components/AssetIcon';
 import { PageTop } from '../../../../shared/components/PageTop';
+import { BackButton } from '../../../../shared/components/BackButton';
 
 interface TokenSelectionListProps {
   assets: Asset[];

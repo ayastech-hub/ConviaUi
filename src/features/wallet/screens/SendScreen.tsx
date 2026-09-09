@@ -28,6 +28,7 @@ import { ApiError } from '../../../shared/api/types';
 import { usePortfolio } from '../../../shared/hooks/usePortfolio';
 import { holdingToAsset } from '../../../shared/utils/mapApiToUi';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
+import { BackButton } from '../../../shared/components/BackButton';
 
 interface SendScreenProps {
   navigate: (s: Screen) => void;
