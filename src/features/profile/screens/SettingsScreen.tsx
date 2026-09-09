@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Bell, Globe, Moon, Sun, Mail, Smartphone, MessageSquare, Check, Loader } from 'lucide-react';
+import { Bell, Globe, Moon, Sun, Mail, Smartphone, MessageSquare, Loader } from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { ScreenHeader } from '../../../shared/components/ScreenHeader';
@@ -10,7 +10,6 @@ import { CurrencyPickerView } from '../components/CurrencyPickerView';
 import { SignOutButton } from '../components/SignOutButton';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { useLanguage } from '../../../shared/context/LanguageContext';
-import type { LocaleCode } from '../../../shared/i18n/strings';
 import * as notifApi from '../../../shared/api/notifications';
 import * as profileApi from '../../../shared/api/profile';
 import { FeatureAlert } from '../../../shared/components/FeatureAlert';
@@ -29,7 +28,7 @@ export function SettingsScreen({ goBack, darkMode: darkProp, toggleDark }: Setti
   const [darkMode, setDarkMode] = useState(darkProp ?? true);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const { userId } = useAuth();
-  const { locale, setLocale, t, labels } = useLanguage();
+  const { t } = useLanguage();
   const [prefs, setPrefs] = useState<Record<PrefChannel, boolean>>({
     in_app: true,
     email: false,
@@ -128,37 +127,6 @@ export function SettingsScreen({ goBack, darkMode: darkProp, toggleDark }: Setti
             onClick={() => setShowCurrencyPicker(true)}
           />
         </ListSection>
-
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600, letterSpacing: '0.04em', marginBottom: 10, marginTop: 4 }}>
-          {t('lang.title').toUpperCase()}
-        </p>
-        <div className="rounded-[20px] p-4 mb-5" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginBottom: 12, lineHeight: 1.45 }}>
-            {t('lang.hint')}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {(Object.keys(labels) as LocaleCode[]).map((code) => {
-              const on = locale === code;
-              return (
-                <button
-                  key={code}
-                  type="button"
-                  onClick={() => setLocale(code)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-                  style={{
-                    background: on ? 'var(--foreground)' : 'var(--muted)',
-                    color: on ? 'var(--background)' : 'var(--foreground)',
-                    fontSize: 12,
-                    fontWeight: 600,
-                  }}
-                >
-                  {on && <Check size={12} strokeWidth={3} />}
-                  {labels[code]}
-                </button>
-              );
-            })}
-          </div>
-        </div>
 
         <ListSection title={t('settings.notifications')}>
           {loadingPrefs && (

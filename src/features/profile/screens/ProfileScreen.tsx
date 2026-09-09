@@ -233,7 +233,7 @@ export function ProfileScreen({ navigate, darkMode, toggleDark }: ProfileScreenP
           <ListRow
             icon={Settings}
             label={t('profile.settings')}
-            desc="Language, currency, appearance"
+            desc="Currency, appearance"
             onClick={() => navigate('settings')}
           />
         </ListSection>

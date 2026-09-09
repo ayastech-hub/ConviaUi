@@ -32,7 +32,7 @@ export function updateMyProfile(body: {
   avatarUrl?: string;
   country?: string;
   preferredCurrency?: string;
-  preferredLanguage?: 'en' | 'ar' | 'sw' | 'ha' | 'yo' | 'ig';
+  preferredLanguage?: 'en' | null;
   themePreference?: 'system' | 'light' | 'dark';
 }) {
   return api.patch<UserProfile>('/profiles/me', body);

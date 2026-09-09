@@ -1,28 +1,22 @@
-/** English is source of truth. UI chrome is translated; API payloads stay English (Option 2). */
-export type LocaleCode = 'en' | 'ar' | 'sw' | 'ha' | 'yo' | 'ig';
+/** English only — single language app. */
+export type LocaleCode = 'en';
 
 export const LOCALE_LABELS: Record<LocaleCode, string> = {
   en: 'English',
-  ar: 'العربية',
-  sw: 'Kiswahili',
-  ha: 'Hausa',
-  yo: 'Yorùbá',
-  ig: 'Igbo',
 };
 
 export const LANGUAGES_BY_COUNTRY: Record<string, LocaleCode[]> = {
-  NG: ['en', 'ha', 'yo', 'ig'],
+  NG: ['en'],
   GH: ['en'],
-  KE: ['en', 'sw'],
+  KE: ['en'],
   ZA: ['en'],
-  UG: ['en', 'sw'],
-  TZ: ['en', 'sw'],
-  EG: ['en', 'ar'],
+  UG: ['en'],
+  TZ: ['en'],
+  EG: ['en'],
 };
 
 type Dict = Record<string, string>;
 
-/** Full app UI dictionary (English). */
 const en: Dict = {
   // Nav
   'nav.home': 'Home',
@@ -214,278 +208,16 @@ const en: Dict = {
 
 };
 
-function overlay(base: Dict, extra: Dict): Dict {
-  return { ...base, ...extra };
+export const DICTS: Record<LocaleCode, Dict> = { en };
+
+export function t(_locale: LocaleCode, key: string): string {
+  return DICTS.en[key] ?? key;
 }
 
-const ar = overlay(en, {
-  'nav.home': 'الرئيسية',
-  'nav.wallet': 'المحفظة',
-  'nav.profile': 'الملف',
-  'nav.services': 'الخدمات',
-  'nav.send': 'إرسال',
-  'nav.request': 'طلب',
-  'nav.receive': 'استلام',
-  'nav.swap': 'تبديل',
-  'nav.buy': 'شراء',
-  'nav.sell': 'بيع',
-  'nav.settings': 'الإعدادات',
-  'nav.deposit': 'إيداع',
-  'nav.withdraw': 'سحب',
-  'common.continue': 'متابعة',
-  'common.done': 'تم',
-  'common.cancel': 'إلغاء',
-  'common.save': 'حفظ',
-  'common.back': 'رجوع',
-  'common.loading': 'جاري التحميل…',
-  'common.search': 'بحث',
-  'common.confirm': 'تأكيد',
-  'common.close': 'إغلاق',
-  'common.amount': 'المبلغ',
-  'common.balance': 'الرصيد',
-  'common.history': 'السجل',
-  'common.seeAll': 'عرض الكل',
-  'home.portfolio': 'المحفظة',
-  'home.totalBalance': 'الرصيد الإجمالي',
-  'home.recent': 'النشاط الأخير',
-  'home.markets': 'الأسواق',
-  'wallet.title': 'المحفظة',
-  'wallet.assets': 'الأصول',
-  'send.title': 'إرسال',
-  'send.recipient': 'المستلم',
-  'send.amount': 'المبلغ',
-  'send.confirm': 'تأكيد',
-  'send.success': 'تم الإرسال',
-  'send.findFriends': 'البحث عن أصدقاء على Convia',
-  'send.onConvia': 'على Convia',
-  'receive.title': 'استلام',
-  'swap.title': 'تبديل',
-  'swap.youPay': 'تدفع',
-  'swap.youReceive': 'تستلم',
-  'swap.review': 'مراجعة التبديل',
-  'swap.complete': 'اكتمل التبديل',
-  'request.title': 'طلب أموال',
-  'request.subtitle': 'اطلب من مستخدم Convia الدفع عبر @username',
-  'request.submit': 'إرسال الطلب',
-  'request.pay': 'ادفع',
-  'request.decline': 'رفض',
-  'request.cancel': 'إلغاء',
-  'request.empty': 'لا توجد طلبات',
-  'request.success': 'تم إرسال الطلب',
-  'onramp.title': 'شراء عملة',
-  'offramp.title': 'بيع عملة',
-  'deposit.title': 'إيداع',
-  'withdraw.title': 'سحب',
-  'profile.title': 'الملف الشخصي',
-  'profile.edit': 'تعديل الملف',
-  'profile.security': 'مركز الأمان',
-  'profile.payments': 'طرق الدفع',
-  'profile.kyc': 'التحقق من الهوية',
-  'profile.rewards': 'المكافآت',
-  'profile.portfolio': 'المحفظة',
-  'profile.notifications': 'الإشعارات',
-  'profile.settings': 'الإعدادات',
-  'profile.help': 'مركز المساعدة',
-  'profile.support': 'الدعم',
-  'profile.about': 'عن Convia',
-  'profile.signOut': 'تسجيل الخروج',
-  'settings.title': 'الإعدادات',
-  'settings.appearance': 'المظهر',
-  'settings.darkMode': 'الوضع الداكن',
-  'settings.currency': 'عملة العرض',
-  'settings.notifications': 'الإشعارات',
-  'lang.title': 'اللغة',
-  'lang.hint': 'يترجم واجهة التطبيق. رسائل الخادم تبقى بالإنجليزية.',
-  'auth.welcomeBack': 'مرحباً بعودتك',
-  'auth.createAccount': 'إنشاء حساب',
-  'auth.resetPassword': 'إعادة تعيين كلمة المرور',
-  'auth.signInSubtitle': 'سجّل الدخول إلى حساب Convia',
-  'auth.signupSubtitle': 'انضم إلى عالم المال في أفريقيا',
-  'auth.resetSubtitle': 'سنرسل لك رابط إعادة التعيين',
-  'auth.login': 'تسجيل الدخول',
-  'auth.signup': 'إنشاء حساب',
-  'auth.password': 'كلمة المرور',
-  'auth.forgot': 'نسيت كلمة المرور؟',
-  'notif.title': 'الإشعارات',
-  'notif.markAll': 'تعليميين الكل كمقروء',
-  'notif.empty': 'لا إشعارات',
-  'rewards.title': 'المكافآت',
-  'auth.verifyPhone': 'تحقق من هاتفك',
-  'auth.enterOtp': 'أدخل رمز التحقق',
-  'send.sending': 'جاري الإرسال…',
-  'withdraw.submitted': 'تم إرسال السحب!',
-  'withdraw.enterPin': 'أدخل الرمز',
-  'offramp.titleFull': 'تحويل إلى نقد',
-  'onramp.success': 'تم الشراء بنجاح!',
-  'offramp.success': 'تم البيع بنجاح!',
-  'security.title': 'مركز الأمان',
-  'kyc.title': 'التحقق من الهوية',
-  'services.title': 'الخدمات',
-  'portfolio.title': 'المحفظة',
-  'paymentMethods.title': 'طرق الدفع',
-
-  'gate.kyc': 'التحقق مطلوب',
-  'gate.frozen': 'الحساب مجمّد',
-});
-
-const sw = overlay(en, {
-  'nav.home': 'Nyumbani',
-  'nav.wallet': 'Pochi',
-  'nav.profile': 'Wasifu',
-  'nav.services': 'Huduma',
-  'nav.send': 'Tuma',
-  'nav.request': 'Omba',
-  'nav.receive': 'Pokea',
-  'nav.swap': 'Badilisha',
-  'nav.buy': 'Nunua',
-  'nav.sell': 'Uza',
-  'nav.settings': 'Mipangilio',
-  'nav.deposit': 'Weka',
-  'nav.withdraw': 'Toa',
-  'common.continue': 'Endelea',
-  'common.done': 'Imekamilika',
-  'common.cancel': 'Ghairi',
-  'common.save': 'Hifadhi',
-  'common.back': 'Rudi',
-  'common.loading': 'Inapakia…',
-  'common.search': 'Tafuta',
-  'common.confirm': 'Thibitisha',
-  'common.amount': 'Kiasi',
-  'common.balance': 'Salio',
-  'common.history': 'Historia',
-  'common.seeAll': 'Ona zote',
-  'home.totalBalance': 'Jumla ya salio',
-  'home.recent': 'Shughuli za hivi karibuni',
-  'wallet.title': 'Pochi',
-  'send.title': 'Tuma',
-  'send.findFriends': 'Tafuta marafiki kwenye Convia',
-  'swap.title': 'Badilisha',
-  'request.title': 'Omba pesa',
-  'request.submit': 'Tuma ombi',
-  'request.pay': 'Lipa',
-  'request.decline': 'Kataa',
-  'profile.settings': 'Mipangilio',
-  'profile.notifications': 'Arifa',
-  'profile.security': 'Usalama',
-  'profile.signOut': 'Toka',
-  'settings.title': 'Mipangilio',
-  'settings.darkMode': 'Hali ya giza',
-  'lang.title': 'Lugha',
-  'lang.hint': 'Inatafsiri kiolesura. Ujumbe wa seva unabaki Kiingereza.',
-  'auth.login': 'Ingia',
-  'auth.signup': 'Jisajili',
-  'notif.title': 'Arifa',
-  'rewards.title': 'Zawadi',
-  'auth.verifyPhone': 'Thibitisha simu yako',
-  'auth.enterOtp': 'Weka msimbo wa uthibitishaji',
-  'send.sending': 'Inatuma…',
-  'withdraw.submitted': 'Uondoaji umewasilishwa!',
-  'offramp.titleFull': 'Uza crypto kwa pesa',
-  'services.title': 'Huduma',
-  'portfolio.title': 'Portfolio',
-  'security.title': 'Usalama',
-
-});
-
-const ha = overlay(en, {
-  'nav.home': 'Gida',
-  'nav.wallet': 'Wallet',
-  'nav.profile': 'Bayani',
-  'nav.send': 'Aika',
-  'nav.request': 'Nema',
-  'nav.receive': 'Karɓa',
-  'nav.swap': 'Musanya',
-  'nav.buy': 'Saya',
-  'nav.settings': 'Saiti',
-  'common.continue': 'Ci gaba',
-  'common.done': 'An gama',
-  'common.cancel': 'Soke',
-  'common.save': 'Ajiye',
-  'send.title': 'Aika',
-  'request.title': 'Nemi kudi',
-  'request.submit': 'Aika buƙata',
-  'request.pay': 'Biya',
-  'swap.title': 'Musanya',
-  'profile.settings': 'Saiti',
-  'profile.signOut': 'Fita',
-  'lang.title': 'Harshe',
-  'lang.hint': 'Fassarar fuskar app. Saƙon uwar garke yana Turanci.',
-  'auth.login': 'Shiga',
-  'notif.title': 'Sanarwa',
-});
-
-const yo = overlay(en, {
-  'nav.home': 'Ilé',
-  'nav.wallet': 'Apamọ̀',
-  'nav.profile': 'Profile',
-  'nav.send': 'Firanṣẹ́',
-  'nav.request': 'Beere',
-  'nav.receive': 'Gba',
-  'nav.swap': 'Pààrọ̀',
-  'nav.buy': 'Ra',
-  'nav.settings': 'Ètò',
-  'common.continue': 'Tẹ̀síwájú',
-  'common.done': 'Parí',
-  'common.cancel': 'Fagilé',
-  'send.title': 'Firanṣẹ́',
-  'request.title': 'Beere owó',
-  'request.submit': 'Firanṣẹ́ ìbéèrè',
-  'request.pay': 'San',
-  'swap.title': 'Pààrọ̀',
-  'profile.settings': 'Ètò',
-  'profile.signOut': 'Jáde',
-  'lang.title': 'Èdè',
-  'lang.hint': 'Túmọ̀ ojú-iṣẹ́ app. Àtẹ̀jíṣẹ́ ṣẹ́ẹ́fà jẹ́ Gẹ̀ẹ́sì.',
-  'auth.login': 'Wọlé',
-  'notif.title': 'Ìfitónilétí',
-});
-
-const ig = overlay(en, {
-  'nav.home': 'Ụlọ',
-  'nav.wallet': 'Obere akpa',
-  'nav.profile': 'Profaịlụ',
-  'nav.send': 'Ziga',
-  'nav.request': 'Rịọ',
-  'nav.receive': 'Nata',
-  'nav.swap': 'Gbanwee',
-  'nav.buy': 'Zụta',
-  'nav.settings': 'Ntọala',
-  'common.continue': 'Gaa n\'ihu',
-  'common.done': 'Emechaala',
-  'common.cancel': 'Kagbuo',
-  'send.title': 'Ziga',
-  'request.title': 'Rịọ ego',
-  'request.submit': 'Zipu arịrịọ',
-  'request.pay': 'Kwụọ',
-  'swap.title': 'Gbanwee',
-  'profile.settings': 'Ntọala',
-  'profile.signOut': 'Pụọ',
-  'lang.title': 'Asụsụ',
-  'lang.hint': 'Tụgharịa ihu ngwa. Ozi sava nọ n\'asụsụ Bekee.',
-  'auth.login': 'Banye',
-  'notif.title': 'Ọkwa',
-});
-
-export const DICTS: Record<LocaleCode, Dict> = { en, ar, sw, ha, yo, ig };
-
-const CACHE_PREFIX = 'convia_i18n_v1:';
-
-export function t(locale: LocaleCode, key: string): string {
-  return DICTS[locale]?.[key] ?? DICTS.en[key] ?? key;
+export function cacheDynamicTranslation(_locale: LocaleCode, _sourceEn: string, _translated: string) {
+  /* no-op — English only */
 }
 
-export function cacheDynamicTranslation(locale: LocaleCode, sourceEn: string, translated: string) {
-  try {
-    localStorage.setItem(`${CACHE_PREFIX}${locale}:${sourceEn}`, translated);
-  } catch {
-    /* ignore */
-  }
-}
-
-export function getCachedDynamicTranslation(locale: LocaleCode, sourceEn: string): string | null {
-  try {
-    return localStorage.getItem(`${CACHE_PREFIX}${locale}:${sourceEn}`);
-  } catch {
-    return null;
-  }
+export function getCachedDynamicTranslation(_locale: LocaleCode, _sourceEn: string): string | null {
+  return null;
 }
