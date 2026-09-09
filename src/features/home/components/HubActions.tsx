@@ -1,12 +1,12 @@
 import { motion } from 'motion/react';
-import { ArrowDownToLine, ArrowUpFromLine, CreditCard, History } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpFromLine, CreditCard, Landmark } from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
 
 const ACTIONS: { label: string; screen: Screen; Icon: typeof ArrowDownToLine }[] = [
   { label: 'Deposit', screen: 'deposit', Icon: ArrowDownToLine },
   { label: 'Withdraw', screen: 'withdraw', Icon: ArrowUpFromLine },
   { label: 'Buy', screen: 'onramp', Icon: CreditCard },
-  { label: 'History', screen: 'history', Icon: History },
+  { label: 'Sell', screen: 'offramp', Icon: Landmark },
 ];
 
 /** Circular hub actions under the balance. */

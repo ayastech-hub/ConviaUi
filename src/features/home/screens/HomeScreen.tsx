@@ -9,7 +9,7 @@ import { HubAssetsList } from '../components/HubAssetsList';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useAuth } from '../../../shared/context/AuthContext';
 import * as notifApi from '../../../shared/api/notifications';
-import { Bell, ScanLine } from 'lucide-react';
+import { Bell, History, ScanLine } from 'lucide-react';
 import { motion } from 'motion/react';
 import { PageTop } from '../../../shared/components/PageTop';
 
@@ -64,24 +64,36 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
           <ScanLine size={18} style={{ color: 'var(--foreground)' }} />
         </motion.button>
         <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 17 }}>Wallet</p>
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.9 }}
-          onClick={() => navigate('notifications')}
-          aria-label="Notifications"
-          className="relative w-10 h-10 rounded-full flex items-center justify-center"
-          style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
-        >
-          <Bell size={18} style={{ color: 'var(--foreground)' }} />
-          {notificationCount > 0 && (
-            <span
-              className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
-              style={{ background: 'var(--destructive)' }}
-            >
-              {notificationCount > 9 ? '9+' : notificationCount}
-            </span>
-          )}
-        </motion.button>
+        <div className="flex items-center gap-2">
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.9 }}
+            onClick={() => navigate('history')}
+            aria-label="History"
+            className="w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+          >
+            <History size={18} style={{ color: 'var(--foreground)' }} />
+          </motion.button>
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.9 }}
+            onClick={() => navigate('notifications')}
+            aria-label="Notifications"
+            className="relative w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+          >
+            <Bell size={18} style={{ color: 'var(--foreground)' }} />
+            {notificationCount > 0 && (
+              <span
+                className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
+                style={{ background: 'var(--destructive)' }}
+              >
+                {notificationCount > 9 ? '9+' : notificationCount}
+              </span>
+            )}
+          </motion.button>
+        </div>
       </div>
 
       <CenteredBalance
