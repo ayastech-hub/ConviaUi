@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft, Loader } from 'lucide-react';
+import { Loader } from 'lucide-react';
 import { type Asset } from '../../../shared/data/mockData';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
@@ -149,18 +149,12 @@ export function ReceiveScreen({ goBack }: ReceiveScreenProps) {
       <PageTop />
 
       <div className="flex items-center gap-3 px-5 mb-5">
-        <motion.button
-          whileTap={{ scale: 0.9 }}
+        <BackButton
           onClick={() => {
             setSelectedAsset(null);
             setAddress('');
           }}
-          aria-label="Go back"
-          className="w-10 h-10 rounded-2xl flex items-center justify-center"
-          style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
-        >
-          <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
-        </motion.button>
+        />
         <div>
           <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20, lineHeight: 1.1 }}>
             Receive {asset.symbol}

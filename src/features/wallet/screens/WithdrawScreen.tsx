@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft, Wallet, CircleDollarSign, Send } from 'lucide-react';
+import { Wallet, CircleDollarSign, Send } from 'lucide-react';
 import { MethodOptionRow, MethodOrDivider } from '../components/MethodOptionRow';
 import { PageTop } from '../../../shared/components/PageTop';
 import { type Asset, type Transaction } from '../../../shared/data/mockData';
@@ -209,15 +209,7 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
       <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
         <PageTop />
         <div className="flex items-center gap-3 px-5 mb-2">
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={goBack}
-            aria-label="Go back"
-            className="w-10 h-10 rounded-2xl flex items-center justify-center"
-            style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
-          >
-            <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
-          </motion.button>
+          <BackButton onClick={goBack} />
           <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22 }}>Withdraw</h2>
         </div>
                 <div className="flex-1 overflow-y-auto px-5 pb-8">

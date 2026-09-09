@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft, HandCoins } from 'lucide-react';
+import { HandCoins } from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { useLanguage } from '../../../shared/context/LanguageContext';
@@ -16,6 +16,7 @@ import {
 import { ApiError } from '../../../shared/api/types';
 import { queryClient, queryKeys } from '../../../shared/query/queryClient';
 import { PageTop } from '../../../shared/components/PageTop';;
+import { BackButton } from '../../../shared/components/BackButton';
 
 interface Props {
   goBack: () => void;
@@ -117,15 +118,7 @@ export function RequestMoneyScreen({ goBack }: Props) {
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
       <PageTop />
       <div className="flex items-center gap-3 px-5 mb-4">
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.9 }}
-          onClick={goBack}
-          className="w-10 h-10 rounded-2xl flex items-center justify-center"
-          style={{ background: 'var(--muted)' }}
-        >
-          <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
-        </motion.button>
+        <BackButton onClick={goBack} />
         <div>
           <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20 }}>{t('request.title')}</h2>
           <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>{t('request.subtitle')}</p>

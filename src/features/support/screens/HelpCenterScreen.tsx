@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft, Search, MessageCircle, X } from 'lucide-react';
+import { Search, MessageCircle, X } from 'lucide-react';
 import { allArticles, type HelpArticle } from '../components/helpcenter/articleData';
 import { initialMessages, getBotResponse, type ChatMessage } from '../components/helpcenter/chatData';
 import { CategoryGrid } from '../components/helpcenter/CategoryGrid';
@@ -8,6 +8,7 @@ import { ArticleList } from '../components/helpcenter/ArticleList';
 import { ArticleDetailSheet } from '../components/helpcenter/ArticleDetailSheet';
 import { SupportChatView } from '../components/helpcenter/SupportChatView';
 import { PageTop } from '../../../shared/components/PageTop';;
+import { BackButton } from '../../../shared/components/BackButton';
 
 interface HelpCenterScreenProps {
   goBack: () => void;
@@ -69,9 +70,7 @@ export function HelpCenterScreen({ goBack }: HelpCenterScreenProps) {
       <PageTop />
 
       <div className="flex items-center gap-3 px-5 mb-6">
-        <motion.button whileTap={{ scale: 0.9 }} onClick={goBack} aria-label="Go back" className="w-10 h-10 rounded-2xl flex items-center justify-center glass-card" style={{ border: '1px solid var(--border)' }}>
-          <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
-        </motion.button>
+        <BackButton onClick={goBack} />
         <h2 style={{ color: 'var(--foreground)', fontWeight: 800 }}>Help Center</h2>
       </div>
 

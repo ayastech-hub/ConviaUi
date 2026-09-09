@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
-import { ChevronLeft, ArrowUpRight, MoreVertical } from 'lucide-react';
+import { ArrowUpRight, MoreVertical } from 'lucide-react';
+import { BackButton } from '../../../../shared/components/BackButton';
 
 interface ChatHeaderProps {
   goBack: () => void;
@@ -10,9 +11,7 @@ interface ChatHeaderProps {
 export function ChatHeader({ goBack, onSendPayment }: ChatHeaderProps) {
   return (
     <div className="flex items-center gap-3 px-4 pb-3" style={{ borderBottom: '1px solid var(--border)' }}>
-      <motion.button whileTap={{ scale: 0.9 }} onClick={goBack} className="w-9 h-9 rounded-2xl flex items-center justify-center" style={{ background: 'var(--muted)' }}>
-        <ChevronLeft size={18} style={{ color: 'var(--foreground)' }} />
-      </motion.button>
+      <BackButton onClick={goBack} />
       <div className="relative">
         <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--secondary)', color: 'var(--foreground)', fontSize: 12, fontWeight: 700 }}>KA</div>
         <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full" style={{ background: 'var(--foreground)', border: '2px solid var(--background)' }} />

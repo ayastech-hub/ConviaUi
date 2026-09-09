@@ -1,7 +1,6 @@
 import { useMemo, useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  ChevronLeft,
   ChevronDown,
   Check,
   ArrowUpRight,
@@ -19,6 +18,7 @@ import { PageTop } from '../../../shared/components/PageTop';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { useTransactions } from '../../../shared/hooks/useTransactions';
 import { apiTxToUi, filterHistoryForUi } from '../../../shared/utils/mapApiToUi';
+import { BackButton } from '../../../shared/components/BackButton';
 
 type TypeFilter =
   | 'all'
@@ -225,16 +225,7 @@ export function HistoryScreen({ goBack }: Props) {
       <PageTop />
 
       <div className="flex items-center gap-3 px-5 mb-4">
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.9 }}
-          onClick={goBack}
-          aria-label="Back"
-          className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
-          style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
-        >
-          <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
-        </motion.button>
+        <BackButton onClick={goBack} />
         <h1 className="flex-1" style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22 }}>
           History
         </h1>

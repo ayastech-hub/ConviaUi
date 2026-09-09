@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft, Loader, Coins, CreditCard, HandCoins } from 'lucide-react';
+import { Loader, Coins, CreditCard, HandCoins } from 'lucide-react';
 import { MethodOptionRow, MethodOrDivider } from '../components/MethodOptionRow';
 import { type Asset } from '../../../shared/data/mockData';
 import { NETWORKS } from '../components/deposit/types';
@@ -120,15 +120,7 @@ export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenP
       <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
         <PageTop />
         <div className="flex items-center gap-3 px-5 mb-2">
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={goBack}
-            aria-label="Go back"
-            className="w-10 h-10 rounded-2xl flex items-center justify-center"
-            style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
-          >
-            <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
-          </motion.button>
+          <BackButton onClick={goBack} />
           <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22 }}>Deposit</h2>
         </div>
         <div className="flex-1 overflow-y-auto px-5 pt-2 pb-8">
@@ -178,15 +170,7 @@ export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenP
       </div>
 
       <div className="flex items-center gap-3 px-5 mb-4">
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={() => (presetSymbol ? goBack() : setAsset(null))}
-          aria-label="Go back"
-          className="w-10 h-10 rounded-2xl flex items-center justify-center"
-          style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
-        >
-          <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
-        </motion.button>
+        <BackButton onClick={() => (presetSymbol ? goBack() : setAsset(null))} />
         <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20 }}>
           {asset.symbol}
         </h2>

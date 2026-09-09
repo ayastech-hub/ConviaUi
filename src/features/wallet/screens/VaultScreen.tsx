@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  ChevronLeft,
   Shield,
   ArrowDownToLine,
   ArrowUpFromLine,
@@ -17,6 +16,7 @@ import { useAuth } from '../../../shared/context/AuthContext';
 import * as vaultApi from '../../../shared/api/vault';
 import type { VaultBalance, VaultQuote } from '../../../shared/api/vault';
 import { ApiError } from '../../../shared/api/types';
+import { BackButton } from '../../../shared/components/BackButton';
 
 interface Props {
   goBack: () => void;
@@ -145,16 +145,7 @@ export function VaultScreen({ goBack }: Props) {
 
       {/* Header */}
       <div className="flex items-center gap-3 px-5 mb-1 flex-shrink-0">
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.9 }}
-          onClick={goBack}
-          className="w-10 h-10 rounded-2xl flex items-center justify-center"
-          style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
-          aria-label="Back"
-        >
-          <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
-        </motion.button>
+        <BackButton onClick={goBack} />
         <div className="flex-1 min-w-0">
           <h1 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22, letterSpacing: -0.3 }}>
             Dollar Vault

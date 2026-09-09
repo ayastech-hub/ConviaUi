@@ -1,6 +1,6 @@
 import type { RefObject } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, MessageCircle, Check, CheckCheck, Send } from 'lucide-react';
+import { MessageCircle, Check, CheckCheck, Send } from 'lucide-react';
 import type { ChatMessage } from './chatData';
 import { quickReplies } from './chatData';
 
@@ -19,9 +19,7 @@ export function SupportChatView({ messages, isTyping, scrollRef, input, setInput
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
       <div className="flex items-center gap-3 px-5 pt-3 pb-3" style={{ borderBottom: '1px solid var(--border)', background: 'var(--card)' }}>
-        <motion.button whileTap={{ scale: 0.9 }} onClick={onBack} aria-label="Back" className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'var(--muted)' }}>
-          <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
-        </motion.button>
+        <BackButton onClick={onBack} />
         <div className="flex items-center gap-3 flex-1">
           <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--secondary)' }}>
             <MessageCircle size={18} className="text-white" />

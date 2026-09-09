@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft, Heart } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { AppInfoHeader } from '../components/AppInfoHeader';
 import { LegalAccordion } from '../components/LegalAccordion';
 import { PageTop } from '../../../shared/components/PageTop';;
+import { BackButton } from '../../../shared/components/BackButton';
 
 interface AboutScreenProps {
   goBack: () => void;
@@ -18,9 +19,7 @@ export function AboutScreen({ goBack }: AboutScreenProps) {
       <PageTop />
 
       <div className="flex items-center gap-3 px-5 mb-6">
-        <motion.button whileTap={{ scale: 0.9 }} onClick={goBack} aria-label="Go back" className="w-10 h-10 rounded-2xl flex items-center justify-center glass-card" style={{ border: '1px solid var(--border)' }}>
-          <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
-        </motion.button>
+        <BackButton onClick={goBack} />
         <h2 style={{ color: 'var(--foreground)', fontWeight: 800 }}>About</h2>
       </div>
 

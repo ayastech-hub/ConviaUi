@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  ChevronLeft,
   Calendar,
   Send,
   RefreshCw,
@@ -21,6 +20,7 @@ import { useAuth } from '../../../shared/context/AuthContext';
 import * as rewardsApi from '../../../shared/api/rewards';
 import { ApiError } from '../../../shared/api/types';
 import { PageTop } from '../../../shared/components/PageTop';;
+import { BackButton } from '../../../shared/components/BackButton';
 
 interface RewardsScreenProps {
   goBack: () => void;
@@ -182,15 +182,7 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
     <div className="flex flex-col h-full relative" style={{ background: 'var(--background)' }}>
       <PageTop />
       <div className="flex items-center gap-3 px-5 mb-4">
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.9 }}
-          onClick={goBack}
-          className="w-10 h-10 rounded-2xl flex items-center justify-center"
-          style={{ border: '1px solid var(--border)' }}
-        >
-          <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
-        </motion.button>
+        <BackButton onClick={goBack} />
         <h2 style={{ color: 'var(--foreground)', fontWeight: 800 }}>Rewards</h2>
         {loading && (
           <span style={{ color: 'var(--muted-foreground)', fontSize: 11, marginLeft: 'auto' }}>Syncing…</span>

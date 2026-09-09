@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import {
-  ChevronLeft,
   ArrowDownToLine,
   ArrowUpFromLine,
   RefreshCw,
@@ -68,9 +67,7 @@ export function TokenDetailScreen({ symbol, goBack, navigate }: TokenDetailScree
       <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
         <PageTop />
         <div className="px-5">
-          <button type="button" onClick={goBack} style={{ color: 'var(--foreground)' }}>
-            Back
-          </button>
+          <BackButton onClick={goBack} />
         </div>
       </div>
     );
@@ -87,16 +84,7 @@ export function TokenDetailScreen({ symbol, goBack, navigate }: TokenDetailScree
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
       <PageTop />
       <div className="flex items-center justify-between px-5 mb-5">
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.9 }}
-          onClick={goBack}
-          aria-label="Back"
-          className="w-10 h-10 rounded-2xl flex items-center justify-center"
-          style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
-        >
-          <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
-        </motion.button>
+        <BackButton onClick={goBack} />
         <div className="text-center min-w-0 px-2">
           <p style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 16 }}>{asset.symbol}</p>
           <p className="truncate" style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>

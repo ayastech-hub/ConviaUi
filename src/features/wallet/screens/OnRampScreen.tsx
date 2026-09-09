@@ -185,14 +185,9 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
       </div>
 
       <div className="flex items-center gap-3 px-5 mb-5">
-        <motion.button
-          whileTap={{ scale: 0.9 }}
+        <BackButton
           onClick={step === 'form' ? goBack : step === 'review' ? () => setStep('form') : goBack}
-          className="w-10 h-10 rounded-2xl flex items-center justify-center "
-          style={{ border: '1px solid var(--border)' }}
-        >
-          <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
-        </motion.button>
+        />
         <h2 style={{ color: 'var(--foreground)', fontWeight: 800 }}>Buy crypto</h2>
       </div>
 

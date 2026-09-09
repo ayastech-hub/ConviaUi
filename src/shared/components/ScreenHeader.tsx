@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
-import { motion } from 'motion/react';
-import { ChevronLeft } from 'lucide-react';
 import { LAYOUT } from '../layout/spacing';
+import { BackButton } from './BackButton';
 
 interface ScreenHeaderProps {
   title: string;
@@ -14,8 +13,7 @@ interface ScreenHeaderProps {
 }
 
 /**
- * Standard sub-screen header: top inset + back + title.
- * Top spacing is fixed so Settings / Send / KYC / etc. align with Home.
+ * Standard sub-screen header: top inset + liquid-glass back + title.
  */
 export function ScreenHeader({
   title,
@@ -37,15 +35,7 @@ export function ScreenHeader({
         />
       )}
       <div className="flex items-center gap-3 px-5" style={{ marginBottom }}>
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={onBack}
-          aria-label="Go back"
-          className="w-10 h-10 rounded-2xl flex items-center justify-center"
-          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-        >
-          <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
-        </motion.button>
+        <BackButton onClick={onBack} />
         <div className="flex-1 min-w-0">
           <h2
             style={{

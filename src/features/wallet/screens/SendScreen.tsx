@@ -405,8 +405,7 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
         )}
       </div>
       <div className="flex items-center gap-3 px-5 mb-3">
-        <motion.button
-          whileTap={{ scale: 0.9 }}
+        <BackButton
           onClick={() => {
             if (step === 'select' || step === 'recipient') goBack();
             else if (step === 'amount') { setStep('recipient'); setAmount(''); setError(''); }
@@ -414,12 +413,7 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
             else if (step === 'success') reset();
             else goBack();
           }}
-          aria-label="Go back"
-          className="w-10 h-10 rounded-2xl flex items-center justify-center"
-          style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
-        >
-          <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
-        </motion.button>
+        />
         <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 18 }}>
           {step === 'select' ? 'Send' : step === 'success' ? 'Sent' : step === 'sending' ? 'Sending' : 'Send'}
         </h2>

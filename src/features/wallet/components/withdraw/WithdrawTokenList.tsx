@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { ChevronRight, Search } from 'lucide-react';
 import type { Asset } from '../../../../shared/data/mockData';
 import { AssetIcon } from '../../../../shared/components/AssetIcon';
 import { useLanguage } from '../../../../shared/context/LanguageContext';
@@ -44,15 +44,7 @@ export function WithdrawTokenList({ assets, goBack, onSelect }: WithdrawTokenLis
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
       <PageTop />
       <div className="flex items-center gap-3 px-5 mb-4">
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={goBack}
-          aria-label="Back"
-          className="w-10 h-10 rounded-2xl flex items-center justify-center"
-          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-        >
-          <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
-        </motion.button>
+        <BackButton onClick={goBack} />
         <div className="flex-1 min-w-0">
           <h1 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22, lineHeight: 1.1 }}>
             {t('nav.withdraw') || 'Withdraw'}

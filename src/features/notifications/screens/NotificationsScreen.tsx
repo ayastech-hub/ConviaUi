@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  ChevronLeft,
   TrendingUp,
   Shield,
   Gift,
@@ -212,16 +211,7 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
 
       <div className="flex items-center justify-between px-5 mb-3">
         <div className="flex items-center gap-3">
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.9 }}
-            onClick={goBack}
-            aria-label="Go back"
-            className="w-10 h-10 rounded-2xl flex items-center justify-center"
-            style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
-          >
-            <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
-          </motion.button>
+          <BackButton onClick={goBack} />
           <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22 }}>Notifications</h2>
         </div>
         <button

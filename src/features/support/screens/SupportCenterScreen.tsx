@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  ChevronLeft, Plus, MessageSquare, Paperclip, Send, Loader, Image as ImageIcon, X, Circle,
+  Plus, MessageSquare, Paperclip, Send, Loader, Image as ImageIcon, X, Circle,
 } from 'lucide-react';
 import { useAuth } from '../../../shared/context/AuthContext';
 import * as supportApi from '../../../shared/api/support';
@@ -9,6 +9,7 @@ import type { SupportCase, SupportMessage, SupportAttachment } from '../../../sh
 import { ApiError } from '../../../shared/api/types';
 import { FeatureAlert } from '../../../shared/components/FeatureAlert';
 import { PageTop } from '../../../shared/components/PageTop';;
+import { BackButton } from '../../../shared/components/BackButton';
 
 interface SupportCenterScreenProps {
   goBack: () => void;
@@ -357,14 +358,7 @@ function Header({
 }) {
   return (
     <div className="flex items-center gap-3 px-5 mb-4">
-      <motion.button
-        whileTap={{ scale: 0.9 }}
-        onClick={onBack}
-        className="w-10 h-10 rounded-2xl flex items-center justify-center"
-        style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
-      >
-        <ChevronLeft size={20} style={{ color: 'var(--foreground)' }} />
-      </motion.button>
+      <BackButton onClick={onBack} />
       <div className="flex-1 min-w-0">
         <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 18 }} className="truncate">
           {title}
