@@ -15,8 +15,8 @@ interface BottomNavProps {
 }
 
 /**
- * Floating pill: Wallet · Swap · More · Profile
- * (Buy / Send removed from nav — Buy is a hub action; Send via assets / flows)
+ * Floating pill with liquid Apple-glass active indicator.
+ * Wallet · Swap · More · Profile
  */
 export function BottomNav({ activeTab, onNavigate, onSwap }: BottomNavProps) {
   const { t } = useLanguage();
@@ -64,14 +64,17 @@ export function BottomNav({ activeTab, onNavigate, onSwap }: BottomNavProps) {
       style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
     >
       <nav
-        className="pointer-events-auto flex items-center justify-between gap-0.5 px-2 py-1.5"
+        className="pointer-events-auto relative flex items-center justify-between gap-0.5 px-1.5 py-1.5"
         style={{
           width: 'min(92%, 380px)',
           height: 58,
           borderRadius: 999,
-          background: 'var(--card)',
-          border: '1px solid var(--border)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
+          background: 'rgba(28, 28, 30, 0.55)',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          boxShadow:
+            '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(0,0,0,0.2)',
+          backdropFilter: 'blur(28px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(28px) saturate(180%)',
         }}
         aria-label="Main"
       >
@@ -83,26 +86,41 @@ export function BottomNav({ activeTab, onNavigate, onSwap }: BottomNavProps) {
               key={tab.id}
               type="button"
               onClick={tab.action}
-              whileTap={{ scale: 0.88 }}
+              whileTap={{ scale: 0.9 }}
               aria-label={tab.label}
               aria-current={isActive ? 'page' : undefined}
-              className="relative flex flex-col items-center justify-center gap-0.5 flex-1 min-w-0 h-full rounded-full"
-              style={{
-                background: isActive ? 'var(--muted)' : 'transparent',
-              }}
+              className="relative flex flex-col items-center justify-center gap-0.5 flex-1 min-w-0 h-full rounded-full z-[1]"
+              style={{ background: 'transparent' }}
             >
+              {isActive && (
+                <motion.span
+                  layoutId="nav-liquid-glass"
+                  className="absolute inset-y-1 inset-x-0.5 rounded-full pointer-events-none"
+                  transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                  style={{
+                    background:
+                      'linear-gradient(165deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.08) 45%, rgba(255,255,255,0.04) 100%)',
+                    border: '1px solid rgba(255,255,255,0.22)',
+                    boxShadow:
+                      'inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(0,0,0,0.15), 0 2px 12px rgba(0,0,0,0.15)',
+                    backdropFilter: 'blur(12px) saturate(200%)',
+                    WebkitBackdropFilter: 'blur(12px) saturate(200%)',
+                  }}
+                />
+              )}
               <Icon
                 size={20}
-                strokeWidth={isActive ? 2.25 : 1.6}
+                strokeWidth={isActive ? 2.3 : 1.6}
+                className="relative z-[1]"
                 style={{
-                  color: isActive ? 'var(--foreground)' : 'var(--muted-foreground)',
+                  color: isActive ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
                 }}
               />
               <span
-                className="text-[9px] tracking-wide truncate max-w-full px-0.5"
+                className="relative z-[1] text-[9px] tracking-wide truncate max-w-full px-0.5"
                 style={{
-                  color: isActive ? 'var(--foreground)' : 'var(--muted-foreground)',
-                  fontWeight: isActive ? 600 : 400,
+                  color: isActive ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
+                  fontWeight: isActive ? 650 : 400,
                 }}
               >
                 {tab.label}
