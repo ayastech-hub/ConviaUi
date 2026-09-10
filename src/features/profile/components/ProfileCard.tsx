@@ -190,32 +190,8 @@ export function ProfileCard({ onOpenProfile }: ProfileCardProps) {
                   {statusLabel}
                 </span>
               )}
-              {country && (
-                <span
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-                  style={{ background: 'var(--muted)', color: 'var(--foreground)', fontSize: 11, fontWeight: 600 }}
-                >
-                  {flag && (
-                    <img
-                      src={flag}
-                      alt=""
-                      width={14}
-                      height={10}
-                      style={{ width: 14, height: 10, objectFit: 'cover', borderRadius: 2 }}
-                    />
-                  )}
-                  {String(country).toUpperCase()}
-                </span>
-              )}
-              {currency && (
-                <span
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full"
-                  style={{ background: 'var(--muted)', color: 'var(--foreground)', fontSize: 11, fontWeight: 600 }}
-                >
-                  <CurrencyIcon code={currency} size={12} />
-                  {String(currency).toUpperCase()}
-                </span>
-              )}
+              
+              
             </div>
           </div>
 

@@ -1,1 +1,1 @@
-export type SecurityStep = 'menu' | 'pin' | 'devices' | 'whitelist';
+export type SecurityStep = 'menu' | 'pin' | 'password' | 'devices' | 'whitelist';

@@ -133,18 +133,19 @@ export function EditProfileScreen({ goBack }: EditProfileScreenProps) {
                 onChange={setAvatar}
                 initials={initialsOf(displayName || username || 'C')}
               />
-              <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 12, textAlign: 'center', maxWidth: 280, lineHeight: 1.45 }}>
-                {localPreview
-                  ? 'Photo is preview-only until media upload is available. Current hosted URL still applies.'
-                  : 'A hosted image URL is saved with your profile.'}
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 10 }}>
+                Tap to change photo
               </p>
             </div>
 
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600, letterSpacing: '0.04em', marginBottom: 10 }}>
-              IDENTITY
-            </p>
             <div className="flex flex-col gap-4 mb-6">
-              <ProfileFormField label="Display name" icon={User} value={displayName} onChange={setDisplayName} placeholder="Your name" />
+              <ProfileFormField
+                label="Name"
+                icon={User}
+                value={displayName}
+                onChange={setDisplayName}
+                placeholder="Your name"
+              />
               <ProfileFormField
                 label="Username"
                 icon={AtSign}

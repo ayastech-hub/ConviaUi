@@ -28,7 +28,26 @@ interface HomeScreenProps {
 export function HomeScreen({ navigate, notificationCount: notificationCountProp }: HomeScreenProps) {
   const { userId, status } = useAuth();
   const [unread, setUnread] = useState(0);
-  const [balanceVisible, setBalanceVisible] = useState(true);
+  const [balanceVisible, setBalanceVisible] = useState(() => {
+    try {
+      return localStorage.getItem('convia.hideBalance') !== '1';
+    } catch {
+      return true;
+    }
+  });
+  useEffect(() => {
+    const sync = () => {
+      try {
+        setBalanceVisible(localStorage.getItem('convia.hideBalance') !== '1');
+      } catch { /* */ }
+    };
+    window.addEventListener('convia-hide-balance', sync);
+    window.addEventListener('storage', sync);
+    return () => {
+      window.removeEventListener('convia-hide-balance', sync);
+      window.removeEventListener('storage', sync);
+    };
+  }, []);
   const [hideSmall, setHideSmall] = useState(false);
     const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);
   const { assets, loading } = useWalletAssets();
@@ -98,7 +117,16 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
 
       <CenteredBalance
         balanceVisible={balanceVisible}
-        onToggle={() => setBalanceVisible((v) => !v)}
+        onToggle={() => {
+          setBalanceVisible((v) => {
+            const next = !v;
+            try {
+              localStorage.setItem('convia.hideBalance', next ? '0' : '1');
+              window.dispatchEvent(new Event('convia-hide-balance'));
+            } catch { /* */ }
+            return next;
+          });
+        }}
       />
 
       <HubActions onNavigate={navigate} />

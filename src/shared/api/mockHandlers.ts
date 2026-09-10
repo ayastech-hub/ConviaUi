@@ -87,6 +87,7 @@ export function resolveMockResponse(method: string, path: string, body?: unknown
     return { accessToken: MOCK_USER.accessToken, refreshToken: MOCK_USER.refreshToken };
   }
   if (m === 'POST' && pathname.includes('/auth/logout')) return { ok: true };
+  if (m === 'POST' && pathname.includes('/auth/change-password')) return { ok: true };
 
   // Soft-success mutations so flows complete offline
   if (m !== 'GET' && m !== 'HEAD') {

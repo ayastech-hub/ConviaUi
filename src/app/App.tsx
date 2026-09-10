@@ -139,23 +139,36 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [darkMode, setDarkMode] = useState(() => {
+  const [themePref, setThemePref] = useState<'system' | 'light' | 'dark'>(() => {
     try {
       const saved = localStorage.getItem('convia.theme');
-      if (saved === 'light') return false;
-      if (saved === 'dark') return true;
+      if (saved === 'light' || saved === 'dark' || saved === 'system') return saved;
     } catch {}
-    return true;
+    return 'system';
   });
+  const [systemDark, setSystemDark] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(prefers-color-scheme: dark)').matches : true,
+  );
+  const darkMode = themePref === 'dark' || (themePref === 'system' && systemDark);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = () => setSystemDark(mq.matches);
+    mq.addEventListener?.('change', onChange);
+    return () => mq.removeEventListener?.('change', onChange);
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
     if (darkMode) root.classList.add('dark');
     else root.classList.remove('dark');
     try {
-      localStorage.setItem('convia.theme', darkMode ? 'dark' : 'light');
+      localStorage.setItem('convia.theme', themePref);
     } catch {}
-  }, [darkMode]);
+  }, [darkMode, themePref]);
+
+  const setTheme = (pref: 'system' | 'light' | 'dark') => setThemePref(pref);
+  const toggleDark = () => setThemePref((p) => (darkMode ? 'light' : 'dark'));
   const { status } = useAuth();
 
   // When auth finishes loading, bounce authenticated users off login/signup
@@ -203,20 +216,20 @@ export default function App() {
       case 'home':
         return (
           <motion.div key="home" {...fadeIn} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
-            <HomeScreen navigate={navigate} darkMode={darkMode} toggleDark={() => setDarkMode(!darkMode)} notificationCount={0} />
+            <HomeScreen navigate={navigate} darkMode={darkMode} toggleDark={toggleDark} notificationCount={0} />
           </motion.div>
         );
       case 'wallet':
         // Merged into Home hub — same UI as home
         return (
           <motion.div key="wallet" {...fadeIn} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
-            <HomeScreen navigate={navigate} darkMode={darkMode} toggleDark={() => setDarkMode(!darkMode)} notificationCount={0} />
+            <HomeScreen navigate={navigate} darkMode={darkMode} toggleDark={toggleDark} notificationCount={0} />
           </motion.div>
         );
       case 'profile':
         return (
           <motion.div key="profile" {...fadeIn} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
-            <ProfileScreen navigate={navigate} darkMode={darkMode} toggleDark={() => setDarkMode(!darkMode)} />
+            <ProfileScreen navigate={navigate} darkMode={darkMode} toggleDark={toggleDark} />
           </motion.div>
         );
 
@@ -303,7 +316,7 @@ export default function App() {
       case 'settings':
         return (
           <motion.div key="settings" {...slideRight} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
-            <SettingsScreen goBack={goBack} navigate={navigate} darkMode={darkMode} toggleDark={() => setDarkMode(!darkMode)} />
+            <SettingsScreen goBack={goBack} navigate={navigate} darkMode={darkMode} themePref={themePref} setThemePref={setTheme} toggleDark={toggleDark} />
           </motion.div>
         );
       case 'security':
@@ -334,7 +347,7 @@ export default function App() {
         // Portfolio screen removed — stay on wallet hub
         return (
           <motion.div key="portfolio" {...fadeIn} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
-            <HomeScreen navigate={navigate} darkMode={darkMode} toggleDark={() => setDarkMode(!darkMode)} notificationCount={0} />
+            <HomeScreen navigate={navigate} darkMode={darkMode} toggleDark={toggleDark} notificationCount={0} />
           </motion.div>
         );
       case 'login':

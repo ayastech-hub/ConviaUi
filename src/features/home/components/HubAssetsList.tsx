@@ -7,13 +7,14 @@ interface Props {
   assets: Asset[];
   loading?: boolean;
   hideSmall: boolean;
+  balanceVisible?: boolean;
   onToggleHide: () => void;
   onSeeAll?: () => void;
   onSelect?: (asset: Asset) => void;
 }
 
 /** Asset rows: name, price + 24h %, qty, USD — Crypto-Bot list structure. */
-export function HubAssetsList({ assets, loading, hideSmall, onToggleHide, onSelect }: Props) {
+export function HubAssetsList({ assets, loading, hideSmall, balanceVisible = true, onToggleHide, onSelect }: Props) {
   const { format } = useCurrency();
   const list = hideSmall
     ? assets.filter((a) => Number(a.valueUSD) >= 1 || Number(a.balance) > 0)
@@ -76,11 +77,13 @@ export function HubAssetsList({ assets, loading, hideSmall, onToggleHide, onSele
                 </div>
                 <div className="text-right flex-shrink-0 pl-2">
                   <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>
-                    {Number(asset.balance).toLocaleString(undefined, { maximumFractionDigits: 6 })}{' '}
+                    {balanceVisible
+                      ? Number(asset.balance).toLocaleString(undefined, { maximumFractionDigits: 6 })
+                      : '••••'}{' '}
                     {asset.symbol}
                   </p>
                   <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 2 }}>
-                    {format(Number(asset.valueUSD) || 0)}
+                    {balanceVisible ? format(Number(asset.valueUSD) || 0) : '••••'}
                   </p>
                 </div>
               </motion.button>

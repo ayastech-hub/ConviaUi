@@ -165,6 +165,13 @@ export function SecurityMenu({
         <ListSection title="ACTIONS">
           <ListRow
             icon={Lock}
+            label="Change password"
+            desc="Login password"
+            onClick={() => onNavigate('password')}
+            trailing={<ChevronRight size={16} style={{ color: 'var(--muted-foreground)' }} />}
+          />
+          <ListRow
+            icon={Lock}
             label={hasPin ? 'Change PIN' : 'Set transaction PIN'}
             desc={hasPin ? '6-digit PIN for withdrawals' : 'Required before you send funds'}
             onClick={() => onNavigate('pin')}

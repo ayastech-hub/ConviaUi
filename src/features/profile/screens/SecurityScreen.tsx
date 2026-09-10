@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { SecurityMenu } from '../components/SecurityMenu';
 import { ChangePinFlow } from '../components/ChangePinFlow';
+import { ChangePasswordFlow } from '../components/ChangePasswordFlow';
 import { ActiveSessionsView } from '../components/ActiveSessionsView';
 import { AddressWhitelistView } from '../components/AddressWhitelistView';
 import type { SecurityStep } from '../components/types';
@@ -23,7 +24,10 @@ export function SecurityScreen({ goBack }: SecurityScreenProps) {
   const [whitelist, setWhitelist] = useState(false);
 
   if (step === 'pin') {
-    return <ChangePinFlow onBack={() => setStep('menu')} onComplete={() => setStep('menu')} />;
+    return <ChangePinFlow onBack={() => setStep('menu')} />;
+  }
+  if (step === 'password') {
+    return <ChangePasswordFlow onBack={() => setStep('menu')} />;
   }
   if (step === 'devices') {
     return <ActiveSessionsView onBack={() => setStep('menu')} />;

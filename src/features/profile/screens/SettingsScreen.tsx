@@ -18,12 +18,14 @@ interface SettingsScreenProps {
   goBack: () => void;
   navigate?: (s: Screen) => void;
   darkMode?: boolean;
+  themePref?: 'system' | 'light' | 'dark';
+  setThemePref?: (p: 'system' | 'light' | 'dark') => void;
   toggleDark?: () => void;
 }
 
 type PrefChannel = 'in_app' | 'email' | 'sms' | 'push';
 
-export function SettingsScreen({ goBack, darkMode: darkProp, toggleDark }: SettingsScreenProps) {
+export function SettingsScreen({ goBack, darkMode: darkProp, themePref = 'system', setThemePref, toggleDark }: SettingsScreenProps) {
   const { currency, setCurrency } = useCurrency();
   const [darkMode, setDarkMode] = useState(darkProp ?? true);
   const [hideBalance, setHideBalance] = useState(() => {
@@ -38,6 +40,7 @@ export function SettingsScreen({ goBack, darkMode: darkProp, toggleDark }: Setti
       const next = !v;
       try {
         localStorage.setItem('convia.hideBalance', next ? '1' : '0');
+        window.dispatchEvent(new Event('convia-hide-balance'));
       } catch {
         /* ignore */
       }
@@ -124,19 +127,38 @@ export function SettingsScreen({ goBack, darkMode: darkProp, toggleDark }: Setti
         {prefError && <FeatureAlert reason="generic" message={prefError} />}
 
         <ListSection title={t('settings.appearance')}>
-          <ListRow
-            icon={darkMode ? Moon : Sun}
-            label={t('settings.darkMode')}
-            desc={darkMode ? 'Dark interface' : 'Light interface'}
-            trailing={
-              <ToggleSwitch
-                checked={darkMode}
-                onChange={() => {
-                  setDarkMode((d) => !d);
-                  toggleDark?.();
-                }}
-              />
-            }
+                    <div className="mb-1 px-1">
+            <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600, marginBottom: 8 }}>Theme</p>
+            <div
+              className="grid grid-cols-3 gap-1 p-1 rounded-2xl"
+              style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+            >
+              {([
+                { id: 'system' as const, label: 'System' },
+                { id: 'light' as const, label: 'Light' },
+                { id: 'dark' as const, label: 'Dark' },
+              ]).map((o) => {
+                const on = themePref === o.id;
+                return (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() => setThemePref?.(o.id)}
+                    className="h-10 rounded-xl text-[13px] font-bold"
+                    style={{
+                      background: on ? 'var(--liquid-chip-on-bg)' : 'transparent',
+                      color: on ? 'var(--liquid-chip-on-text)' : 'var(--liquid-chip-off-text)',
+                      border: on ? '1px solid var(--liquid-chip-on-border)' : '1px solid transparent',
+                      boxShadow: on ? 'var(--liquid-chip-on-shadow)' : 'none',
+                    }}
+                  >
+                    {o.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+}
           />
           <ListRow
             icon={Globe}
