@@ -12,7 +12,7 @@ interface ProfileCardProps {
 function countryFlagUrl(code?: string | null) {
   const c = (code || '').trim().toLowerCase();
   if (c.length !== 2) return null;
-  return `https://flagcdn.com/w80/${c}.png`;
+  return `https://flagcdn.com/w40/${c}.png`;
 }
 
 function initialsOf(name: string) {
@@ -24,36 +24,12 @@ function initialsOf(name: string) {
     .toUpperCase();
 }
 
-function kycChip(opts: {
-  authenticated: boolean;
-  frozen: boolean;
-  approved: boolean;
-  pending: boolean;
-  rejected: boolean;
-  status: string;
-}) {
-  if (!opts.authenticated) return { label: 'Guest', tone: 'muted' as const };
-  if (opts.frozen) return { label: 'Frozen', tone: 'danger' as const };
-  if (opts.approved) return { label: 'Verified', tone: 'ok' as const };
-  if (opts.pending) return { label: 'In review', tone: 'warn' as const };
-  if (opts.rejected) return { label: 'Action required', tone: 'danger' as const };
-  return { label: opts.status === 'none' ? 'Unverified' : opts.status, tone: 'muted' as const };
-}
-
-const TONE: Record<'ok' | 'warn' | 'danger' | 'muted', { fg: string; bg: string }> = {
-  ok: { fg: 'var(--positive)', bg: 'color-mix(in oklab, var(--positive) 14%, transparent)' },
-  warn: { fg: 'var(--warning)', bg: 'color-mix(in oklab, var(--warning) 16%, transparent)' },
-  danger: { fg: 'var(--destructive)', bg: 'color-mix(in oklab, var(--destructive) 14%, transparent)' },
-  muted: { fg: 'var(--muted-foreground)', bg: 'var(--muted)' },
-};
-
 /**
- * Identity face of the account hub — live name, avatar, KYC, country, currency.
- * Tapping opens Edit Profile.
+ * Premium identity card — restrained, bank-grade hierarchy.
  */
 export function ProfileCard({ onOpenProfile }: ProfileCardProps) {
   const { userId, username: sessionUsername, displayName: sessionDisplayName, email, status } = useAuth();
-  const { isApproved, isPending, isRejected, kycStatus, loading: kycLoading } = useKycStatus();
+  const { isApproved, isPending, isRejected, loading: kycLoading } = useKycStatus();
   const { profile, loading } = useMyProfile();
   const isFrozen = Boolean(profile?.isFrozen);
   const authenticated = status === 'authenticated';
@@ -66,153 +42,166 @@ export function ProfileCard({ onOpenProfile }: ProfileCardProps) {
   const avatarUrl = profile?.avatarUrl || null;
   const initials = initialsOf(displayName || 'C');
   const flag = countryFlagUrl(country);
-  const chip = kycChip({
-    authenticated,
-    frozen: isFrozen,
-    approved: isApproved,
-    pending: isPending,
-    rejected: isRejected,
-    status: kycStatus,
-  });
-  const tone = TONE[chip.tone];
 
-  const checks = [
-    Boolean(profile?.displayName || sessionDisplayName),
-    Boolean(avatarUrl),
-    Boolean(country),
-    Boolean(currency),
-    isApproved,
-  ];
-  const done = checks.filter(Boolean).length;
-  const pct = Math.round((done / checks.length) * 100);
-  const setupHint =
-    !authenticated
-      ? 'Sign in to sync your identity'
-      : isFrozen
-        ? profile?.frozenReason || 'Transfers and withdrawals are blocked'
-        : !isApproved
-          ? isPending
-            ? 'Identity in review — full limits after approval'
-            : 'Verify identity to unlock withdrawals and bills'
-          : pct < 100
-            ? 'Add a photo and country to complete your profile'
-            : 'Account in good standing';
+  const statusLabel = !authenticated
+    ? null
+    : isFrozen
+      ? 'Restricted'
+      : isApproved
+        ? 'Verified'
+        : isPending
+          ? 'In review'
+          : isRejected
+            ? 'Action needed'
+            : null;
 
   const Wrapper = onOpenProfile ? motion.button : motion.div;
   const wrapperProps = onOpenProfile
-    ? { type: 'button' as const, whileTap: { scale: 0.99 }, onClick: onOpenProfile }
+    ? { type: 'button' as const, onClick: onOpenProfile, whileTap: { scale: 0.985 } }
     : {};
 
   return (
-    <div className="px-5 mb-4">
-      <Wrapper
-        {...wrapperProps}
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full text-left rounded-[24px] p-4"
+    <Wrapper
+      {...wrapperProps}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+      className="w-full text-left"
+    >
+      <div
+        className="relative overflow-hidden rounded-[28px] px-5 pt-5 pb-4"
         style={{
-          background: 'var(--card)',
-          border: `1px solid ${isFrozen ? 'color-mix(in oklab, var(--destructive) 45%, var(--border))' : 'var(--border)'}`,
+          background:
+            'linear-gradient(165deg, color-mix(in oklab, var(--card) 100%, transparent) 0%, var(--card) 100%)',
+          border: '1px solid var(--border)',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.18)',
         }}
       >
-        <div className="flex items-start gap-3.5">
-          <div className="relative flex-shrink-0" style={{ width: 68, height: 68 }}>
-            {/* Enterprise ring */}
+        {/* soft ambient */}
+        <div
+          className="pointer-events-none absolute -top-20 -right-16 w-48 h-48 rounded-full"
+          style={{
+            background: 'radial-gradient(circle, color-mix(in oklab, var(--primary) 22%, transparent), transparent 70%)',
+          }}
+        />
+
+        <div className="relative flex items-center gap-4">
+          {/* Avatar */}
+          <div className="relative flex-shrink-0" style={{ width: 72, height: 72 }}>
             <div
               className="absolute inset-0 rounded-full"
               style={{
+                padding: 2,
                 background:
-                  'conic-gradient(from 210deg, var(--primary), transparent 40%, color-mix(in oklab, var(--primary) 40%, transparent) 70%, var(--primary))',
-                opacity: 0.9,
-              }}
-            />
-            <div
-              className="absolute inset-[2.5px] rounded-full overflow-hidden flex items-center justify-center"
-              style={{
-                background: avatarUrl
-                  ? 'var(--muted)'
-                  : 'linear-gradient(145deg, color-mix(in oklab, var(--primary) 35%, #1a1a22) 0%, color-mix(in oklab, var(--primary) 12%, #0c0c10) 100%)',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2), 0 8px 24px rgba(0,0,0,0.25)',
+                  'linear-gradient(135deg, color-mix(in oklab, var(--primary) 80%, #fff), transparent 55%, color-mix(in oklab, var(--primary) 40%, transparent))',
               }}
             >
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="" width={64} height={64} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : (
-                <span
-                  style={{
-                    color: '#fff',
-                    fontWeight: 800,
-                    fontSize: 22,
-                    letterSpacing: '-0.04em',
-                    textShadow: '0 1px 2px rgba(0,0,0,0.35)',
-                  }}
-                >
-                  {initials}
-                </span>
-              )}
+              <div
+                className="w-full h-full rounded-full overflow-hidden flex items-center justify-center"
+                style={{
+                  background: avatarUrl
+                    ? 'var(--muted)'
+                    : 'linear-gradient(160deg, #1c2422 0%, #0e1211 100%)',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.12)',
+                }}
+              >
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt=""
+                    width={68}
+                    height={68}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <span
+                    style={{
+                      color: '#F4F7F6',
+                      fontWeight: 750,
+                      fontSize: 24,
+                      letterSpacing: '-0.05em',
+                    }}
+                  >
+                    {initials}
+                  </span>
+                )}
+              </div>
             </div>
             {isApproved && !isFrozen && (
               <span
-                className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full flex items-center justify-center"
+                className="absolute bottom-0 right-0 w-[22px] h-[22px] rounded-full flex items-center justify-center"
                 style={{
                   background: 'var(--card)',
-                  border: '2px solid var(--card)',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
                 }}
               >
-                <BadgeCheck size={15} style={{ color: 'var(--primary)' }} />
+                <BadgeCheck size={14} style={{ color: 'var(--primary)' }} strokeWidth={2.4} />
               </span>
             )}
           </div>
 
-          <div className="flex-1 min-w-0 pt-0.5">
-            <div className="flex items-center gap-1.5">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
               <p
                 className="truncate"
                 style={{
                   color: 'var(--foreground)',
-                  fontWeight: 700,
-                  fontSize: 18,
-                  letterSpacing: '-0.03em',
-                  lineHeight: 1.2,
+                  fontWeight: 750,
+                  fontSize: 20,
+                  letterSpacing: '-0.035em',
+                  lineHeight: 1.15,
                 }}
               >
                 {displayName}
               </p>
-              {isFrozen && <Snowflake size={16} style={{ color: 'var(--destructive)', flexShrink: 0 }} />}
+              {isFrozen && <Snowflake size={15} style={{ color: 'var(--destructive)', flexShrink: 0 }} />}
               {(loading || kycLoading) && !profile && (
                 <Loader size={13} className="animate-spin" style={{ color: 'var(--muted-foreground)' }} />
               )}
             </div>
-            <p className="truncate" style={{ color: 'var(--muted-foreground)', fontSize: 13, marginTop: 2 }}>
+            <p
+              className="truncate"
+              style={{ color: 'var(--muted-foreground)', fontSize: 13, marginTop: 3, fontWeight: 500 }}
+            >
               {handle ? `@${handle}` : email || (userId ? `ID ${userId.slice(0, 8)}…` : 'Not signed in')}
             </p>
-            <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
-              <span
-                className="px-2 py-0.5 rounded-full"
-                style={{
-                  background: tone.bg,
-                  color: tone.fg,
-                  fontSize: 11,
-                  fontWeight: 600,
-                  letterSpacing: '0.01em',
-                }}
-              >
-                {chip.label}
-              </span>
+
+            <div className="flex flex-wrap items-center gap-1.5 mt-3">
+              {statusLabel && (
+                <span
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full"
+                  style={{
+                    background:
+                      isFrozen || isRejected
+                        ? 'color-mix(in oklab, var(--destructive) 14%, transparent)'
+                        : isApproved
+                          ? 'color-mix(in oklab, var(--positive) 14%, transparent)'
+                          : 'var(--muted)',
+                    color:
+                      isFrozen || isRejected
+                        ? 'var(--destructive)'
+                        : isApproved
+                          ? 'var(--positive)'
+                          : 'var(--muted-foreground)',
+                    fontSize: 11,
+                    fontWeight: 650,
+                  }}
+                >
+                  {statusLabel}
+                </span>
+              )}
               {country && (
                 <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
                   style={{ background: 'var(--muted)', color: 'var(--foreground)', fontSize: 11, fontWeight: 600 }}
                 >
                   {flag && (
                     <img
                       src={flag}
                       alt=""
-                      width={12}
-                      height={9}
-                      style={{ width: 12, height: 9, objectFit: 'cover', borderRadius: 1 }}
+                      width={14}
+                      height={10}
+                      style={{ width: 14, height: 10, objectFit: 'cover', borderRadius: 2 }}
                     />
                   )}
                   {String(country).toUpperCase()}
@@ -220,7 +209,7 @@ export function ProfileCard({ onOpenProfile }: ProfileCardProps) {
               )}
               {currency && (
                 <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full"
                   style={{ background: 'var(--muted)', color: 'var(--foreground)', fontSize: 11, fontWeight: 600 }}
                 >
                   <CurrencyIcon code={currency} size={12} />
@@ -229,42 +218,12 @@ export function ProfileCard({ onOpenProfile }: ProfileCardProps) {
               )}
             </div>
           </div>
+
           {onOpenProfile && (
-            <ChevronRight size={16} style={{ color: 'var(--muted-foreground)', marginTop: 8, flexShrink: 0 }} />
+            <ChevronRight size={18} style={{ color: 'var(--muted-foreground)', flexShrink: 0, opacity: 0.55 }} />
           )}
         </div>
-
-        <div className="mt-4 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
-          <div className="flex items-center justify-between mb-1.5">
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em' }}>
-              PROFILE
-            </p>
-            <p style={{ color: 'var(--foreground)', fontSize: 11, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-              {authenticated ? `${pct}%` : '—'}
-            </p>
-          </div>
-          <div
-            className="h-1 rounded-full overflow-hidden"
-            style={{ background: 'var(--muted)' }}
-            role="progressbar"
-            aria-valuenow={authenticated ? pct : 0}
-            aria-valuemin={0}
-            aria-valuemax={100}
-          >
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${authenticated ? pct : 0}%`,
-                background: isFrozen ? 'var(--destructive)' : 'var(--primary)',
-                transition: 'width 350ms cubic-bezier(0.22, 1, 0.36, 1)',
-              }}
-            />
-          </div>
-          <p style={{ color: isFrozen ? 'var(--destructive)' : 'var(--muted-foreground)', fontSize: 12, marginTop: 8, lineHeight: 1.4 }}>
-            {setupHint}
-          </p>
-        </div>
-      </Wrapper>
-    </div>
+      </div>
+    </Wrapper>
   );
 }

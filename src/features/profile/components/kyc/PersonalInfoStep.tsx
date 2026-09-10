@@ -98,12 +98,12 @@ export function PersonalInfoStep({
 
   return (
     <div>
-      <div className="mb-5">
-        <h3 style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 18, letterSpacing: '-0.02em', marginBottom: 4 }}>
-          Personal information
-        </h3>
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 13, lineHeight: 1.45 }}>
-          Must match the name and country on your ID.
+      <div className="mb-6">
+        <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 24, letterSpacing: '-0.04em', lineHeight: 1.15 }}>
+          Your details
+        </h2>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 14, marginTop: 8, lineHeight: 1.5 }}>
+          Use the legal name that appears on your ID documents.
         </p>
       </div>
 

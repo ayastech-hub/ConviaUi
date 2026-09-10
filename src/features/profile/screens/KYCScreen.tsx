@@ -18,6 +18,7 @@ import { ReviewStep } from '../components/kyc/ReviewStep';
 import { SuccessView } from '../components/kyc/SuccessView';
 import { KycStatusView } from '../components/kyc/KycStatusView';
 import { NigeriaIdStep } from '../components/kyc/NigeriaIdStep';
+import { CountryPickStep } from '../components/kyc/CountryPickStep';
 import {
   KYC_STEPS,
   DOC_TYPES,
@@ -88,7 +89,7 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
 
   const isNG = (country?.code || profile?.country || '').toUpperCase() === 'NG';
   const flowSteps = useMemo(
-    () => stepsForCountry(country?.code || profile?.country, tier2),
+    () => stepsForCountry(tier2 ? (country?.code || profile?.country || 'NG') : country?.code, tier2),
     [country?.code, profile?.country, tier2],
   );
 
@@ -104,10 +105,10 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
     }
   }, [profile, countryOptions, fullName, country]);
 
-  // Reset step when country mode changes
+  // Tier-2 starts at 0; country change mid-flow returns to country only if user cleared
   useEffect(() => {
-    setActiveStep(0);
-  }, [isNG, tier2]);
+    if (tier2) setActiveStep(0);
+  }, [tier2]);
 
   const nextStep = () => {
     setDirection(1);
@@ -125,6 +126,12 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
   const currentId = flowSteps[activeStep]?.id;
 
   const handleNext = () => {
+    if (currentId === 'country') {
+      if (!country) return;
+      setDirection(1);
+      setActiveStep(1); // second step of country-specific flow
+      return;
+    }
     if (currentId === 'nin') {
       const errors: Record<string, string> = {};
       if (nin.length !== 11) errors.nin = 'Enter a valid 11-digit NIN';
@@ -227,7 +234,15 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
       <ScreenHeader
         title={t('kyc.title') || 'Identity'}
-        subtitle={isNG ? (tier2 ? 'Nigeria · Tier 2' : 'Nigeria · Tier 1') : 'Identity verification'}
+        subtitle={
+          tier2
+            ? 'Nigeria · Tier 2'
+            : currentId === 'country'
+              ? 'Select your country'
+              : isNG
+                ? 'Nigeria · Tier 1'
+                : 'Identity verification'
+        }
         onBack={goBack}
         marginBottom={12}
         right={
@@ -264,6 +279,14 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
             exit={{ opacity: 0, x: direction * -24 }}
             transition={{ duration: 0.22 }}
           >
+            {currentId === 'country' && (
+              <CountryPickStep
+                options={countryOptions}
+                selected={country}
+                onSelect={setCountry}
+                onContinue={handleNext}
+              />
+            )}
             {currentId === 'nin' && (
               <NigeriaIdStep
                 nin={nin}

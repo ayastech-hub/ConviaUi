@@ -87,7 +87,7 @@ export function ReviewStep({
   return (
     <div>
       <div className="mb-5">
-        <h3 style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 18, letterSpacing: '-0.02em', marginBottom: 4 }}>
+        <h3 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22, letterSpacing: '-0.03em', marginBottom: 4 }}>
           Review and submit
         </h3>
         <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Confirm this matches your ID before sending.</p>

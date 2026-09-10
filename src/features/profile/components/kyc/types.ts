@@ -1,8 +1,8 @@
 import type React from 'react';
-import { User, FileText, Camera, ShieldCheck, IdCard, BookUser, Car, BadgeCheck, Receipt } from 'lucide-react';
+import { User, FileText, Camera, ShieldCheck, IdCard, BookUser, Car, BadgeCheck, Receipt, Globe2 } from 'lucide-react';
 
 export type DocType = 'passport' | 'id' | 'license';
-export type KYCStepId = 'nin' | 'personal' | 'document' | 'selfie' | 'review' | 'utility';
+export type KYCStepId = 'country' | 'nin' | 'personal' | 'document' | 'selfie' | 'review' | 'utility';
 
 export interface UploadedFile {
   name: string;
@@ -47,20 +47,22 @@ export type KycStepDef = {
 };
 
 export const KYC_STEPS: KycStepDef[] = [
-  { id: 'personal', label: 'Personal', icon: User },
+  { id: 'country', label: 'Country', icon: Globe2 },
+  { id: 'personal', label: 'Details', icon: User },
   { id: 'document', label: 'ID', icon: FileText },
   { id: 'selfie', label: 'Selfie', icon: Camera },
   { id: 'review', label: 'Review', icon: ShieldCheck },
 ];
 
-/** Nigeria Tier-1: NIN/BVN → details → review (no face). */
+/** Nigeria Tier-1 after country: NIN/BVN → details → review (no face). */
 export const NG_TIER1_STEPS: KycStepDef[] = [
+  { id: 'country', label: 'Country', icon: Globe2 },
   { id: 'nin', label: 'NIN', icon: BadgeCheck },
   { id: 'personal', label: 'Details', icon: User },
   { id: 'review', label: 'Submit', icon: ShieldCheck },
 ];
 
-/** Nigeria Tier-2 upgrade: utility bill + face. */
+/** Nigeria Tier-2 upgrade: utility bill + face (country already known). */
 export const NG_TIER2_STEPS: KycStepDef[] = [
   { id: 'utility', label: 'Bill', icon: Receipt },
   { id: 'selfie', label: 'Face', icon: Camera },
@@ -70,6 +72,16 @@ export const NG_TIER2_STEPS: KycStepDef[] = [
 export function stepsForCountry(code: string | null | undefined, tier2 = false): KycStepDef[] {
   const c = (code || '').toUpperCase();
   if (c === 'NG') return tier2 ? NG_TIER2_STEPS : NG_TIER1_STEPS;
+  // Before country chosen, show international path starting with country
+  if (!c) {
+    return [
+      { id: 'country', label: 'Country', icon: Globe2 },
+      { id: 'personal', label: 'Details', icon: User },
+      { id: 'document', label: 'ID', icon: FileText },
+      { id: 'selfie', label: 'Selfie', icon: Camera },
+      { id: 'review', label: 'Review', icon: ShieldCheck },
+    ];
+  }
   return KYC_STEPS;
 }
 
