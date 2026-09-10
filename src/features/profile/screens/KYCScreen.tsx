@@ -10,7 +10,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Shield, Loader } from 'lucide-react';
 import { CameraCapture } from '../../../shared/components/CameraCapture';
 import { ScreenHeader } from '../../../shared/components/ScreenHeader';
-import { StepIndicator } from '../components/kyc/StepIndicator';
 import { PersonalInfoStep } from '../components/kyc/PersonalInfoStep';
 import { DocumentUploadStep } from '../components/kyc/DocumentUploadStep';
 import { SelfieVerificationStep } from '../components/kyc/SelfieVerificationStep';
@@ -67,6 +66,7 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
 
   const [nin, setNin] = useState('');
   const [bvn, setBvn] = useState('');
+  const [idMethod, setIdMethod] = useState<'nin' | 'bvn' | null>(null);
   const [idErrors, setIdErrors] = useState<Record<string, string>>({});
 
   const [docType, setDocType] = useState<DocType | null>(null);
@@ -134,8 +134,10 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
     }
     if (currentId === 'nin') {
       const errors: Record<string, string> = {};
-      if (nin.length !== 11) errors.nin = 'Enter a valid 11-digit NIN';
-      if (bvn && bvn.length !== 11) errors.bvn = 'BVN must be 11 digits if provided';
+      if (idMethod === 'nin' && nin.length !== 11) errors.nin = 'Enter a valid 11-digit NIN';
+      else if (idMethod === 'bvn' && bvn.length !== 11) errors.bvn = 'Enter a valid 11-digit BVN';
+      else if (!idMethod || (nin.length !== 11 && bvn.length !== 11))
+        errors.method = 'Choose NIN or BVN to verify';
       setIdErrors(errors);
       if (Object.keys(errors).length > 0) return;
     }
@@ -245,13 +247,7 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
         }
         onBack={goBack}
         marginBottom={12}
-        right={
-          <div className="px-2.5 py-1 rounded-full" style={{ background: 'var(--muted)' }}>
-            <span style={{ color: 'var(--foreground)', fontSize: 11, fontWeight: 700 }}>
-              {activeStep + 1}/{flowSteps.length}
-            </span>
-          </div>
-        }
+        right={undefined}
       />
       <div className="flex items-center gap-1.5 px-5 mb-3">
         <Shield size={11} style={{ color: 'var(--primary)' }} />
@@ -267,8 +263,6 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
           <FeatureAlert reason={mapApiCodeToReason(apiError.code)} message={apiError.message} detail={apiError.code} />
         </div>
       )}
-      <StepIndicator activeStep={activeStep} steps={flowSteps} />
-
       <div className="flex-1 overflow-y-auto px-5 pb-4">
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
@@ -293,6 +287,8 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
                 setNin={setNin}
                 bvn={bvn}
                 setBvn={setBvn}
+                method={idMethod}
+                setMethod={setIdMethod}
                 errors={idErrors}
                 clearError={clearIdError}
                 onContinue={handleNext}
@@ -359,7 +355,9 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
                 postalCode={postalCode}
                 docTypeLabel={
                   isNG && !tier2
-                    ? `NIN ${nin}${bvn ? ` · BVN ${bvn}` : ''}`
+                    ? idMethod === 'bvn'
+                      ? `BVN ·••• ${bvn.slice(-4)}`
+                      : `NIN ·••• ${nin.slice(-4)}`
                     : tier2
                       ? 'Utility bill'
                       : DOC_TYPES.find((d) => d.id === docType)?.label || 'Document'
