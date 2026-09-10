@@ -9,6 +9,7 @@ import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { cancelRequest, createRequest, getRequest, listRequests } from '../store';
 import { payUrl, type PaymentRequest } from '../types';
+import { ConfirmSheet } from '../../../shared/components/ConfirmSheet';
 
 type Mode = 'hub' | 'create' | 'detail';
 
@@ -328,6 +329,7 @@ function CreateForm({ onDone }: { onDone: (id: string) => void }) {
 function Detail({ req: initial, onUpdate }: { req: PaymentRequest; onUpdate: (r: PaymentRequest) => void }) {
   const [req, setReq] = useState(initial);
   const [copied, setCopied] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
   const url = payUrl(req.code);
 
   const copy = async () => {
@@ -350,9 +352,7 @@ function Detail({ req: initial, onUpdate }: { req: PaymentRequest; onUpdate: (r:
     }
   };
 
-  const onCancel = () => {
-    if (req.status !== 'open') return;
-    if (!window.confirm('Cancel this payment request?')) return;
+  const doCancel = () => {
     const u = cancelRequest(req.id);
     if (u) {
       setReq(u);
@@ -430,13 +430,29 @@ function Detail({ req: initial, onUpdate }: { req: PaymentRequest; onUpdate: (r:
       {req.status === 'open' && (
         <button
           type="button"
-          onClick={onCancel}
+          onClick={() => setConfirmCancel(true)}
           className="w-full h-12 rounded-full"
-          style={{ border: '1px solid var(--border)', color: 'var(--muted-foreground)', fontWeight: 600, fontSize: 13 }}
+          style={{
+            border: '1px solid color-mix(in oklab, var(--destructive, #ef4444) 35%, var(--border))',
+            color: 'var(--destructive, #ef4444)',
+            fontWeight: 650,
+            fontSize: 13,
+          }}
         >
           Cancel request
         </button>
       )}
+
+      <ConfirmSheet
+        open={confirmCancel}
+        title="Cancel request?"
+        body="This payment link will stop working. Anyone with the link will no longer be able to pay."
+        confirmLabel="Cancel request"
+        cancelLabel="Keep open"
+        destructive
+        onConfirm={doCancel}
+        onClose={() => setConfirmCancel(false)}
+      />
     </div>
   );
 }

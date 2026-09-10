@@ -11,6 +11,7 @@ import {
   Users,
   ArrowUpRight,
   ArrowDownLeft,
+  Download,
 } from 'lucide-react';
 import { PageTop } from '../../../shared/components/PageTop';
 import { BackButton } from '../../../shared/components/BackButton';
@@ -19,6 +20,8 @@ import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { GiftCard, CARD_THEME_OPTIONS } from '../components/GiftCard';
 import { CardThemePicker } from '../components/CardThemePicker';
+import { ConfirmSheet } from '../../../shared/components/ConfirmSheet';
+import { downloadGiftCard } from '../utils/downloadGiftCard';
 import { QRScanner } from '../../../shared/components/QRScanner';
 import {
   cancelGift,
@@ -753,13 +756,18 @@ function JoinForm() {
 function Detail({ gift: initial, onRefresh }: { gift: Gift; onRefresh: (g: Gift) => void }) {
   const [gift, setGift] = useState(initial);
   const [copied, setCopied] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [toast, setToast] = useState('');
   const url = claimUrl(gift.code);
+  const left = remainingAmount(gift);
 
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(`${gift.code}\n${url}`);
       setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      setToast('Copied passcode & link');
+      setTimeout(() => { setCopied(false); setToast(''); }, 1800);
     } catch {
       /* ignore */
     }
@@ -775,47 +783,59 @@ function Detail({ gift: initial, onRefresh }: { gift: Gift; onRefresh: (g: Gift)
     }
   };
 
-  const onCancel = () => {
-    if (gift.status !== 'open') return;
-    const left = remainingAmount(gift);
-    if (!window.confirm(`Cancel and return ${formatAmt(left)} ${gift.asset} remaining?`)) return;
+  const onDownload = async () => {
+    setDownloading(true);
+    try {
+      await downloadGiftCard(gift);
+      setToast('Card saved');
+      setTimeout(() => setToast(''), 1800);
+    } catch {
+      setToast('Download failed');
+      setTimeout(() => setToast(''), 1800);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const doCancel = () => {
     const u = cancelGift(gift.id);
     if (u) {
       setGift(u);
       onRefresh(u);
+      setToast('Giveaway cancelled · remaining returned');
+      setTimeout(() => setToast(''), 2200);
     }
   };
 
   return (
-    <div className="px-5 pb-14 space-y-4">
+    <div className="px-5 pb-16 space-y-4 relative">
       <GiftCard gift={gift} mode="private" />
-      <div className="grid grid-cols-2 gap-2.5">
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.97 }}
-          onClick={() => void copy()}
-          className="flex items-center justify-center gap-2 h-12 rounded-full"
-          style={{
-            background: 'var(--muted)',
-            color: 'var(--foreground)',
-            fontWeight: 650,
-            fontSize: 13,
-            border: '1px solid var(--border)',
-          }}
-        >
-          {copied ? <Check size={15} /> : <Copy size={15} />}
-          {copied ? 'Copied' : 'Copy'}
-        </motion.button>
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.97 }}
-          onClick={() => void share()}
-          className="flex items-center justify-center gap-2 h-12 rounded-full"
-          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)', fontWeight: 700, fontSize: 13 }}
-        >
-          <Share2 size={15} />
-          Share
-        </motion.button>
+
+      {/* Primary actions */}
+      <div className="grid grid-cols-3 gap-2">
+        <ActionBtn icon={copied ? Check : Copy} label={copied ? 'Copied' : 'Copy'} onClick={() => void copy()} />
+        <ActionBtn icon={Share2} label="Share" onClick={() => void share()} primary />
+        <ActionBtn
+          icon={Download}
+          label={downloading ? '…' : 'Save'}
+          onClick={() => void onDownload()}
+        />
+      </div>
+
+      {toast && (
+        <p className="text-center" style={{ color: 'var(--primary)', fontSize: 12, fontWeight: 600 }}>
+          {toast}
+        </p>
+      )}
+
+      {/* Stats strip */}
+      <div
+        className="grid grid-cols-3 gap-2 rounded-[20px] p-3"
+        style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+      >
+        <Stat label="Claimed" value={`${gift.claimedCount}/${gift.slots}`} />
+        <Stat label="Remaining" value={`${formatAmt(left)}`} />
+        <Stat label="Split" value={gift.splitMode === 'random' ? 'Random' : 'Equal'} />
       </div>
 
       {(gift.claims?.length ?? 0) > 0 && (
@@ -851,19 +871,80 @@ function Detail({ gift: initial, onRefresh }: { gift: Gift; onRefresh: (g: Gift)
       {gift.status === 'open' && (
         <button
           type="button"
-          onClick={onCancel}
+          onClick={() => setConfirmCancel(true)}
           className="w-full h-12 rounded-full"
           style={{
-            border: '1px solid var(--border)',
-            color: 'var(--muted-foreground)',
-            fontWeight: 600,
+            border: '1px solid color-mix(in oklab, var(--destructive, #ef4444) 35%, var(--border))',
+            color: 'var(--destructive, #ef4444)',
+            fontWeight: 650,
             fontSize: 13,
             background: 'transparent',
           }}
         >
-          Cancel · return remaining
+          Cancel giveaway
         </button>
       )}
+
+      <ConfirmSheet
+        open={confirmCancel}
+        title="Cancel giveaway?"
+        body={
+          <>
+            Unclaimed balance of{' '}
+            <span style={{ color: 'var(--foreground)', fontWeight: 700 }}>
+              {formatAmt(left)} {gift.asset}
+            </span>{' '}
+            will return to you. Claimed amounts stay with claimers.
+          </>
+        }
+        confirmLabel="Cancel & return"
+        cancelLabel="Keep open"
+        destructive
+        onConfirm={doCancel}
+        onClose={() => setConfirmCancel(false)}
+      />
+    </div>
+  );
+}
+
+function ActionBtn({
+  icon: Icon,
+  label,
+  onClick,
+  primary,
+}: {
+  icon: typeof Copy;
+  label: string;
+  onClick: () => void;
+  primary?: boolean;
+}) {
+  return (
+    <motion.button
+      type="button"
+      whileTap={{ scale: 0.96 }}
+      onClick={onClick}
+      className="flex flex-col items-center justify-center gap-1.5 h-[64px] rounded-2xl"
+      style={{
+        background: primary ? 'var(--primary)' : 'var(--muted)',
+        color: primary ? 'var(--primary-foreground)' : 'var(--foreground)',
+        border: primary ? undefined : '1px solid var(--border)',
+        fontWeight: 650,
+        fontSize: 11,
+      }}
+    >
+      <Icon size={18} strokeWidth={2} />
+      {label}
+    </motion.button>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="text-center px-1">
+      <p style={{ color: 'var(--muted-foreground)', fontSize: 10, fontWeight: 600 }}>{label}</p>
+      <p className="tabular-nums mt-1" style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: 700 }}>
+        {value}
+      </p>
     </div>
   );
 }
