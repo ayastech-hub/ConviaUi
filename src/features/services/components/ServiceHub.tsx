@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { Search, ChevronRight } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { SERVICE_GROUPS, type ServiceItem } from './serviceData';
 
-/** Clean enterprise catalog — monochrome icons, tight groups, no fluff. */
+/** Grid catalog — dense tiles so most features show without long scroll. */
 export function ServiceHub({ onSelectService }: { onSelectService: (item: ServiceItem) => void }) {
   const [q, setQ] = useState('');
 
@@ -24,7 +24,7 @@ export function ServiceHub({ onSelectService }: { onSelectService: (item: Servic
   return (
     <div className="px-5 pb-10">
       <div
-        className="flex items-center gap-2.5 px-3.5 h-11 rounded-2xl mb-6"
+        className="flex items-center gap-2.5 px-3.5 h-11 rounded-2xl mb-5"
         style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
       >
         <Search size={16} style={{ color: 'var(--muted-foreground)' }} />
@@ -38,9 +38,9 @@ export function ServiceHub({ onSelectService }: { onSelectService: (item: Servic
       </div>
 
       {filteredGroups.map((group) => (
-        <div key={group.title} className="mb-6">
+        <div key={group.title} className="mb-5">
           <p
-            className="px-0.5 mb-2"
+            className="px-0.5 mb-2.5"
             style={{
               color: 'var(--muted-foreground)',
               fontSize: 11,
@@ -51,32 +51,45 @@ export function ServiceHub({ onSelectService }: { onSelectService: (item: Servic
           >
             {group.title}
           </p>
-          <div
-            className="rounded-[20px] overflow-hidden"
-            style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-          >
-            {group.items.map((item, i) => {
+          <div className="grid grid-cols-4 gap-2.5">
+            {group.items.map((item) => {
               const Icon = item.icon;
-              const last = i === group.items.length - 1;
               return (
                 <motion.button
                   key={item.id}
                   type="button"
-                  whileTap={{ scale: 0.99 }}
+                  whileTap={{ scale: 0.94 }}
                   onClick={() => onSelectService(item)}
-                  className="w-full flex items-center gap-3.5 px-4 py-3.5 text-left"
-                  style={{ borderBottom: last ? 'none' : '1px solid var(--border)' }}
+                  className="flex flex-col items-center gap-2 pt-3.5 pb-2.5 px-1 rounded-[18px]"
+                  style={{
+                    background: 'var(--card)',
+                    border: '1px solid var(--border)',
+                  }}
                 >
                   <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'var(--muted)' }}
+                    className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                    style={{
+                      background: 'var(--muted)',
+                      border: '1px solid var(--border)',
+                    }}
                   >
-                    <Icon size={18} style={{ color: 'var(--foreground)' }} strokeWidth={2} />
+                    <Icon size={20} style={{ color: 'var(--foreground)' }} strokeWidth={1.8} />
                   </div>
-                  <span className="flex-1" style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 15 }}>
+                  <span
+                    className="text-center leading-tight px-0.5"
+                    style={{
+                      color: 'var(--foreground)',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      maxWidth: '100%',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      width: '100%',
+                    }}
+                  >
                     {item.label}
                   </span>
-                  <ChevronRight size={16} style={{ color: 'var(--muted-foreground)' }} />
                 </motion.button>
               );
             })}
