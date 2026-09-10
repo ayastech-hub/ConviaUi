@@ -21,6 +21,7 @@ import { useAuth } from '../../../shared/context/AuthContext';
 import { GiftCard, CARD_THEME_OPTIONS } from '../components/GiftCard';
 import { CardThemePicker } from '../components/CardThemePicker';
 import { ConfirmSheet } from '../../../shared/components/ConfirmSheet';
+import { ExpiryPicker } from '../../../shared/components/ExpiryPicker';
 import { downloadGiftCard } from '../utils/downloadGiftCard';
 import { QRScanner } from '../../../shared/components/QRScanner';
 import {
@@ -522,48 +523,16 @@ function CreateForm({ onDone, cardTheme, onOpenTheme }: { onDone: (id: string) =
           />
         </Field>
 
-        <div>
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600, marginBottom: 8 }}>Expires</p>
-          <div className="flex gap-2 mb-2">
-            {EXPIRY.map((o) => {
-              const on = expiry === o.id && !customDate;
-              return (
-                <button
-                  key={o.id}
-                  type="button"
-                  onClick={() => {
-                    setExpiry(o.id);
-                    setCustomDate('');
-                  }}
-                  className="flex-1 h-10 rounded-full text-[12px] font-bold"
-                  style={{
-                    background: on ? 'var(--foreground)' : 'var(--muted)',
-                    color: on ? 'var(--background)' : 'var(--foreground)',
-                    border: on ? undefined : '1px solid var(--border)',
-                  }}
-                >
-                  {o.label}
-                </button>
-              );
-            })}
-          </div>
-          <div
-            className="rounded-2xl px-3.5 h-11 flex items-center"
-            style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
-          >
-            <input
-              type="date"
-              value={customDate}
-              min={new Date().toISOString().slice(0, 10)}
-              onChange={(e) => {
-                setCustomDate(e.target.value);
-                if (e.target.value) setExpiry('custom');
-              }}
-              className="w-full bg-transparent outline-none"
-              style={{ color: 'var(--foreground)', fontSize: 14 }}
-            />
-          </div>
-        </div>
+        <ExpiryPicker
+          presets={EXPIRY}
+          presetId={expiry}
+          customDate={customDate}
+          onPreset={setExpiry}
+          onCustomDate={(d) => {
+            setCustomDate(d);
+            if (d) setExpiry('custom');
+          }}
+        />
 
         {error && (
           <p style={{ color: 'var(--destructive, #ef4444)', fontSize: 13, fontWeight: 500 }}>{error}</p>

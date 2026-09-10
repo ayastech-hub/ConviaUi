@@ -10,6 +10,7 @@ import { useAuth } from '../../../shared/context/AuthContext';
 import { cancelRequest, createRequest, getRequest, listRequests } from '../store';
 import { payUrl, type PaymentRequest } from '../types';
 import { ConfirmSheet } from '../../../shared/components/ConfirmSheet';
+import { ExpiryPicker } from '../../../shared/components/ExpiryPicker';
 
 type Mode = 'hub' | 'create' | 'detail';
 
@@ -271,45 +272,17 @@ function CreateForm({ onDone }: { onDone: (id: string) => void }) {
         />
       </Field>
 
-      <div>
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600, marginBottom: 8 }}>Link expires</p>
-        <div className="flex gap-2 mb-2">
-          {EXPIRY.map((o) => {
-            const on = expiry === o.id && !customDate;
-            return (
-              <button
-                key={o.id}
-                type="button"
-                onClick={() => {
-                  setExpiry(o.id);
-                  setCustomDate('');
-                }}
-                className="flex-1 h-10 rounded-full text-[12px] font-bold"
-                style={{
-                  background: on ? 'var(--foreground)' : 'var(--muted)',
-                  color: on ? 'var(--background)' : 'var(--foreground)',
-                  border: on ? undefined : '1px solid var(--border)',
-                }}
-              >
-                {o.label}
-              </button>
-            );
-          })}
-        </div>
-        <div
-          className="rounded-2xl px-3.5 h-11 flex items-center"
-          style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
-        >
-          <input
-            type="date"
-            value={customDate}
-            min={new Date().toISOString().slice(0, 10)}
-            onChange={(e) => setCustomDate(e.target.value)}
-            className="w-full bg-transparent outline-none"
-            style={{ color: 'var(--foreground)', fontSize: 14 }}
-          />
-        </div>
-      </div>
+      <ExpiryPicker
+        label="Link expires"
+        presets={EXPIRY}
+        presetId={expiry}
+        customDate={customDate}
+        onPreset={setExpiry}
+        onCustomDate={(d) => {
+          setCustomDate(d);
+          if (d) setExpiry('custom');
+        }}
+      />
 
       {error && <p style={{ color: 'var(--destructive, #ef4444)', fontSize: 13 }}>{error}</p>}
 
