@@ -41,7 +41,8 @@ import { RewardsScreen } from '../features/rewards/screens/RewardsScreen';
 import { ServicesScreen } from '../features/services/screens/ServicesScreen';
 import { TokenDetailScreen } from '../features/wallet/screens/TokenDetailScreen';
 import { GiveawayScreen } from '../features/gifts/screens/GiveawayScreen';
-import { ChequeScreen } from '../features/gifts/screens/ChequeScreen';
+import { RequestLinkScreen } from '../features/requestLink/screens/RequestLinkScreen';
+import { PayScreen } from '../features/requestLink/screens/PayScreen';
 import { fetchPlatformStatus } from '../shared/api/platform';
 
 const MAIN_TABS: Screen[] = ['home', 'wallet']; // legacy tab ids for home hub
@@ -122,6 +123,23 @@ function initialScreen(): import('../shared/data/mockData').Screen {
 
 export default function App() {
   const { current, navigate, goBack, switchTab, navParam } = useNavigation(initialScreen());
+
+  // Deep link: ?pay=CODE → payment page (persist for post-auth return)
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const pay = params.get('pay') || params.get('claim');
+      if (pay) {
+        sessionStorage.setItem('convia.pendingPay', pay);
+        navigate('pay', pay);
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [darkMode, setDarkMode] = useState(() => {
     try {
       const saved = localStorage.getItem('convia.theme');
@@ -147,9 +165,19 @@ export default function App() {
     if (status === 'loading') return;
     if (status === 'authenticated' && (current === 'login' || current === 'signup' || current === 'onboarding')) {
       markOnboardingSeen();
+      try {
+        const pending = sessionStorage.getItem('convia.pendingPay');
+        if (pending) {
+          sessionStorage.removeItem('convia.pendingPay');
+          navigate('pay', pending);
+          return;
+        }
+      } catch {
+        /* ignore */
+      }
       switchTab('home');
     }
-  }, [status, current, switchTab]);
+  }, [status, current, switchTab, navigate]);
 
   const showNav = NAV_VISIBLE.includes(current);
   const activeTab: Screen =
@@ -370,10 +398,17 @@ export default function App() {
             <GiveawayScreen goBack={goBack} />
           </motion.div>
         );
-      case 'cheque':
+
+      case 'request-link':
         return (
-          <motion.div key="cheque" {...slideRight} className="absolute inset-0">
-            <ChequeScreen goBack={goBack} />
+          <motion.div key="request-link" {...slideRight} className="absolute inset-0">
+            <RequestLinkScreen goBack={goBack} />
+          </motion.div>
+        );
+      case 'pay':
+        return (
+          <motion.div key={`pay-${navParam || 'na'}`} {...slideRight} className="absolute inset-0">
+            <PayScreen code={navParam || ''} goBack={goBack} navigate={navigate} />
           </motion.div>
         );
       default:

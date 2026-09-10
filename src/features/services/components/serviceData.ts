@@ -53,7 +53,7 @@ export const SERVICE_GROUPS: ServiceGroup[] = [
     title: 'Share',
     items: [
       { id: 'giveaway', label: 'Giveaway', icon: Gift },
-      { id: 'cheque', label: 'Cheque link', icon: Link2 },
+      { id: 'request-link', label: 'Request link', icon: Link2 },
     ],
   },
   {

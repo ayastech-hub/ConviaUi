@@ -6,7 +6,7 @@ export type Screen =
   | 'send' | 'request' | 'receive' | 'scan' | 'history' | 'notifications' | 'rewards'
   | 'settings' | 'security' | 'kyc' | 'chat' | 'portfolio'
   | 'help-center' | 'about' | 'support-center' | 'payment-methods' | 'services' | 'edit-profile' | 'token'
-  | 'giveaway' | 'cheque';
+  | 'giveaway' | 'request-link' | 'pay';
 
 export interface Asset {
   id: string;
