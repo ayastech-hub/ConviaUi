@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Bell, Globe, Moon, Sun, Mail, Smartphone, MessageSquare, Loader } from 'lucide-react';
+import { Bell, Globe, Moon, Sun, Mail, Smartphone, MessageSquare, Loader, Eye, EyeOff } from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { ScreenHeader } from '../../../shared/components/ScreenHeader';
@@ -26,6 +26,24 @@ type PrefChannel = 'in_app' | 'email' | 'sms' | 'push';
 export function SettingsScreen({ goBack, darkMode: darkProp, toggleDark }: SettingsScreenProps) {
   const { currency, setCurrency } = useCurrency();
   const [darkMode, setDarkMode] = useState(darkProp ?? true);
+  const [hideBalance, setHideBalance] = useState(() => {
+    try {
+      return localStorage.getItem('convia.hideBalance') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const toggleHideBalance = () => {
+    setHideBalance((v) => {
+      const next = !v;
+      try {
+        localStorage.setItem('convia.hideBalance', next ? '1' : '0');
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const { userId } = useAuth();
   const { t } = useLanguage();
@@ -125,6 +143,12 @@ export function SettingsScreen({ goBack, darkMode: darkProp, toggleDark }: Setti
             label={t('settings.currency')}
             desc={`${currency.code}${currency.name ? ` · ${currency.name}` : ''}`}
             onClick={() => setShowCurrencyPicker(true)}
+          />
+          <ListRow
+            icon={hideBalance ? EyeOff : Eye}
+            label="Hide balances"
+            desc="Blur amounts on Home and Wallet"
+            trailing={<ToggleSwitch checked={hideBalance} onChange={toggleHideBalance} />}
           />
         </ListSection>
 

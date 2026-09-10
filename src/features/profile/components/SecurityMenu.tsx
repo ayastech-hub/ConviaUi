@@ -23,8 +23,6 @@ interface SecurityMenuProps {
   setLoginAlerts: (v: boolean) => void;
   txAlerts: boolean;
   setTxAlerts: (v: boolean) => void;
-  hideBalance: boolean;
-  setHideBalance: (v: boolean) => void;
 }
 
 export function SecurityMenu({
@@ -38,8 +36,6 @@ export function SecurityMenu({
   setLoginAlerts,
   txAlerts,
   setTxAlerts,
-  hideBalance,
-  setHideBalance,
 }: SecurityMenuProps) {
   const { t } = useLanguage();
   const { userId } = useAuth();
@@ -87,7 +83,7 @@ export function SecurityMenu({
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <ScreenHeader title={t('security.title')} subtitle="PIN, sessions, and alerts" onBack={goBack} />
+      <ScreenHeader title={t('security.title')} subtitle="PIN, biometrics, sessions" onBack={goBack} />
 
       <div className="flex-1 overflow-y-auto px-5">
         <div className="rounded-[22px] p-4 mb-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
@@ -163,12 +159,6 @@ export function SecurityMenu({
             label="Transaction alerts"
             desc="Notify on every send and bill"
             trailing={<ToggleSwitch checked={txAlerts} onChange={() => setTxAlerts(!txAlerts)} />}
-          />
-          <ListRow
-            icon={hideBalance ? EyeOff : Eye}
-            label="Hide balances"
-            desc="Mask amounts on Home"
-            trailing={<ToggleSwitch checked={hideBalance} onChange={() => setHideBalance(!hideBalance)} />}
           />
         </ListSection>
 

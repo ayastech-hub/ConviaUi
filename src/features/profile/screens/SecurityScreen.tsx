@@ -20,7 +20,6 @@ export function SecurityScreen({ goBack }: SecurityScreenProps) {
   const [twoFA, setTwoFA] = useState(true);
   const [loginAlerts, setLoginAlerts] = useState(true);
   const [txAlerts, setTxAlerts] = useState(true);
-  const [hideBalance, setHideBalance] = useState(false);
   const [whitelist, setWhitelist] = useState(false);
 
   if (step === 'pin') {
@@ -51,8 +50,6 @@ export function SecurityScreen({ goBack }: SecurityScreenProps) {
       setLoginAlerts={setLoginAlerts}
       txAlerts={txAlerts}
       setTxAlerts={setTxAlerts}
-      hideBalance={hideBalance}
-      setHideBalance={setHideBalance}
     />
   );
 }
