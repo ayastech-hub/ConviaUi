@@ -18,6 +18,7 @@ import { AssetIcon } from '../../../shared/components/AssetIcon';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { GiftCard, CARD_THEME_OPTIONS } from '../components/GiftCard';
+import { CardThemePicker } from '../components/CardThemePicker';
 import { QRScanner } from '../../../shared/components/QRScanner';
 import {
   cancelGift,
@@ -29,7 +30,7 @@ import {
 } from '../store';
 import { claimUrl, remainingAmount, remainingSlots, type CardTheme, type Gift, type SplitMode } from '../types';
 
-type Mode = 'hub' | 'create' | 'join' | 'detail';
+type Mode = 'hub' | 'create' | 'join' | 'detail' | 'theme';
 
 interface Props {
   goBack: () => void;
@@ -45,10 +46,12 @@ export function GiveawayScreen({ goBack }: Props) {
   const [mode, setMode] = useState<Mode>('hub');
   const [detailId, setDetailId] = useState('');
   const [hubKey, setHubKey] = useState(0);
+  const [cardTheme, setCardTheme] = useState<CardTheme>('gift');
   const detail = detailId ? getGift(detailId) : null;
 
   const back = () => {
     if (mode === 'hub') goBack();
+    else if (mode === 'theme') setMode('create');
     else {
       setMode('hub');
       setDetailId('');
@@ -57,17 +60,21 @@ export function GiveawayScreen({ goBack }: Props) {
   };
 
   const title =
-    mode === 'create' ? 'Create' : mode === 'join' ? 'Join' : mode === 'detail' ? 'Card' : 'Giveaway';
+    mode === 'create' ? 'Create' : mode === 'join' ? 'Join' : mode === 'detail' ? 'Card' : mode === 'theme' ? 'Card style' : 'Giveaway';
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <PageTop />
-      <div className="flex items-center gap-3 px-5 mb-3">
-        <BackButton onClick={back} />
-        <h1 className="flex-1 text-center pr-10" style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 17 }}>
-          {title}
-        </h1>
-      </div>
+      {mode !== 'theme' && (
+        <>
+          <PageTop />
+          <div className="flex items-center gap-3 px-5 mb-3">
+            <BackButton onClick={back} />
+            <h1 className="flex-1 text-center pr-10" style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 17 }}>
+              {title}
+            </h1>
+          </div>
+        </>
+      )}
 
       <div className="flex-1 overflow-y-auto flex flex-col">
         <AnimatePresence mode="wait">
@@ -89,6 +96,31 @@ export function GiveawayScreen({ goBack }: Props) {
               />
             </motion.div>
           )}
+          {mode === 'theme' && (
+            <motion.div key="theme" className="flex-1 flex flex-col min-h-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <CardThemePicker
+                selected={cardTheme}
+                preview={{
+                  kind: 'giveaway',
+                  note: 'All the Best — Claim Your Gift!',
+                  creatorMask: 'ya....hub',
+                  code: 'ABCD1234',
+                  asset: 'USDT',
+                  totalAmount: 100,
+                  slots: 5,
+                  claimedCount: 0,
+                  splitMode: 'equal',
+                  status: 'open',
+                  expiresAt: new Date(Date.now() + 864e5).toISOString(),
+                }}
+                onSelect={(th) => {
+                  setCardTheme(th);
+                  setMode('create');
+                }}
+                onBack={() => setMode('create')}
+              />
+            </motion.div>
+          )}
           {mode === 'create' && (
             <motion.div
               key="create"
@@ -99,6 +131,8 @@ export function GiveawayScreen({ goBack }: Props) {
               transition={{ duration: 0.18 }}
             >
               <CreateForm
+                cardTheme={cardTheme}
+                onOpenTheme={() => setMode('theme')}
                 onDone={(id) => {
                   setDetailId(id);
                   setMode('detail');
@@ -307,7 +341,7 @@ function FaqRow({ q, a, first }: { q: string; a: string; first?: boolean }) {
 
 /* ───────── Create ───────── */
 
-function CreateForm({ onDone }: { onDone: (id: string) => void }) {
+function CreateForm({ onDone, cardTheme, onOpenTheme }: { onDone: (id: string) => void; cardTheme: CardTheme; onOpenTheme: () => void }) {
   const { assets } = useWalletAssets();
   const { userId } = useAuth();
   const tokens = useMemo(() => {
@@ -317,7 +351,6 @@ function CreateForm({ onDone }: { onDone: (id: string) => void }) {
   }, [assets]);
 
   const [split, setSplit] = useState<SplitMode>('equal');
-  const [cardTheme, setCardTheme] = useState<CardTheme>('gift');
   const [slots, setSlots] = useState('');
   const [total, setTotal] = useState('');
   const [asset, setAsset] = useState(tokens[0]?.symbol || 'USDT');
@@ -391,29 +424,27 @@ function CreateForm({ onDone }: { onDone: (id: string) => void }) {
           })}
         </div>
 
-        <div>
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600, marginBottom: 8 }}>Card style</p>
-          <div className="grid grid-cols-4 gap-2">
-            {CARD_THEME_OPTIONS.map((opt) => {
-              const on = cardTheme === opt.id;
-              return (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => setCardTheme(opt.id)}
-                  className="flex flex-col items-center gap-1.5 py-2.5 rounded-2xl"
-                  style={{
-                    background: on ? 'var(--card)' : 'var(--muted)',
-                    border: on ? `1.5px solid ${opt.swatch}` : '1px solid var(--border)',
-                  }}
-                >
-                  <span className="w-6 h-6 rounded-full" style={{ background: opt.swatch }} />
-                  <span style={{ fontSize: 10, fontWeight: 650, color: 'var(--foreground)' }}>{opt.label}</span>
-                </button>
-              );
-            })}
+        <button
+          type="button"
+          onClick={onOpenTheme}
+          className="w-full flex items-center gap-3 px-3.5 py-3.5 rounded-2xl text-left"
+          style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+        >
+          <span
+            className="w-10 h-10 rounded-xl flex-shrink-0"
+            style={{
+              background: CARD_THEME_OPTIONS.find((o) => o.id === cardTheme)?.swatch || 'var(--primary)',
+              boxShadow: 'inset 0 0 0 2px rgba(255,255,255,0.15)',
+            }}
+          />
+          <div className="flex-1 min-w-0">
+            <p style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 600 }}>Card style</p>
+            <p style={{ color: 'var(--foreground)', fontSize: 14, fontWeight: 700 }}>
+              {CARD_THEME_OPTIONS.find((o) => o.id === cardTheme)?.label || 'Classic'}
+            </p>
           </div>
-        </div>
+          <span style={{ color: 'var(--primary)', fontSize: 13, fontWeight: 700 }}>Preview</span>
+        </button>
 
         <Field
           label="Max participants"

@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { motion } from 'motion/react';
-import { ShieldCheck, UserPlus, Wallet } from 'lucide-react';
+import { ShieldCheck, UserPlus, Wallet, Lock } from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
 import { PageTop } from '../../../shared/components/PageTop';
 import { BackButton } from '../../../shared/components/BackButton';
@@ -50,14 +50,14 @@ export function PayScreen({ code, goBack, navigate }: Props) {
   if (req.status === 'paid' || done) {
     return (
       <Shell goBack={goBack} title="Payment">
-        <div className="px-5 text-center pt-10">
+        <div className="px-5 text-center pt-12">
           <div
-            className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4"
+            className="mx-auto w-[72px] h-[72px] rounded-full flex items-center justify-center mb-5"
             style={{ background: 'color-mix(in oklab, var(--primary) 18%, transparent)' }}
           >
-            <ShieldCheck size={28} style={{ color: 'var(--primary)' }} />
+            <ShieldCheck size={32} style={{ color: 'var(--primary)' }} />
           </div>
-          <p style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20 }}>Paid</p>
+          <p style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22 }}>Paid</p>
           <p className="mt-2" style={{ color: 'var(--muted-foreground)', fontSize: 14 }}>
             {fmt(req.amount)} {req.asset} sent to {req.creatorLabel}
           </p>
@@ -65,7 +65,7 @@ export function PayScreen({ code, goBack, navigate }: Props) {
             type="button"
             whileTap={{ scale: 0.98 }}
             onClick={goBack}
-            className="mt-8 w-full py-4 rounded-full font-bold"
+            className="mt-10 w-full py-4 rounded-full font-bold text-[15px]"
             style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
           >
             Done
@@ -88,69 +88,77 @@ export function PayScreen({ code, goBack, navigate }: Props) {
     setDone(true);
   };
 
+  const goAuth = (screen: 'signup' | 'login') => {
+    try {
+      sessionStorage.setItem('convia.pendingPay', code);
+    } catch {
+      /* ignore */
+    }
+    navigate(screen);
+  };
+
   return (
     <Shell goBack={goBack} title="Pay">
       <div className="px-5 pb-14">
         <div
-          className="rounded-[28px] px-5 py-7 text-center mb-5"
+          className="relative overflow-hidden rounded-[28px] px-5 py-8 text-center mb-5"
           style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
         >
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600, letterSpacing: 0.4 }}>
+          <div
+            className="pointer-events-none absolute -top-16 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full"
+            style={{ background: 'radial-gradient(circle, color-mix(in oklab, var(--primary) 22%, transparent), transparent 70%)' }}
+          />
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 700, letterSpacing: 0.8 }}>
             YOU ARE PAYING
           </p>
-          <div className="flex items-center justify-center gap-2.5 mt-4">
-            <AssetIcon symbol={req.asset} size={28} />
-            <p className="tabular-nums" style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 36, letterSpacing: -1 }}>
+          <div className="relative flex items-center justify-center gap-3 mt-5">
+            <AssetIcon symbol={req.asset} size={32} />
+            <p className="tabular-nums" style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 40, letterSpacing: -1.4 }}>
               {fmt(req.amount)}
             </p>
           </div>
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 14, marginTop: 4, fontWeight: 600 }}>{req.asset}</p>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 15, marginTop: 4, fontWeight: 650 }}>{req.asset}</p>
           {req.note && (
-            <p className="mt-4" style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
+            <p className="mt-5 px-2" style={{ color: 'var(--muted-foreground)', fontSize: 13, lineHeight: 1.45 }}>
               &ldquo;{req.note}&rdquo;
             </p>
           )}
-          <p className="mt-3" style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
+          <p className="mt-4" style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
             To {req.creatorLabel}
           </p>
         </div>
 
         {!authenticated ? (
-          <div className="rounded-[22px] p-5 mb-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-            <div className="flex items-start gap-3">
+          <div className="rounded-[24px] p-5" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+            <div className="flex items-start gap-3.5">
               <div
-                className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
-                style={{ background: 'var(--muted)' }}
+                className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+                style={{ background: 'color-mix(in oklab, var(--primary) 14%, var(--muted))' }}
               >
-                <UserPlus size={20} style={{ color: 'var(--primary)' }} />
+                <Lock size={20} style={{ color: 'var(--primary)' }} />
               </div>
               <div>
-                <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 15 }}>Account required</p>
-                <p className="mt-1" style={{ color: 'var(--muted-foreground)', fontSize: 13, lineHeight: 1.45 }}>
-                  Create a Convia account or sign in to complete this payment. Your balance will be used to pay the request.
+                <p style={{ color: 'var(--foreground)', fontWeight: 750, fontSize: 16 }}>Account required</p>
+                <p className="mt-1.5" style={{ color: 'var(--muted-foreground)', fontSize: 13, lineHeight: 1.5 }}>
+                  Create a Convia account or sign in to complete this payment securely from your balance.
                 </p>
               </div>
             </div>
             <motion.button
               type="button"
               whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                try { sessionStorage.setItem('convia.pendingPay', code); } catch { /* ignore */ }
-                navigate('signup');
-              }}
-              className="w-full h-12 rounded-full mt-5 font-bold text-[14px]"
+              onClick={() => goAuth('signup')}
+              className="w-full h-[52px] rounded-full mt-6 font-bold text-[15px] flex items-center justify-center gap-2"
               style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
             >
+              <UserPlus size={18} />
               Create account
             </motion.button>
             <motion.button
               type="button"
               whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                try { sessionStorage.setItem('convia.pendingPay', code); } catch { /* ignore */ }
-                navigate('login');
-              }}
-              className="w-full h-12 rounded-full mt-2.5 font-bold text-[14px]"
+              onClick={() => goAuth('login')}
+              className="w-full h-[52px] rounded-full mt-2.5 font-bold text-[15px]"
               style={{ background: 'var(--muted)', color: 'var(--foreground)', border: '1px solid var(--border)' }}
             >
               Sign in
@@ -163,8 +171,8 @@ export function PayScreen({ code, goBack, navigate }: Props) {
               style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
             >
               <Wallet size={18} style={{ color: 'var(--muted-foreground)' }} />
-              <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
-                Payment will be taken from your Convia balance ({req.asset}).
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 13, lineHeight: 1.4 }}>
+                Taken from your Convia {req.asset} balance.
               </p>
             </div>
             {error && (
@@ -206,9 +214,11 @@ function Shell({ goBack, title, children }: { goBack: () => void; title: string;
 
 function Empty({ title, body }: { title: string; body: string }) {
   return (
-    <div className="px-5 pt-12 text-center">
-      <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 18 }}>{title}</p>
-      <p className="mt-2" style={{ color: 'var(--muted-foreground)', fontSize: 14 }}>{body}</p>
+    <div className="px-5 pt-14 text-center">
+      <p style={{ color: 'var(--foreground)', fontWeight: 750, fontSize: 18 }}>{title}</p>
+      <p className="mt-2" style={{ color: 'var(--muted-foreground)', fontSize: 14, lineHeight: 1.45 }}>
+        {body}
+      </p>
     </div>
   );
 }

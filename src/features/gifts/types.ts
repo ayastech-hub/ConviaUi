@@ -1,7 +1,15 @@
 export type GiftKind = 'cheque' | 'giveaway';
 export type GiftStatus = 'open' | 'claimed' | 'expired' | 'cancelled';
 export type SplitMode = 'equal' | 'random';
-export type CardTheme = 'classic' | 'gift' | 'midnight' | 'aurora';
+export type CardTheme =
+  | 'classic'
+  | 'gift'
+  | 'midnight'
+  | 'aurora'
+  | 'lovers'
+  | 'anniversary'
+  | 'birthday'
+  | 'celebration';
 
 export interface GiftClaimRecord {
   amount: number;
@@ -16,7 +24,6 @@ export interface Gift {
   code: string;
   asset: string;
   totalAmount: number;
-  /** Fixed for equal; average for random display */
   perClaimAmount: number;
   slots: number;
   claimedCount: number;

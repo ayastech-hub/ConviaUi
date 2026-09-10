@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Link2, Copy, Check, Share2, ChevronDown } from 'lucide-react';
+import { Link2, Copy, Check, Share2, ChevronDown, ChevronRight } from 'lucide-react';
 import { PageTop } from '../../../shared/components/PageTop';
 import { BackButton } from '../../../shared/components/BackButton';
 import { AssetIcon } from '../../../shared/components/AssetIcon';
@@ -90,31 +90,32 @@ export function RequestLinkScreen({ goBack }: Props) {
 function Hero({ onCreate }: { onCreate: () => void }) {
   return (
     <div
-      className="relative overflow-hidden rounded-[28px] px-5 pt-8 pb-6 mb-6 text-center"
+      className="relative overflow-hidden rounded-[28px] px-5 pt-9 pb-7 mb-6 text-center"
       style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
     >
       <div
-        className="pointer-events-none absolute -top-16 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full"
-        style={{ background: 'radial-gradient(circle, color-mix(in oklab, var(--primary) 28%, transparent), transparent 70%)' }}
+        className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 w-48 h-48 rounded-full"
+        style={{ background: 'radial-gradient(circle, color-mix(in oklab, var(--primary) 30%, transparent), transparent 70%)' }}
       />
       <div
-        className="relative mx-auto mb-4 w-[72px] h-[72px] rounded-[22px] flex items-center justify-center"
+        className="relative mx-auto mb-5 w-16 h-16 rounded-[20px] flex items-center justify-center"
         style={{
-          background: 'linear-gradient(145deg, color-mix(in oklab, var(--primary) 22%, var(--muted)), var(--muted))',
+          background: 'linear-gradient(145deg, color-mix(in oklab, var(--primary) 28%, var(--muted)), var(--muted))',
           border: '1px solid var(--border)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
         }}
       >
-        <Link2 size={28} style={{ color: 'var(--primary)' }} strokeWidth={1.6} />
+        <Link2 size={26} style={{ color: 'var(--primary)' }} strokeWidth={1.7} />
       </div>
-      <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 16 }}>Request payment</p>
-      <p className="mt-1.5 mx-auto" style={{ color: 'var(--muted-foreground)', fontSize: 13, maxWidth: 280, lineHeight: 1.45 }}>
-        Pick a token and amount, share the link. Payer opens it and settles — account required.
+      <p style={{ color: 'var(--foreground)', fontWeight: 750, fontSize: 18, letterSpacing: -0.2 }}>Request payment</p>
+      <p className="mt-2 mx-auto" style={{ color: 'var(--muted-foreground)', fontSize: 13.5, maxWidth: 280, lineHeight: 1.5 }}>
+        Choose a token and amount. Share the link — they pay from their Convia balance.
       </p>
       <motion.button
         type="button"
         whileTap={{ scale: 0.97 }}
         onClick={onCreate}
-        className="w-full h-12 rounded-2xl mt-6 font-bold text-[14px]"
+        className="w-full h-[52px] rounded-2xl mt-7 font-bold text-[15px]"
         style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
       >
         Create payment link
@@ -144,24 +145,18 @@ function Mine({ onOpen }: { onOpen: (id: string) => void }) {
             className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
             style={{ borderTop: i ? '1px solid var(--border)' : undefined }}
           >
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--muted)' }}>
-              <AssetIcon symbol={r.asset} size={20} />
+            <div className="w-11 h-11 rounded-full flex items-center justify-center" style={{ background: 'var(--muted)' }}>
+              <AssetIcon symbol={r.asset} size={22} />
             </div>
             <div className="flex-1 min-w-0">
-              <p style={{ color: 'var(--foreground)', fontWeight: 650, fontSize: 14 }}>
+              <p style={{ color: 'var(--foreground)', fontWeight: 650, fontSize: 15 }}>
                 {fmt(r.amount)} {r.asset}
               </p>
               <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 2 }}>
-                {r.code} · {r.status}
+                {r.status === 'open' ? 'Awaiting payment' : r.status}
               </p>
             </div>
-            <span
-              className="w-2 h-2 rounded-full"
-              style={{
-                background:
-                  r.status === 'open' ? 'var(--primary)' : r.status === 'paid' ? '#22c55e' : 'var(--muted-foreground)',
-              }}
-            />
+            <ChevronRight size={16} style={{ color: 'var(--muted-foreground)' }} />
           </button>
         ))}
       </div>
@@ -208,46 +203,62 @@ function CreateForm({ onDone }: { onDone: (id: string) => void }) {
   };
 
   return (
-    <div className="px-5 pb-14 space-y-4">
-      <Field label="Token">
-        <div className="relative">
-          <button type="button" onClick={() => setShowToken(!showToken)} className="flex items-center gap-2 w-full" style={{ color: 'var(--foreground)' }}>
-            <AssetIcon symbol={asset} size={22} />
-            <span style={{ fontWeight: 700, fontSize: 16 }}>{asset}</span>
-            <ChevronDown size={16} style={{ marginLeft: 'auto', opacity: 0.5 }} />
-          </button>
-          {showToken && (
-            <div
-              className="absolute left-0 right-0 top-full mt-2 z-20 rounded-2xl overflow-hidden max-h-48 overflow-y-auto"
-              style={{ background: 'var(--card)', border: '1px solid var(--border)', boxShadow: '0 12px 32px rgba(0,0,0,0.2)' }}
-            >
-              {tokens.slice(0, 12).map((t: any) => (
-                <button
-                  key={t.symbol}
-                  type="button"
-                  onClick={() => { setAsset(t.symbol); setShowToken(false); }}
-                  className="flex items-center gap-2 w-full px-3 py-2.5"
-                  style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14, background: t.symbol === asset ? 'var(--muted)' : undefined }}
-                >
-                  <AssetIcon symbol={t.symbol} size={18} />
-                  {t.symbol}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </Field>
-
-      <Field label="Amount">
+    <div className="px-5 pb-14 space-y-5">
+      {/* Amount hero */}
+      <div
+        className="rounded-[28px] px-5 pt-6 pb-5 text-center"
+        style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+      >
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600, letterSpacing: 0.4 }}>AMOUNT</p>
         <input
           value={amount}
-          onChange={(e) => { setAmount(e.target.value.replace(/[^0-9.]/g, '')); setError(''); }}
+          onChange={(e) => {
+            setAmount(e.target.value.replace(/[^0-9.]/g, ''));
+            setError('');
+          }}
           inputMode="decimal"
           placeholder="0.00"
-          className="w-full bg-transparent outline-none tabular-nums"
-          style={{ color: 'var(--foreground)', fontSize: 28, fontWeight: 800 }}
+          className="w-full bg-transparent outline-none text-center tabular-nums mt-2"
+          style={{ color: 'var(--foreground)', fontSize: 40, fontWeight: 800, letterSpacing: -1.2 }}
         />
-      </Field>
+        <button
+          type="button"
+          onClick={() => setShowToken(!showToken)}
+          className="inline-flex items-center gap-2 mx-auto mt-3 px-3.5 py-2 rounded-full"
+          style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+        >
+          <AssetIcon symbol={asset} size={18} />
+          <span style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14 }}>{asset}</span>
+          <ChevronDown size={14} style={{ color: 'var(--muted-foreground)' }} />
+        </button>
+        {showToken && (
+          <div
+            className="mt-3 rounded-2xl overflow-hidden text-left max-h-44 overflow-y-auto"
+            style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+          >
+            {tokens.slice(0, 12).map((t: any) => (
+              <button
+                key={t.symbol}
+                type="button"
+                onClick={() => {
+                  setAsset(t.symbol);
+                  setShowToken(false);
+                }}
+                className="flex items-center gap-2 w-full px-4 py-3"
+                style={{
+                  color: 'var(--foreground)',
+                  fontWeight: 600,
+                  fontSize: 14,
+                  background: t.symbol === asset ? 'var(--card)' : undefined,
+                }}
+              >
+                <AssetIcon symbol={t.symbol} size={18} />
+                {t.symbol}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       <Field label="Note">
         <input
@@ -268,7 +279,10 @@ function CreateForm({ onDone }: { onDone: (id: string) => void }) {
               <button
                 key={o.id}
                 type="button"
-                onClick={() => { setExpiry(o.id); setCustomDate(''); }}
+                onClick={() => {
+                  setExpiry(o.id);
+                  setCustomDate('');
+                }}
                 className="flex-1 h-10 rounded-full text-[12px] font-bold"
                 style={{
                   background: on ? 'var(--foreground)' : 'var(--muted)',
@@ -281,7 +295,10 @@ function CreateForm({ onDone }: { onDone: (id: string) => void }) {
             );
           })}
         </div>
-        <div className="rounded-2xl px-3.5 h-11 flex items-center" style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}>
+        <div
+          className="rounded-2xl px-3.5 h-11 flex items-center"
+          style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+        >
           <input
             type="date"
             value={customDate}
@@ -299,7 +316,7 @@ function CreateForm({ onDone }: { onDone: (id: string) => void }) {
         type="button"
         whileTap={{ scale: 0.98 }}
         onClick={submit}
-        className="w-full py-4 rounded-full font-bold text-[15px] mt-2"
+        className="w-full py-4 rounded-full font-bold text-[15px]"
         style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
       >
         Create link
@@ -318,7 +335,9 @@ function Detail({ req: initial, onUpdate }: { req: PaymentRequest; onUpdate: (r:
       await navigator.clipboard.writeText(url);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   };
 
   const share = async () => {
@@ -326,14 +345,19 @@ function Detail({ req: initial, onUpdate }: { req: PaymentRequest; onUpdate: (r:
     try {
       if (navigator.share) await navigator.share({ title: 'Convia payment request', text, url });
       else await copy();
-    } catch { /* cancel */ }
+    } catch {
+      /* cancel */
+    }
   };
 
   const onCancel = () => {
     if (req.status !== 'open') return;
     if (!window.confirm('Cancel this payment request?')) return;
     const u = cancelRequest(req.id);
-    if (u) { setReq(u); onUpdate(u); }
+    if (u) {
+      setReq(u);
+      onUpdate(u);
+    }
   };
 
   return (
@@ -341,46 +365,75 @@ function Detail({ req: initial, onUpdate }: { req: PaymentRequest; onUpdate: (r:
       <div
         className="relative overflow-hidden rounded-[28px] p-6"
         style={{
-          background: 'linear-gradient(155deg, #222228 0%, #141418 50%, #0e0e12 100%)',
-          border: '1px solid rgba(255,255,255,0.1)',
+          background: 'linear-gradient(155deg, #1a2220 0%, #101614 50%, #0a100e 100%)',
+          border: '1px solid color-mix(in oklab, var(--primary) 35%, transparent)',
           color: '#fff',
+          boxShadow: '0 20px 48px rgba(0,0,0,0.3)',
         }}
       >
-        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.2, opacity: 0.45 }}>CONVIA · PAYMENT REQUEST</p>
-        <p className="tabular-nums mt-3" style={{ fontSize: 34, fontWeight: 800, letterSpacing: -1 }}>
-          {fmt(req.amount)} <span style={{ fontSize: 15, opacity: 0.55 }}>{req.asset}</span>
-        </p>
-        {req.note && <p style={{ fontSize: 13, opacity: 0.7, marginTop: 8 }}>{req.note}</p>}
-        <div className="flex gap-4 items-center mt-5">
-          <div className="rounded-[16px] p-2" style={{ background: '#fff' }}>
-            <QRCodeDisplay value={url} size={100} fgColor="#0A0A0A" bgColor="#FFFFFF" />
+        <div
+          className="pointer-events-none absolute -top-16 right-0 w-40 h-40 rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(74,155,146,0.35), transparent 70%)' }}
+        />
+        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.3, opacity: 0.45 }}>CONVIA · PAYMENT REQUEST</p>
+        <div className="flex items-center gap-2.5 mt-4">
+          <AssetIcon symbol={req.asset} size={28} />
+          <p className="tabular-nums" style={{ fontSize: 36, fontWeight: 800, letterSpacing: -1.2 }}>
+            {fmt(req.amount)}
+          </p>
+        </div>
+        <p style={{ fontSize: 14, opacity: 0.55, marginTop: 2, fontWeight: 600 }}>{req.asset}</p>
+        {req.note && <p style={{ fontSize: 13, opacity: 0.7, marginTop: 10 }}>{req.note}</p>}
+        <div className="flex gap-4 items-center mt-6">
+          <div className="rounded-[16px] p-2.5" style={{ background: '#fff' }}>
+            <QRCodeDisplay value={url} size={108} fgColor="#0A0A0A" bgColor="#FFFFFF" />
           </div>
-          <div>
-            <p style={{ fontSize: 10, opacity: 0.4, fontWeight: 700 }}>STATUS</p>
+          <div className="min-w-0">
+            <p style={{ fontSize: 10, opacity: 0.4, fontWeight: 700, letterSpacing: 0.8 }}>STATUS</p>
             <p style={{ fontSize: 15, fontWeight: 700, marginTop: 4, textTransform: 'capitalize' }}>{req.status}</p>
-            <p style={{ fontSize: 11, opacity: 0.4, marginTop: 8 }}>Expires {new Date(req.expiresAt).toLocaleString()}</p>
+            <p style={{ fontSize: 11, opacity: 0.4, marginTop: 10, lineHeight: 1.4 }}>
+              Expires {new Date(req.expiresAt).toLocaleString()}
+            </p>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2.5">
-        <motion.button type="button" whileTap={{ scale: 0.97 }} onClick={() => void copy()}
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.97 }}
+          onClick={() => void copy()}
           className="flex items-center justify-center gap-2 h-12 rounded-full"
-          style={{ background: 'var(--muted)', color: 'var(--foreground)', fontWeight: 650, fontSize: 13, border: '1px solid var(--border)' }}>
+          style={{
+            background: 'var(--muted)',
+            color: 'var(--foreground)',
+            fontWeight: 650,
+            fontSize: 13,
+            border: '1px solid var(--border)',
+          }}
+        >
           {copied ? <Check size={15} /> : <Copy size={15} />}
           {copied ? 'Copied' : 'Copy link'}
         </motion.button>
-        <motion.button type="button" whileTap={{ scale: 0.97 }} onClick={() => void share()}
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.97 }}
+          onClick={() => void share()}
           className="flex items-center justify-center gap-2 h-12 rounded-full"
-          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)', fontWeight: 700, fontSize: 13 }}>
+          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)', fontWeight: 700, fontSize: 13 }}
+        >
           <Share2 size={15} />
           Share
         </motion.button>
       </div>
 
       {req.status === 'open' && (
-        <button type="button" onClick={onCancel} className="w-full h-12 rounded-full"
-          style={{ border: '1px solid var(--border)', color: 'var(--muted-foreground)', fontWeight: 600, fontSize: 13 }}>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="w-full h-12 rounded-full"
+          style={{ border: '1px solid var(--border)', color: 'var(--muted-foreground)', fontWeight: 600, fontSize: 13 }}
+        >
           Cancel request
         </button>
       )}
