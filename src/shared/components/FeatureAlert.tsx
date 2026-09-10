@@ -110,7 +110,7 @@ export function FeatureAlert({
   detail,
   onAction,
   actionLabel = 'Continue',
-  floating = false,
+  floating = true,
 }: FeatureAlertProps) {
   const [open, setOpen] = useState(true);
   const copy = COPY[reason] || COPY.generic;
@@ -118,10 +118,7 @@ export function FeatureAlert({
   const Icon = copy.icon;
   const body = message || copy.body;
 
-  if (!open && !floating) {
-    // Keep height so layout does not jump
-    return <div className="mb-3" style={{ minHeight: 0 }} />;
-  }
+  if (!open) return null;
 
   return (
     <AnimatePresence>
@@ -136,12 +133,14 @@ export function FeatureAlert({
             floating
               ? {
                   position: 'fixed',
-                  bottom: 'max(88px, calc(env(safe-area-inset-bottom) + 72px))',
+                  bottom: 'max(96px, calc(env(safe-area-inset-bottom) + 80px))',
                   left: 16,
                   right: 16,
                   zIndex: 9998,
                   maxWidth: 420,
-                  margin: '0 auto',
+                  marginLeft: 'auto',
+                  marginRight: 'auto',
+                  width: 'auto',
                 }
               : undefined
           }
@@ -151,7 +150,7 @@ export function FeatureAlert({
             style={{
               background: tone.bg,
               border: `1px solid ${tone.border}`,
-              boxShadow: floating ? '0 12px 36px rgba(0,0,0,0.25)' : 'none',
+              boxShadow: floating ? '0 16px 40px rgba(0,0,0,0.35)' : '0 4px 16px rgba(0,0,0,0.08)',
             }}
             role="alert"
           >
