@@ -17,7 +17,7 @@ import { BackButton } from '../../../shared/components/BackButton';
 import { AssetIcon } from '../../../shared/components/AssetIcon';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useAuth } from '../../../shared/context/AuthContext';
-import { GiftCard } from '../components/GiftCard';
+import { GiftCard, CARD_THEME_OPTIONS } from '../components/GiftCard';
 import { QRScanner } from '../../../shared/components/QRScanner';
 import {
   cancelGift,
@@ -27,7 +27,7 @@ import {
   listGifts,
   listRecentClaims,
 } from '../store';
-import { claimUrl, remainingAmount, remainingSlots, type Gift, type SplitMode } from '../types';
+import { claimUrl, remainingAmount, remainingSlots, type CardTheme, type Gift, type SplitMode } from '../types';
 
 type Mode = 'hub' | 'create' | 'join' | 'detail';
 
@@ -317,6 +317,7 @@ function CreateForm({ onDone }: { onDone: (id: string) => void }) {
   }, [assets]);
 
   const [split, setSplit] = useState<SplitMode>('equal');
+  const [cardTheme, setCardTheme] = useState<CardTheme>('gift');
   const [slots, setSlots] = useState('');
   const [total, setTotal] = useState('');
   const [asset, setAsset] = useState(tokens[0]?.symbol || 'USDT');
@@ -354,6 +355,7 @@ function CreateForm({ onDone }: { onDone: (id: string) => void }) {
       expiresAt,
       creatorId: userId || 'local',
       splitMode: split,
+      cardTheme,
     });
     onDone(gift.id);
   };
@@ -387,6 +389,30 @@ function CreateForm({ onDone }: { onDone: (id: string) => void }) {
               </button>
             );
           })}
+        </div>
+
+        <div>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600, marginBottom: 8 }}>Card style</p>
+          <div className="grid grid-cols-4 gap-2">
+            {CARD_THEME_OPTIONS.map((opt) => {
+              const on = cardTheme === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setCardTheme(opt.id)}
+                  className="flex flex-col items-center gap-1.5 py-2.5 rounded-2xl"
+                  style={{
+                    background: on ? 'var(--card)' : 'var(--muted)',
+                    border: on ? `1.5px solid ${opt.swatch}` : '1px solid var(--border)',
+                  }}
+                >
+                  <span className="w-6 h-6 rounded-full" style={{ background: opt.swatch }} />
+                  <span style={{ fontSize: 10, fontWeight: 650, color: 'var(--foreground)' }}>{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <Field
@@ -731,7 +757,7 @@ function Detail({ gift: initial, onRefresh }: { gift: Gift; onRefresh: (g: Gift)
 
   return (
     <div className="px-5 pb-14 space-y-4">
-      <GiftCard gift={gift} />
+      <GiftCard gift={gift} mode="private" />
       <div className="grid grid-cols-2 gap-2.5">
         <motion.button
           type="button"
@@ -760,6 +786,37 @@ function Detail({ gift: initial, onRefresh }: { gift: Gift; onRefresh: (g: Gift)
           Share
         </motion.button>
       </div>
+
+      {(gift.claims?.length ?? 0) > 0 && (
+        <div>
+          <p
+            className="mb-2.5 px-0.5"
+            style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase' }}
+          >
+            Claims ({gift.claims.length})
+          </p>
+          <div className="rounded-[22px] overflow-hidden" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+            {gift.claims.map((c, i) => (
+              <div
+                key={`${c.at}-${i}`}
+                className="flex items-center justify-between px-4 py-3.5"
+                style={{ borderTop: i ? '1px solid var(--border)' : undefined }}
+              >
+                <div>
+                  <p style={{ color: 'var(--foreground)', fontWeight: 650, fontSize: 14 }}>{c.claimerMask}</p>
+                  <p style={{ color: 'var(--muted-foreground)', fontSize: 11, marginTop: 2 }}>
+                    {new Date(c.at).toLocaleString()}
+                  </p>
+                </div>
+                <p className="tabular-nums" style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14 }}>
+                  {formatAmt(c.amount)} {gift.asset}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {gift.status === 'open' && (
         <button
           type="button"

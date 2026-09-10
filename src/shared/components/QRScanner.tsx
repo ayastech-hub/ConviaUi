@@ -17,6 +17,8 @@ export function QRScanner({ onScan, onClose, onManualEntry }: QRScannerProps) {
   const [scanned, setScanned] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploadError, setUploadError] = useState('');
 
   useEffect(() => {
     let mounted = true;
@@ -93,6 +95,29 @@ export function QRScanner({ onScan, onClose, onManualEntry }: QRScannerProps) {
       // torch not supported
     }
   }, [torchOn]);
+
+
+  const uploadFromDevice = useCallback(async (file: File) => {
+    setUploadError('');
+    try {
+      const reader = readerRef.current || new BrowserMultiFormatReader();
+      readerRef.current = reader;
+      const url = URL.createObjectURL(file);
+      try {
+        const result = await reader.decodeFromImageUrl(url);
+        if (result) {
+          setScanned(true);
+          onScan(result.getText());
+        } else {
+          setUploadError('No QR code found in image');
+        }
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    } catch {
+      setUploadError('Could not read QR from image');
+    }
+  }, [onScan]);
 
   return (
     <>
@@ -178,18 +203,40 @@ export function QRScanner({ onScan, onClose, onManualEntry }: QRScannerProps) {
                   <Camera size={20} className="text-white" />
                 </motion.button>
               )}
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={() => fileRef.current?.click()}
+                className="px-5 py-3 rounded-[16px] text-white flex items-center gap-2"
+                style={{ background: 'rgba(255,255,255,0.15)', fontWeight: 700, fontSize: 14 }}
+              >
+                <ImageIcon size={16} />
+                Upload
+              </motion.button>
               {onManualEntry && (
                 <motion.button
                   whileTap={{ scale: 0.97 }}
                   onClick={onManualEntry}
-                  className="px-8 py-3 rounded-[16px] text-white flex items-center gap-2"
-                  style={{ background: 'rgba(255,255,255,0.15)', fontWeight: 700, fontSize: 15 }}
+                  className="px-5 py-3 rounded-[16px] text-white flex items-center gap-2"
+                  style={{ background: 'rgba(255,255,255,0.15)', fontWeight: 700, fontSize: 14 }}
                 >
-                  <ImageIcon size={16} />
-                  Enter Manually
+                  Enter code
                 </motion.button>
               )}
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void uploadFromDevice(f);
+                  e.target.value = '';
+                }}
+              />
             </div>
+            {uploadError && (
+              <p className="mt-3 text-center" style={{ color: '#fca5a5', fontSize: 12 }}>{uploadError}</p>
+            )}
           </>
         )}
       </motion.div>

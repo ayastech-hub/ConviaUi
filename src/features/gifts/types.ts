@@ -1,6 +1,7 @@
 export type GiftKind = 'cheque' | 'giveaway';
 export type GiftStatus = 'open' | 'claimed' | 'expired' | 'cancelled';
 export type SplitMode = 'equal' | 'random';
+export type CardTheme = 'classic' | 'gift' | 'midnight' | 'aurora';
 
 export interface GiftClaimRecord {
   amount: number;
@@ -25,6 +26,8 @@ export interface Gift {
   status: GiftStatus;
   createdAt: string;
   creatorId: string;
+  creatorMask: string;
+  cardTheme: CardTheme;
   claims: GiftClaimRecord[];
 }
 

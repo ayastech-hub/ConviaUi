@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Loader, Coins, CreditCard, HandCoins } from 'lucide-react';
+import { Loader, Coins, CreditCard, HandCoins, Link2 } from 'lucide-react';
 import { MethodOptionRow, MethodOrDivider } from '../components/MethodOptionRow';
 import { type Asset } from '../../../shared/data/mockData';
 import { NETWORKS } from '../components/deposit/types';
@@ -143,6 +143,12 @@ export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenP
             subtitle="From a contact"
             Icon={HandCoins}
             onClick={() => navigate?.('request') ?? goBack()}
+          />
+          <MethodOptionRow
+            title="Request link"
+            subtitle="Share a payment link"
+            Icon={Link2}
+            onClick={() => navigate?.('request-link') ?? goBack()}
           />
         </div>
       </div>

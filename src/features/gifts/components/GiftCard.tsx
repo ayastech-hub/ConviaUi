@@ -1,118 +1,195 @@
 import { QRCodeDisplay } from '../../../shared/components/QRCodeDisplay';
-import type { Gift } from '../types';
+import type { CardTheme, Gift } from '../types';
 import { claimUrl, remainingAmount, remainingSlots } from '../types';
 
-/** Premium share card — QR + passcode. */
-export function GiftCard({ gift }: { gift: Gift }) {
+interface GiftCardProps {
+  gift: Gift;
+  /** public = share poster (amount hidden). private = creator view */
+  mode?: 'public' | 'private';
+}
+
+const THEMES: Record<
+  CardTheme,
+  { bg: string; accent: string; text: string; muted: string; frame: string; giftBox: string }
+> = {
+  classic: {
+    bg: 'linear-gradient(160deg, #1a1a22 0%, #101014 100%)',
+    accent: '#4A9B92',
+    text: '#F5F5F5',
+    muted: 'rgba(255,255,255,0.5)',
+    frame: 'rgba(74,155,146,0.45)',
+    giftBox: '#2a2a32',
+  },
+  gift: {
+    bg: 'linear-gradient(165deg, #1c1828 0%, #12101a 45%, #0c0a12 100%)',
+    accent: '#D4A574',
+    text: '#F0E6D8',
+    muted: 'rgba(240,230,216,0.55)',
+    frame: 'rgba(212,165,116,0.5)',
+    giftBox: '#3d3428',
+  },
+  midnight: {
+    bg: 'linear-gradient(160deg, #0f172a 0%, #020617 100%)',
+    accent: '#60a5fa',
+    text: '#E2E8F0',
+    muted: 'rgba(226,232,240,0.5)',
+    frame: 'rgba(96,165,250,0.4)',
+    giftBox: '#1e293b',
+  },
+  aurora: {
+    bg: 'linear-gradient(155deg, #14201c 0%, #0a1210 50%, #06100e 100%)',
+    accent: '#34d399',
+    text: '#ECFDF5',
+    muted: 'rgba(236,253,245,0.5)',
+    frame: 'rgba(52,211,153,0.4)',
+    giftBox: '#1a2e28',
+  },
+};
+
+/** Share poster — amount private on public mode (Bybit-style). */
+export function GiftCard({ gift, mode = 'public' }: GiftCardProps) {
+  const theme = THEMES[gift.cardTheme || 'classic'] || THEMES.classic;
   const url = claimUrl(gift.code);
   const isGw = gift.kind === 'giveaway';
-  const statusLabel =
-    gift.status === 'open' ? 'Active' : gift.status === 'claimed' ? 'Completed' : gift.status === 'cancelled' ? 'Cancelled' : 'Expired';
+  const title = `${gift.creatorMask || 'user'}'s ${isGw ? 'Giveaway' : 'Gift'}`;
+  const message = gift.note?.trim() || (isGw ? 'Scan to claim your gift' : 'Scan to open');
 
   return (
     <div
-      className="relative overflow-hidden rounded-[28px] p-6"
+      className="relative overflow-hidden rounded-[24px] px-5 pt-6 pb-5"
       style={{
-        background:
-          'linear-gradient(155deg, #222228 0%, #141418 48%, #0e0e12 100%)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        boxShadow: '0 20px 50px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08)',
-        color: '#fff',
+        background: theme.bg,
+        border: `1px solid ${theme.frame}`,
+        boxShadow: '0 20px 48px rgba(0,0,0,0.35)',
+        color: theme.text,
       }}
     >
+      {/* decorative arcs */}
       <div
-        className="pointer-events-none absolute -top-24 -right-16 w-56 h-56 rounded-full"
-        style={{ background: 'radial-gradient(circle, rgba(74,155,146,0.32) 0%, transparent 68%)' }}
+        className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 w-[120%] h-40 rounded-[100%]"
+        style={{ border: `1px solid ${theme.frame}`, opacity: 0.35 }}
       />
       <div
-        className="pointer-events-none absolute bottom-0 left-0 right-0 h-24"
-        style={{ background: 'linear-gradient(to top, rgba(74,155,146,0.08), transparent)' }}
+        className="pointer-events-none absolute top-8 right-6 w-1.5 h-1.5 rounded-full"
+        style={{ background: theme.accent, boxShadow: `0 0 12px ${theme.accent}` }}
+      />
+      <div
+        className="pointer-events-none absolute bottom-16 left-8 w-1 h-1 rounded-full"
+        style={{ background: theme.accent, boxShadow: `0 0 10px ${theme.accent}`, opacity: 0.7 }}
       />
 
-      <div className="relative z-[1] flex items-start justify-between mb-5">
-        <div>
-          <p
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              letterSpacing: 1.4,
-              opacity: 0.45,
-              textTransform: 'uppercase',
-            }}
-          >
-            Convia · {isGw ? 'Giveaway' : 'Cheque'}
-          </p>
-          <p className="tabular-nums mt-2.5" style={{ fontSize: 34, fontWeight: 800, letterSpacing: -1.2, lineHeight: 1 }}>
-            {isGw ? formatAmt(gift.perClaimAmount) : formatAmt(gift.totalAmount)}
-            <span style={{ fontSize: 15, fontWeight: 600, opacity: 0.55, marginLeft: 6 }}>{gift.asset}</span>
-          </p>
-          {isGw && (
-            <p style={{ fontSize: 12, opacity: 0.48, marginTop: 8 }}>
-              {gift.splitMode === 'random' ? 'Random split' : 'Equal split'}
-              {' · '}
-              {remainingSlots(gift)} of {gift.slots} left
-              {' · '}
-              pool {formatAmt(gift.totalAmount)}
-            </p>
-          )}
+      <div className="relative z-[1] flex items-center justify-center gap-2 mb-4">
+        <div
+          className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
+          style={{ background: theme.accent, color: '#0a0a0a' }}
+        >
+          {(gift.creatorMask || 'U')[0].toUpperCase()}
         </div>
-        <span
-          className="px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide"
+        <p style={{ fontSize: 13, fontWeight: 600, color: theme.muted }}>{title}</p>
+      </div>
+
+      <p
+        className="relative z-[1] text-center px-2 mb-5"
+        style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.35, color: theme.accent }}
+      >
+        {message}
+      </p>
+
+      {/* Logo chip */}
+      <div className="relative z-[1] flex justify-center mb-5">
+        <div
+          className="px-4 py-1.5 rounded-full text-[11px] font-extrabold tracking-[0.2em]"
           style={{
-            background: gift.status === 'open' ? 'rgba(74,155,146,0.22)' : 'rgba(255,255,255,0.08)',
-            color: gift.status === 'open' ? '#8ed9d0' : 'rgba(255,255,255,0.55)',
+            background: 'rgba(0,0,0,0.45)',
+            border: `1.5px solid ${theme.accent}`,
+            color: theme.text,
           }}
         >
-          {statusLabel}
-        </span>
+          CONVIA
+        </div>
       </div>
 
-      {gift.note ? (
-        <p className="relative z-[1] mb-5" style={{ fontSize: 13, opacity: 0.72, lineHeight: 1.4 }}>
-          “{gift.note}”
-        </p>
-      ) : null}
+      {/* Gift-box QR */}
+      <div className="relative z-[1] flex justify-center mb-4">
+        <div className="relative">
+          {/* bow */}
+          <div className="flex justify-center mb-[-6px] relative z-[2]">
+            <svg width="56" height="28" viewBox="0 0 56 28" fill="none">
+              <path
+                d="M28 26C28 26 18 14 10 10C4 7 2 14 8 16C14 18 28 26 28 26Z"
+                fill={theme.accent}
+                opacity="0.85"
+              />
+              <path
+                d="M28 26C28 26 38 14 46 10C52 7 54 14 48 16C42 18 28 26 28 26Z"
+                fill={theme.accent}
+                opacity="0.85"
+              />
+              <circle cx="28" cy="22" r="5" fill={theme.accent} />
+            </svg>
+          </div>
+          <div
+            className="rounded-[18px] p-3"
+            style={{
+              background: theme.giftBox,
+              border: `2px solid ${theme.accent}`,
+              boxShadow: `0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08)`,
+            }}
+          >
+            <div className="rounded-[12px] p-2" style={{ background: '#fff' }}>
+              <QRCodeDisplay value={url} size={140} fgColor="#0A0A0A" bgColor="#FFFFFF" />
+            </div>
+          </div>
+        </div>
+      </div>
 
-      <div className="relative z-[1] flex gap-4 items-center">
+      <p className="relative z-[1] text-center" style={{ fontSize: 12, color: theme.muted, fontWeight: 500 }}>
+        Scan the QR code to claim
+      </p>
+
+      {/* Private creator strip — amounts only for owner */}
+      {mode === 'private' && (
         <div
-          className="rounded-[18px] p-2.5 flex-shrink-0"
-          style={{ background: '#fff', boxShadow: '0 8px 24px rgba(0,0,0,0.25)' }}
+          className="relative z-[1] mt-5 pt-4"
+          style={{ borderTop: `1px solid ${theme.frame}` }}
         >
-          <QRCodeDisplay value={url} size={112} fgColor="#0A0A0A" bgColor="#FFFFFF" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p style={{ fontSize: 10, opacity: 0.4, fontWeight: 700, letterSpacing: 1.2 }}>PASSCODE</p>
-          <p className="tabular-nums mt-1.5" style={{ fontSize: 22, fontWeight: 800, letterSpacing: 3.5 }}>
-            {gift.code}
+          <div className="flex justify-between items-end">
+            <div>
+              <p style={{ fontSize: 10, color: theme.muted, fontWeight: 700, letterSpacing: 0.8 }}>POOL</p>
+              <p className="tabular-nums mt-1" style={{ fontSize: 22, fontWeight: 800 }}>
+                {fmt(gift.totalAmount)}{' '}
+                <span style={{ fontSize: 13, fontWeight: 600, opacity: 0.65 }}>{gift.asset}</span>
+              </p>
+              {isGw && (
+                <p style={{ fontSize: 11, color: theme.muted, marginTop: 4 }}>
+                  {gift.splitMode === 'random' ? 'Random' : 'Equal'} · {remainingSlots(gift)}/{gift.slots} left · remaining{' '}
+                  {fmt(remainingAmount(gift))}
+                </p>
+              )}
+            </div>
+            <span
+              className="px-2.5 py-1 rounded-full text-[10px] font-bold capitalize"
+              style={{ background: 'rgba(255,255,255,0.08)', color: theme.accent }}
+            >
+              {gift.status}
+            </span>
+          </div>
+          <p className="tabular-nums mt-3" style={{ fontSize: 12, color: theme.muted }}>
+            Passcode <span style={{ color: theme.text, fontWeight: 700, letterSpacing: 2 }}>{gift.code}</span>
           </p>
-          <p style={{ fontSize: 11, opacity: 0.4, marginTop: 10, lineHeight: 1.35 }}>
-            Expires {formatWhen(gift.expiresAt)}
-          </p>
-          {isGw && gift.status === 'open' && (
-            <p style={{ fontSize: 11, opacity: 0.4, marginTop: 3 }}>
-              Remaining {formatAmt(remainingAmount(gift))} {gift.asset}
-            </p>
-          )}
         </div>
-      </div>
+      )}
     </div>
   );
 }
 
-function formatAmt(n: number) {
-  if (!Number.isFinite(n)) return '0';
-  return n.toLocaleString(undefined, { maximumFractionDigits: 8 });
-}
+export const CARD_THEME_OPTIONS: { id: CardTheme; label: string; swatch: string }[] = [
+  { id: 'classic', label: 'Classic', swatch: '#4A9B92' },
+  { id: 'gift', label: 'Gift gold', swatch: '#D4A574' },
+  { id: 'midnight', label: 'Midnight', swatch: '#60a5fa' },
+  { id: 'aurora', label: 'Aurora', swatch: '#34d399' },
+];
 
-function formatWhen(iso: string) {
-  try {
-    return new Date(iso).toLocaleString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return iso;
-  }
+function fmt(n: number) {
+  return Number.isFinite(n) ? n.toLocaleString(undefined, { maximumFractionDigits: 8 }) : '0';
 }

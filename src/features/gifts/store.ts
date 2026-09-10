@@ -1,4 +1,4 @@
-import type { Gift, GiftKind, SplitMode } from './types';
+import type { CardTheme, Gift, GiftKind, SplitMode } from './types';
 import { refreshStatus, remainingAmount, remainingSlots } from './types';
 
 const KEY = 'convia.gifts.v1';
@@ -13,6 +13,8 @@ function read(): Gift[] {
         ...g,
         claims: g.claims || [],
         splitMode: g.splitMode || 'equal',
+        cardTheme: g.cardTheme || 'classic',
+        creatorMask: g.creatorMask || maskId(g.creatorId || 'user'),
       }),
     );
   } catch {
@@ -36,8 +38,9 @@ function codeGen(): string {
 }
 
 function maskId(id: string): string {
-  if (!id || id.length < 4) return 'user****';
-  return `${id.slice(0, 3)}***@****`;
+  const s = (id || 'user').replace(/[^a-zA-Z0-9]/g, '');
+  if (s.length < 4) return `${(s + 'user').slice(0, 2)}....${(s + '00').slice(-3)}`;
+  return `${s.slice(0, 2)}....${s.slice(-3)}`;
 }
 
 export function listGifts(kind?: GiftKind): Gift[] {
@@ -77,6 +80,7 @@ export function createGift(input: {
   expiresAt: string;
   creatorId: string;
   splitMode?: SplitMode;
+  cardTheme?: CardTheme;
 }): Gift {
   const slots = Math.max(1, Math.floor(input.slots));
   const totalAmount = Number(input.totalAmount);
@@ -97,6 +101,8 @@ export function createGift(input: {
     status: 'open',
     createdAt: new Date().toISOString(),
     creatorId: input.creatorId || 'local',
+    creatorMask: maskId(input.creatorId || 'local'),
+    cardTheme: input.cardTheme || 'classic',
     claims: [],
   };
   const list = read();
