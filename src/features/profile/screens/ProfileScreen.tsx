@@ -74,7 +74,7 @@ export function ProfileScreen({ navigate }: ProfileScreenProps) {
     if (!userId || status !== 'authenticated') return;
     let cancelled = false;
     rewardsApi
-      .getPointsBalance(userId)
+      .getRewardsProfile(userId)
       .then((r) => {
         if (!cancelled) setPoints(Number(r.balance ?? r.points ?? 0));
       })
@@ -83,8 +83,8 @@ export function ProfileScreen({ navigate }: ProfileScreenProps) {
       .listNotifications(userId)
       .then((r) => {
         if (!cancelled) {
-          const items = Array.isArray(r) ? r : r.items || [];
-          setUnread(items.filter((n: { read?: boolean }) => !n.read).length);
+          const items = Array.isArray(r) ? r : [];
+          setUnread(items.filter((n) => !n.readAt && !(n as { read?: boolean }).read).length);
         }
       })
       .catch(() => {});
@@ -122,7 +122,10 @@ export function ProfileScreen({ navigate }: ProfileScreenProps) {
       </div>
 
       <div className="px-5 mb-4">
-        <AccountHealthCard />
+        <AccountHealthCard
+          onKyc={() => navigate('kyc')}
+          onSupport={() => navigate('support-center')}
+        />
       </div>
 
       <ProfileQuickActions onNavigate={navigate} kycDone={isApproved} />
