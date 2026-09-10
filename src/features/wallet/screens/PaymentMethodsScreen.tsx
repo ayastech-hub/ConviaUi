@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Building2, Trash2, Check, Loader, ChevronDown } from 'lucide-react';
+import { Plus, Building2, Trash2, Check, Loader, ChevronDown, Lock } from 'lucide-react';
 import { useAuth } from '../../../shared/context/AuthContext';
 import * as banksApi from '../../../shared/api/banks';
 import type { BankAccount } from '../../../shared/api/banks';
 import { ApiError } from '../../../shared/api/types';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { ScreenHeader } from '../../../shared/components/ScreenHeader';
-import { useSupportedCountries, useBanksForCountry } from '../../../shared/hooks/useSupportedCountries';
+import { useBanksForCountry } from '../../../shared/hooks/useSupportedCountries';
+import { useMyProfile } from '../../../shared/hooks/useMyProfile';
 import { useLanguage } from '../../../shared/context/LanguageContext';
 
 interface PaymentMethodsScreenProps {
@@ -15,29 +16,38 @@ interface PaymentMethodsScreenProps {
 }
 
 /**
- * Bank accounts for off-ramp — same flow as before (list + sheet),
- * but country & bank directory come from the API.
+ * Bank accounts for off-ramp.
+ * Country is taken from the user's profile / KYC (not a free picker).
+ * Account name is the verified KYC name and is not editable.
  */
 export function PaymentMethodsScreen({ goBack }: PaymentMethodsScreenProps) {
   const { t } = useLanguage();
-  const { userId, status } = useAuth();
-  const { countries, loading: countriesLoading } = useSupportedCountries();
+  const { userId, status, displayName: sessionName } = useAuth();
+  const { profile, loading: profileLoading } = useMyProfile();
+
+  const country = (profile?.country || '').toUpperCase();
+  const accountName = useMemo(() => {
+    return (
+      profile?.displayName?.trim() ||
+      sessionName?.trim() ||
+      profile?.username?.trim() ||
+      ''
+    );
+  }, [profile, sessionName]);
+
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [loadingList, setLoadingList] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
-  const [country, setCountry] = useState('');
   const [bankCode, setBankCode] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [bankOpen, setBankOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
 
-  const { banks, currency: countryCurrency, loading: banksLoading } = useBanksForCountry(country || null);
+  const { banks, currency: countryCurrency, loading: banksLoading } = useBanksForCountry(
+    country || null,
+  );
   const selectedBank = banks.find((b) => b.code === bankCode);
-
-  useEffect(() => {
-    if (countries.length && !country) setCountry(countries[0].code);
-  }, [countries, country]);
 
   useEffect(() => {
     setBankCode('');
@@ -64,8 +74,10 @@ export function PaymentMethodsScreen({ goBack }: PaymentMethodsScreenProps) {
     void load();
   }, [userId]);
 
+  const canAdd = Boolean(country && accountName && bankCode && accountNumber.trim().length >= 8);
+
   const handleAdd = async () => {
-    if (!userId || !country || !bankCode || accountNumber.trim().length < 8) return;
+    if (!userId || !canAdd) return;
     setSaving(true);
     setApiError(null);
     try {
@@ -73,13 +85,15 @@ export function PaymentMethodsScreen({ goBack }: PaymentMethodsScreenProps) {
         country,
         bankCode,
         accountNumber: accountNumber.trim(),
+        accountName,
       });
       setShowAdd(false);
       setAccountNumber('');
       setBankCode('');
       await load();
     } catch (err) {
-      if (err instanceof ApiError) setApiError({ code: err.code, message: err.body.message || err.message });
+      if (err instanceof ApiError)
+        setApiError({ code: err.code, message: err.body.message || err.message });
       else setApiError({ message: 'Could not add bank account' });
     } finally {
       setSaving(false);
@@ -98,7 +112,7 @@ export function PaymentMethodsScreen({ goBack }: PaymentMethodsScreenProps) {
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <ScreenHeader title={t('paymentMethods.title')} onBack={goBack} />
+      <ScreenHeader title={t('paymentMethods.title') || 'Payment methods'} onBack={goBack} />
 
       <div className="flex-1 overflow-y-auto px-5 pb-28">
         {status === 'anonymous' && (
@@ -113,10 +127,19 @@ export function PaymentMethodsScreen({ goBack }: PaymentMethodsScreenProps) {
         )}
 
         <div className="flex items-center justify-between mb-3">
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600, letterSpacing: 0.4 }}>
+          <p
+            style={{
+              color: 'var(--muted-foreground)',
+              fontSize: 12,
+              fontWeight: 600,
+              letterSpacing: 0.4,
+            }}
+          >
             BANK ACCOUNTS
           </p>
-          {loadingList && <Loader size={14} className="animate-spin" style={{ color: 'var(--muted-foreground)' }} />}
+          {loadingList && (
+            <Loader size={14} className="animate-spin" style={{ color: 'var(--muted-foreground)' }} />
+          )}
         </div>
 
         {!loadingList && bankAccounts.length === 0 && (
@@ -129,181 +152,224 @@ export function PaymentMethodsScreen({ goBack }: PaymentMethodsScreenProps) {
               No banks linked
             </p>
             <p style={{ color: 'var(--muted-foreground)', fontSize: 13, lineHeight: 1.45 }}>
-              Add a bank in a supported country. Account name is set from your verified KYC identity on the server.
+              Add a local bank account to sell crypto to fiat.
             </p>
           </div>
         )}
 
-        <div className="flex flex-col gap-2.5">
+        <div className="space-y-2.5 mb-6">
           {bankAccounts.map((b) => (
-            <motion.div
+            <div
               key={b.id}
-              layout
-              className="flex items-center gap-3 p-4 rounded-[18px]"
+              className="flex items-center gap-3 rounded-[18px] px-4 py-3.5"
               style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
             >
               <div
-                className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
+                className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
                 style={{ background: 'var(--muted)' }}
               >
                 <Building2 size={18} style={{ color: 'var(--foreground)' }} />
               </div>
               <div className="flex-1 min-w-0">
-                <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14 }} className="truncate">
+                <p style={{ color: 'var(--foreground)', fontWeight: 650, fontSize: 14 }}>
                   {b.bankName || b.bankCode || 'Bank'}
                 </p>
-                <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }} className="truncate">
-                  {[b.country, b.accountName || (b.accountNumber ? `••${String(b.accountNumber).slice(-4)}` : null), b.currency]
-                    .filter(Boolean)
-                    .join(' · ')}
+                <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 2 }}>
+                  {b.accountName ? `${b.accountName} · ` : ''}
+                  •••• {b.last4 || (b.accountNumber || '').slice(-4)}
+                  {b.country ? ` · ${b.country}` : ''}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => void handleRemove(b.id)}
-                className="w-9 h-9 rounded-xl flex items-center justify-center"
-                style={{ background: 'var(--muted)' }}
+                className="p-2 rounded-xl"
+                style={{ color: 'var(--muted-foreground)' }}
                 aria-label="Remove bank"
               >
-                <Trash2 size={15} style={{ color: 'var(--destructive)' }} />
+                <Trash2 size={16} />
               </button>
-            </motion.div>
+            </div>
           ))}
         </div>
-      </div>
 
-      {/* Sticky add CTA — matches prior bottom-action pattern */}
-      <div
-        className="absolute bottom-0 left-0 right-0 p-5"
-        style={{ background: 'linear-gradient(transparent, var(--background) 30%)' }}
-      >
         <motion.button
+          type="button"
           whileTap={{ scale: 0.98 }}
-          onClick={() => setShowAdd(true)}
-          className="w-full py-3.5 rounded-[16px] flex items-center justify-center gap-2 text-white"
-          style={{ background: 'var(--primary)', fontWeight: 700, fontSize: 15 }}
+          onClick={() => {
+            setApiError(null);
+            setShowAdd(true);
+          }}
+          className="w-full flex items-center justify-center gap-2 h-12 rounded-full"
+          style={{
+            background: 'var(--primary)',
+            color: 'var(--primary-foreground)',
+            fontWeight: 700,
+            fontSize: 14,
+          }}
         >
-          <Plus size={18} /> Add bank account
+          <Plus size={18} />
+          Add bank account
         </motion.button>
       </div>
 
       <AnimatePresence>
         {showAdd && (
           <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-            className="absolute inset-0 z-50 flex flex-col"
-            style={{ background: 'var(--background)' }}
+            className="absolute inset-0 z-50 flex flex-col justify-end"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
           >
-            <ScreenHeader title="Add bank account" onBack={() => setShowAdd(false)} />
-
-            <div className="flex-1 overflow-y-auto px-5 pb-10">
-              <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginBottom: 16, lineHeight: 1.45 }}>
-                Choose a supported market, then pick a bank from the live directory.
+            <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={() => setShowAdd(false)} />
+            <motion.div
+              className="relative z-10 px-5 pt-4 pb-10 rounded-t-[28px]"
+              style={{ background: 'var(--card)', borderTop: '1px solid var(--border)', maxHeight: '92%' }}
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+            >
+              <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: 'var(--border)' }} />
+              <p style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 18, marginBottom: 16 }}>
+                Add bank account
               </p>
 
-              <label style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }}>Country</label>
-              <div className="flex flex-wrap gap-2 mt-2 mb-5">
-                {countriesLoading && (
-                  <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Loading markets…</span>
-                )}
-                {countries.map((c) => (
-                  <button
-                    key={c.code}
-                    type="button"
-                    onClick={() => setCountry(c.code)}
-                    className="px-3.5 py-2 rounded-full"
-                    style={{
-                      background: country === c.code ? 'var(--primary)' : 'var(--muted)',
-                      color: country === c.code ? '#fff' : 'var(--foreground)',
-                      fontSize: 12,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {c.name}
-                  </button>
-                ))}
-              </div>
+              {(profileLoading || !country) && status === 'authenticated' && (
+                <FeatureAlert
+                  reason="generic"
+                  message={
+                    profileLoading
+                      ? 'Loading your profile…'
+                      : 'Set your country on your profile (KYC) before adding a bank.'
+                  }
+                />
+              )}
 
-              <label style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }}>
-                Bank{countryCurrency ? ` · ${countryCurrency}` : ''}
-              </label>
-              <button
-                type="button"
-                onClick={() => setBankOpen((v) => !v)}
-                className="w-full mt-2 mb-2 px-4 py-3.5 rounded-[14px] flex items-center justify-between"
+              {/* Country — locked from profile */}
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
+                Country
+              </p>
+              <div
+                className="flex items-center gap-2.5 px-4 h-12 rounded-2xl mb-4"
                 style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
               >
-                <span style={{ color: selectedBank ? 'var(--foreground)' : 'var(--muted-foreground)', fontSize: 14 }}>
-                  {banksLoading ? 'Loading banks…' : selectedBank ? selectedBank.name : 'Select bank'}
+                <Lock size={14} style={{ color: 'var(--muted-foreground)' }} />
+                <span style={{ color: 'var(--foreground)', fontWeight: 650, fontSize: 14 }}>
+                  {country || '—'}
+                  {countryCurrency ? ` · ${countryCurrency}` : ''}
                 </span>
+                <span style={{ color: 'var(--muted-foreground)', fontSize: 11, marginLeft: 'auto' }}>
+                  From profile
+                </span>
+              </div>
+
+              {/* Account name — KYC name, read-only */}
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
+                Account name
+              </p>
+              <div
+                className="flex items-center gap-2.5 px-4 h-12 rounded-2xl mb-4"
+                style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+              >
+                <Lock size={14} style={{ color: 'var(--muted-foreground)' }} />
+                <span
+                  className="truncate"
+                  style={{ color: accountName ? 'var(--foreground)' : 'var(--muted-foreground)', fontWeight: 650, fontSize: 14 }}
+                >
+                  {accountName || 'Complete KYC to set legal name'}
+                </span>
+              </div>
+
+              {/* Bank picker */}
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
+                Bank
+              </p>
+              <button
+                type="button"
+                disabled={!country || banksLoading}
+                onClick={() => setBankOpen((v) => !v)}
+                className="w-full flex items-center justify-between px-4 h-12 rounded-2xl mb-2"
+                style={{
+                  background: 'var(--muted)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--foreground)',
+                  fontWeight: 600,
+                  fontSize: 14,
+                  opacity: !country ? 0.5 : 1,
+                }}
+              >
+                <span>{selectedBank?.name || (banksLoading ? 'Loading banks…' : 'Select bank')}</span>
                 <ChevronDown size={16} style={{ color: 'var(--muted-foreground)' }} />
               </button>
 
-              <AnimatePresence>
-                {bankOpen && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden mb-4 rounded-[14px]"
-                    style={{ border: '1px solid var(--border)', maxHeight: 220, overflowY: 'auto' }}
-                  >
-                    {banks.map((b) => (
-                      <button
-                        key={b.code}
-                        type="button"
-                        onClick={() => {
-                          setBankCode(b.code);
-                          setBankOpen(false);
-                        }}
-                        className="w-full flex items-center gap-2 px-4 py-3 text-left"
-                        style={{
-                          background: bankCode === b.code ? 'var(--muted)' : 'var(--card)',
-                          borderBottom: '1px solid var(--border)',
-                        }}
-                      >
-                        <span className="flex-1" style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: 600 }}>
-                          {b.name}
-                        </span>
-                        {bankCode === b.code && <Check size={16} style={{ color: 'var(--primary)' }} />}
-                      </button>
-                    ))}
-                    {!banksLoading && banks.length === 0 && (
-                      <p className="p-4" style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
-                        No banks returned for this country.
-                      </p>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {bankOpen && (
+                <div
+                  className="rounded-2xl overflow-hidden mb-4 max-h-40 overflow-y-auto"
+                  style={{ border: '1px solid var(--border)' }}
+                >
+                  {banks.map((b) => (
+                    <button
+                      key={b.code}
+                      type="button"
+                      onClick={() => {
+                        setBankCode(b.code);
+                        setBankOpen(false);
+                      }}
+                      className="w-full flex items-center justify-between px-4 py-3 text-left"
+                      style={{
+                        background: bankCode === b.code ? 'var(--muted)' : 'var(--card)',
+                        borderBottom: '1px solid var(--border)',
+                        color: 'var(--foreground)',
+                        fontSize: 14,
+                        fontWeight: bankCode === b.code ? 700 : 500,
+                      }}
+                    >
+                      {b.name}
+                      {bankCode === b.code && <Check size={14} style={{ color: 'var(--primary)' }} />}
+                    </button>
+                  ))}
+                  {!banksLoading && banks.length === 0 && (
+                    <p className="px-4 py-3" style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
+                      No banks for this country
+                    </p>
+                  )}
+                </div>
+              )}
 
-              <label style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }}>Account number</label>
+              {/* Account number */}
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
+                Account number
+              </p>
               <input
                 value={accountNumber}
                 onChange={(e) => setAccountNumber(e.target.value.replace(/\s/g, ''))}
                 placeholder="Enter account number"
                 inputMode="numeric"
-                className="w-full mt-2 mb-6 px-4 py-3.5 rounded-[14px] outline-none"
-                style={{ background: 'var(--muted)', color: 'var(--foreground)', border: '1px solid var(--border)', fontSize: 15 }}
+                className="w-full mb-6 px-4 h-12 rounded-2xl outline-none"
+                style={{
+                  background: 'var(--muted)',
+                  color: 'var(--foreground)',
+                  border: '1px solid var(--border)',
+                  fontSize: 15,
+                }}
               />
 
               <motion.button
                 whileTap={{ scale: 0.98 }}
-                disabled={saving || !bankCode || accountNumber.trim().length < 8}
+                disabled={saving || !canAdd}
                 onClick={() => void handleAdd()}
-                className="w-full py-3.5 rounded-[16px] text-white"
+                className="w-full h-12 rounded-full"
                 style={{
                   background: 'var(--primary)',
+                  color: 'var(--primary-foreground)',
                   fontWeight: 700,
-                  opacity: saving || !bankCode || accountNumber.trim().length < 8 ? 0.45 : 1,
+                  opacity: saving || !canAdd ? 0.45 : 1,
                 }}
               >
                 {saving ? 'Saving…' : 'Save bank account'}
               </motion.button>
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

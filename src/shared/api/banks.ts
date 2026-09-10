@@ -32,7 +32,7 @@ export function listBankAccounts(userId: string) {
 
 export function addBankAccount(
   userId: string,
-  body: { country: string; bankCode: string; accountNumber: string },
+  body: { country: string; bankCode: string; accountNumber: string; accountName?: string },
 ) {
   return api.post<BankAccount>(`/users/${userId}/bank-accounts`, body);
 }
