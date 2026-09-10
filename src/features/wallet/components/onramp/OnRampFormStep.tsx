@@ -100,9 +100,12 @@ export function OnRampFormStep({
                 className="px-3 py-1 rounded-full"
                 style={{
                   fontSize: 12,
-                  fontWeight: 600,
-                  background: amountMode === m ? 'var(--card)' : 'transparent',
-                  color: amountMode === m ? 'var(--foreground)' : 'var(--muted-foreground)',
+                  fontWeight: amountMode === m ? 700 : 550,
+                  background: amountMode === m ? 'var(--liquid-chip-on-bg)' : 'var(--liquid-chip-off-bg)',
+                  color: amountMode === m ? 'var(--liquid-chip-on-text)' : 'var(--liquid-chip-off-text)',
+                  border: amountMode === m ? '1px solid var(--liquid-chip-on-border)' : '1px solid transparent',
+                  boxShadow: amountMode === m ? 'var(--liquid-chip-on-shadow)' : 'none',
+                  backdropFilter: amountMode === m ? 'blur(12px)' : undefined,
                 }}
               >
                 {m === 'usd' ? 'USD' : currency.code}
@@ -137,10 +140,10 @@ export function OnRampFormStep({
               onClick={() => setAmount(String(n))}
               className="flex-1 py-2 rounded-full tabular-nums"
               style={{
-                background: amount === String(n) ? 'var(--liquid-pill-bg)' : 'var(--muted)',
-                color: amount === String(n) ? 'var(--liquid-icon-active)' : 'var(--foreground)',
+                background: amount === String(n) ? 'var(--liquid-chip-on-bg)' : 'var(--muted)',
+                color: amount === String(n) ? 'var(--liquid-chip-on-text)' : 'var(--foreground)',
                 border: amount === String(n) ? '1px solid var(--liquid-pill-border)' : '1px solid var(--border)',
-                boxShadow: amount === String(n) ? 'var(--liquid-pill-shadow)' : undefined,
+                boxShadow: amount === String(n) ? 'var(--liquid-chip-on-shadow)' : undefined,
                 backdropFilter: amount === String(n) ? 'blur(12px)' : undefined,
                 WebkitBackdropFilter: amount === String(n) ? 'blur(12px)' : undefined,
                 fontSize: 12,

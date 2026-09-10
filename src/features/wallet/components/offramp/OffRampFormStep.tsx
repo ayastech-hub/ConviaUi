@@ -128,10 +128,10 @@ export function OffRampFormStep({
                 onClick={() => setAmount(p === 1 ? String(bal) : String(Number(v.toFixed(6))))}
                 className="flex-1 py-2 rounded-full"
                 style={{
-                  background: active ? 'var(--liquid-pill-bg)' : 'var(--muted)',
-                color: active ? 'var(--liquid-icon-active)' : 'var(--foreground)',
+                  background: active ? 'var(--liquid-chip-on-bg)' : 'var(--muted)',
+                color: active ? 'var(--liquid-chip-on-text)' : 'var(--foreground)',
                 border: active ? '1px solid var(--liquid-pill-border)' : '1px solid var(--border)',
-                boxShadow: active ? 'var(--liquid-pill-shadow)' : undefined,
+                boxShadow: active ? 'var(--liquid-chip-on-shadow)' : undefined,
                 backdropFilter: active ? 'blur(12px)' : undefined,
                 WebkitBackdropFilter: active ? 'blur(12px)' : undefined,
                   fontSize: 12,

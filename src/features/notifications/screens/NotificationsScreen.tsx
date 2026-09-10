@@ -248,10 +248,10 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
               onClick={() => setFilter(f.id)}
               className="flex-shrink-0 px-3.5 py-1.5 rounded-full"
               style={{
-                background: on ? 'var(--liquid-pill-bg)' : 'var(--card)',
-                color: on ? 'var(--liquid-icon-active)' : 'var(--muted-foreground)',
+                background: on ? 'var(--liquid-chip-on-bg)' : 'var(--card)',
+                color: on ? 'var(--liquid-chip-on-text)' : 'var(--muted-foreground)',
                 border: on ? '1px solid var(--liquid-pill-border)' : '1px solid var(--border)',
-                boxShadow: on ? 'var(--liquid-pill-shadow)' : undefined,
+                boxShadow: on ? 'var(--liquid-chip-on-shadow)' : undefined,
                 backdropFilter: on ? 'blur(12px)' : undefined,
                 WebkitBackdropFilter: on ? 'blur(12px)' : undefined,
                 fontSize: 12,

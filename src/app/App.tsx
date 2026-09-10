@@ -14,7 +14,6 @@ import { HomeScreen } from '../features/home/screens/HomeScreen';
 
 import { SendScreen } from '../features/wallet/screens/SendScreen';
 import { RequestMoneyScreen } from '../features/wallet/screens/RequestMoneyScreen';
-import { ReceiveScreen } from '../features/wallet/screens/ReceiveScreen';
 import { ScanScreen } from '../features/wallet/screens/ScanScreen';
 import { SwapScreen } from '../features/wallet/screens/SwapScreen';
 import { OffRampScreen } from '../features/wallet/screens/OffRampScreen';
@@ -235,9 +234,10 @@ export default function App() {
           </motion.div>
         );
       case 'receive':
+        // Receive merged into Deposit
         return (
-          <motion.div key="receive" {...slideRight} className="absolute inset-0">
-            <ReceiveScreen goBack={goBack} />
+          <motion.div key="deposit-from-receive" {...slideRight} className="absolute inset-0">
+            <DepositScreen goBack={goBack} navigate={navigate} presetSymbol={navParam} />
           </motion.div>
         );
       case 'scan':

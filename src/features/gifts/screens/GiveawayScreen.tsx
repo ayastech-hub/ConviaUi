@@ -417,10 +417,10 @@ function CreateForm({ onDone, cardTheme, onOpenTheme }: { onDone: (id: string) =
                 onClick={() => setSplit(id)}
                 className="h-10 rounded-[14px] text-[13px] font-bold"
                 style={{
-                  background: on ? 'var(--liquid-pill-bg)' : 'transparent',
-                  color: on ? 'var(--liquid-icon-active)' : 'var(--muted-foreground)',
+                  background: on ? 'var(--liquid-chip-on-bg)' : 'transparent',
+                  color: on ? 'var(--liquid-chip-on-text)' : 'var(--muted-foreground)',
                   border: on ? '1px solid var(--liquid-pill-border)' : '1px solid transparent',
-                  boxShadow: on ? 'var(--liquid-pill-shadow)' : undefined,
+                  boxShadow: on ? 'var(--liquid-chip-on-shadow)' : undefined,
                   backdropFilter: on ? 'blur(12px)' : undefined,
                   WebkitBackdropFilter: on ? 'blur(12px)' : undefined,
                 }}
