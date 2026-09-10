@@ -15,7 +15,7 @@ import {
 } from '../../../shared/api/moneyRequests';
 import { ApiError } from '../../../shared/api/types';
 import { queryClient, queryKeys } from '../../../shared/query/queryClient';
-import { PageTop } from '../../../shared/components/PageTop';;
+import { PageTop } from '../../../shared/components/PageTop';
 import { BackButton } from '../../../shared/components/BackButton';
 
 interface Props {

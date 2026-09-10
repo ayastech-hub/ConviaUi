@@ -7,7 +7,7 @@ import { CategoryGrid } from '../components/helpcenter/CategoryGrid';
 import { ArticleList } from '../components/helpcenter/ArticleList';
 import { ArticleDetailSheet } from '../components/helpcenter/ArticleDetailSheet';
 import { SupportChatView } from '../components/helpcenter/SupportChatView';
-import { PageTop } from '../../../shared/components/PageTop';;
+import { PageTop } from '../../../shared/components/PageTop';
 import { BackButton } from '../../../shared/components/BackButton';
 
 interface HelpCenterScreenProps {

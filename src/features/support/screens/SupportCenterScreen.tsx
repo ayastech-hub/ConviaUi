@@ -8,7 +8,7 @@ import * as supportApi from '../../../shared/api/support';
 import type { SupportCase, SupportMessage, SupportAttachment } from '../../../shared/api/support';
 import { ApiError } from '../../../shared/api/types';
 import { FeatureAlert } from '../../../shared/components/FeatureAlert';
-import { PageTop } from '../../../shared/components/PageTop';;
+import { PageTop } from '../../../shared/components/PageTop';
 import { BackButton } from '../../../shared/components/BackButton';
 
 interface SupportCenterScreenProps {

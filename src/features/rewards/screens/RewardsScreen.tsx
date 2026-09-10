@@ -19,7 +19,7 @@ import { OverviewTab, TasksTab, BadgesTab } from '../components/RewardsTabs';
 import { useAuth } from '../../../shared/context/AuthContext';
 import * as rewardsApi from '../../../shared/api/rewards';
 import { ApiError } from '../../../shared/api/types';
-import { PageTop } from '../../../shared/components/PageTop';;
+import { PageTop } from '../../../shared/components/PageTop';
 import { BackButton } from '../../../shared/components/BackButton';
 
 interface RewardsScreenProps {
@@ -181,34 +181,50 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
   return (
     <div className="flex flex-col h-full relative" style={{ background: 'var(--background)' }}>
       <PageTop />
-      <div className="flex items-center gap-3 px-5 mb-4">
+      <div className="flex items-center gap-3 px-5 mb-5">
         <BackButton onClick={goBack} />
-        <h2 style={{ color: 'var(--foreground)', fontWeight: 800 }}>Rewards</h2>
+        <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22, letterSpacing: '-0.03em' }}>
+          Rewards
+        </h2>
         {loading && (
           <span style={{ color: 'var(--muted-foreground)', fontSize: 11, marginLeft: 'auto' }}>Syncing…</span>
         )}
       </div>
 
       <PointsCard points={points} />
-      <div className="px-5 mb-3">
+      <div className="px-5 mb-4">
         <StreakCard />
       </div>
 
-      <div className="px-5 mb-3 flex gap-2">
-        {(['overview', 'tasks', 'badges'] as const).map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            onClick={() => setActiveTab(tab)}
-            className="px-3 py-1.5 rounded-full text-xs font-semibold capitalize"
-            style={{
-              background: activeTab === tab ? 'var(--primary)' : 'var(--muted)',
-              color: activeTab === tab ? '#fff' : 'var(--muted-foreground)',
-            }}
-          >
-            {tab}
-          </button>
-        ))}
+      <div className="px-5 mb-4">
+        <div
+          className="grid grid-cols-3 gap-1 p-1 rounded-2xl"
+          style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+        >
+          {([
+            { id: 'overview' as const, label: 'Overview' },
+            { id: 'tasks' as const, label: 'Tasks' },
+            { id: 'badges' as const, label: 'Badges' },
+          ]).map((tab) => {
+            const on = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className="h-10 rounded-xl text-[13px] font-bold"
+                style={{
+                  background: on ? 'var(--liquid-chip-on-bg)' : 'transparent',
+                  color: on ? 'var(--liquid-chip-on-text)' : 'var(--liquid-chip-off-text)',
+                  border: on ? '1.5px solid var(--liquid-chip-on-border)' : '1px solid transparent',
+                  boxShadow: on ? 'var(--liquid-chip-on-shadow)' : 'none',
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 pb-24">

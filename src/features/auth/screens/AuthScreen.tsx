@@ -11,7 +11,7 @@ import { useLanguage } from '../../../shared/context/LanguageContext';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { ApiError } from '../../../shared/api/types';
 import * as authApi from '../../../shared/api/auth';
-import { PageTop } from '../../../shared/components/PageTop';;
+import { PageTop } from '../../../shared/components/PageTop';
 
 // Native biometric login (`BiometricStep`) intentionally not imported here —
 // see the comment at the top of `../components/BiometricStep.tsx` for why.

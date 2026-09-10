@@ -1,97 +1,71 @@
-import { motion } from 'motion/react';
-import { Zap, Flame } from 'lucide-react';
+import { Flame, Sparkles } from 'lucide-react';
 
-/**
- * Points hero — fixed brand gradient so text stays readable in light and dark themes.
- * (Using var(--foreground) as the card fill made white labels invisible on dark theme.)
- */
+/** Hero points balance. */
 export function PointsCard({ points }: { points: number }) {
-  const nextLevelAt = 3600;
-  const pct = Math.min(100, (points / nextLevelAt) * 100);
-
   return (
     <div className="px-5 mb-4">
       <div
-        className="rounded-[24px] p-5 relative overflow-hidden"
+        className="relative overflow-hidden rounded-[28px] px-5 py-6"
         style={{
-          background: 'linear-gradient(135deg, #4c1d95 0%, #6d28d9 45%, #7c3aed 100%)',
-          boxShadow: '0 16px 40px rgba(76, 29, 149, 0.35)',
+          background:
+            'linear-gradient(145deg, color-mix(in oklab, var(--primary) 28%, var(--card)) 0%, var(--card) 55%)',
+          border: '1px solid var(--border)',
+          boxShadow: '0 16px 40px rgba(0,0,0,0.2)',
         }}
       >
         <div
-          className="absolute top-0 right-0 w-40 h-40 rounded-full opacity-30"
+          className="pointer-events-none absolute -top-16 -right-10 w-40 h-40 rounded-full"
           style={{
-            background: 'radial-gradient(circle, #c4b5fd, transparent)',
-            transform: 'translate(20%, -30%)',
+            background: 'radial-gradient(circle, color-mix(in oklab, var(--primary) 35%, transparent), transparent 70%)',
           }}
         />
-        <div className="relative">
-          <div className="flex items-center gap-2 mb-3">
-            <Zap size={20} color="#fde68a" />
-            <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.9)', fontWeight: 600 }}>
-              Convia Points
-            </span>
-          </div>
-          <motion.p
-            key={points}
-            initial={{ scale: 1.1, opacity: 0.6 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.25 }}
-            style={{
-              fontSize: 48,
-              fontWeight: 900,
-              letterSpacing: -2,
-              color: '#ffffff',
-              marginBottom: 4,
-            }}
-          >
-            {points.toLocaleString()}
-          </motion.p>
-          <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, marginBottom: 16 }}>
-            ≈ ${(points / 1000).toFixed(2)} USDT equivalent
+        <div className="relative flex items-center gap-2 mb-2">
+          <Sparkles size={14} style={{ color: 'var(--primary)' }} />
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 650, letterSpacing: 0.4 }}>
+            POINTS BALANCE
           </p>
-          <div className="flex items-center gap-3">
-            <div
-              className="flex-1 h-2 rounded-full overflow-hidden"
-              style={{ background: 'rgba(255,255,255,0.22)' }}
-            >
-              <div
-                className="h-full rounded-full"
-                style={{ width: `${pct}%`, background: '#fde68a' }}
-              />
-            </div>
-            <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: 11, whiteSpace: 'nowrap' }}>
-              {points.toLocaleString()} / {nextLevelAt.toLocaleString()}
-            </span>
-          </div>
         </div>
+        <p
+          style={{
+            color: 'var(--foreground)',
+            fontWeight: 800,
+            fontSize: 40,
+            letterSpacing: '-0.05em',
+            fontVariantNumeric: 'tabular-nums',
+            lineHeight: 1,
+          }}
+        >
+          {Math.round(points).toLocaleString()}
+        </p>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginTop: 10 }}>
+          Earn points from tasks and referrals
+        </p>
       </div>
     </div>
   );
 }
 
-/** Optional streak strip — theme-safe colors. */
-export function StreakCard() {
+export function StreakCard({ days = 3 }: { days?: number }) {
   return (
     <div
-      className="flex items-center gap-3 p-4 rounded-[20px]"
-      style={{
-        background: 'var(--card)',
-        border: '1px solid var(--border)',
-      }}
+      className="flex items-center gap-3 rounded-[20px] px-4 py-3.5"
+      style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
     >
       <div
-        className="w-12 h-12 rounded-2xl flex items-center justify-center"
-        style={{ background: 'var(--muted)' }}
+        className="w-10 h-10 rounded-2xl flex items-center justify-center"
+        style={{ background: 'color-mix(in oklab, var(--warning) 18%, transparent)' }}
       >
-        <Flame size={24} style={{ color: 'var(--primary)' }} />
+        <Flame size={18} style={{ color: 'var(--warning)' }} />
       </div>
       <div className="flex-1 min-w-0">
-        <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14 }}>Earn by completing tasks</p>
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
-          Claim rewards on the Tasks tab when a goal is done
+        <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14 }}>Daily streak</p>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 2 }}>
+          {days} day{days === 1 ? '' : 's'} · keep logging in
         </p>
       </div>
+      <p style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 18, fontVariantNumeric: 'tabular-nums' }}>
+        {days}
+      </p>
     </div>
   );
 }

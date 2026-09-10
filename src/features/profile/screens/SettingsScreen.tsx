@@ -127,7 +127,7 @@ export function SettingsScreen({ goBack, darkMode: darkProp, themePref = 'system
         {prefError && <FeatureAlert reason="generic" message={prefError} />}
 
         <ListSection title={t('settings.appearance')}>
-                    <div className="mb-1 px-1">
+          <div className="mb-3 px-1">
             <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600, marginBottom: 8 }}>Theme</p>
             <div
               className="grid grid-cols-3 gap-1 p-1 rounded-2xl"
@@ -158,8 +158,6 @@ export function SettingsScreen({ goBack, darkMode: darkProp, themePref = 'system
               })}
             </div>
           </div>
-}
-          />
           <ListRow
             icon={Globe}
             label={t('settings.currency')}

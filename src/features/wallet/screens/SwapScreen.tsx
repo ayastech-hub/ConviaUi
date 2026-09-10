@@ -24,7 +24,7 @@ import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/Fea
 import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
 import { executeSwap, getSwapQuote } from '../../../shared/api/swap';
 import { ApiError } from '../../../shared/api/types';
-import { PageTop } from '../../../shared/components/PageTop';;
+import { PageTop } from '../../../shared/components/PageTop';
 
 interface SwapScreenProps {
   goBack: () => void;

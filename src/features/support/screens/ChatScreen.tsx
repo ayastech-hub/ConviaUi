@@ -4,7 +4,7 @@ import { ChatHeader } from '../components/chat/ChatHeader';
 import { MessageList } from '../components/chat/MessageList';
 import { ChatInputBar } from '../components/chat/ChatInputBar';
 import { PaymentSheet } from '../components/chat/PaymentSheet';
-import { PageTop } from '../../../shared/components/PageTop';;
+import { PageTop } from '../../../shared/components/PageTop';
 
 interface ChatScreenProps {
   goBack: () => void;

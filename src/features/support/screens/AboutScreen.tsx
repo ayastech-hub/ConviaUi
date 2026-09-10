@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { Heart } from 'lucide-react';
 import { AppInfoHeader } from '../components/AppInfoHeader';
 import { LegalAccordion } from '../components/LegalAccordion';
-import { PageTop } from '../../../shared/components/PageTop';;
+import { PageTop } from '../../../shared/components/PageTop';
 import { BackButton } from '../../../shared/components/BackButton';
 
 interface AboutScreenProps {
