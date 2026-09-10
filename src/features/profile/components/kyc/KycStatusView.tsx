@@ -7,6 +7,7 @@ interface KycStatusViewProps {
   statusLabel: string;
   onBack: () => void;
   onResubmit?: () => void;
+  onUpgradeTier2?: () => void;
 }
 
 const COPY = {
@@ -31,7 +32,7 @@ const COPY = {
 } as const;
 
 /** Approved / pending / rejected landing — not a dummy empty shield. */
-export function KycStatusView({ mode, statusLabel, onBack, onResubmit }: KycStatusViewProps) {
+export function KycStatusView({ mode, statusLabel, onBack, onResubmit, onUpgradeTier2 }: KycStatusViewProps) {
   const c = COPY[mode];
   const Icon = c.icon;
 

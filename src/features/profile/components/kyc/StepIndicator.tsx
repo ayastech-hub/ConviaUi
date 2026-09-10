@@ -1,18 +1,20 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Check } from 'lucide-react';
-import { KYC_STEPS } from './types';
+import { KYC_STEPS, type KYCStepId } from './types';
 
 interface StepIndicatorProps {
   activeStep: number;
+  steps?: typeof KYC_STEPS;
 }
 
 /** Horizontal step progress row at the top of the KYC flow (icons + connecting progress lines). */
-export function StepIndicator({ activeStep }: StepIndicatorProps) {
+export function StepIndicator({ activeStep, steps }: StepIndicatorProps) {
+  const list = steps?.length ? steps : KYC_STEPS;
   return (
     <div className="px-5 mb-6">
       <div className="flex items-center">
-        {KYC_STEPS.map((step, i) => {
+        {list.map((step, i) => {
           const Icon = step.icon;
           const done = i < activeStep;
           const active = i === activeStep;
@@ -45,7 +47,7 @@ export function StepIndicator({ activeStep }: StepIndicatorProps) {
                   {step.label}
                 </span>
               </div>
-              {i < KYC_STEPS.length - 1 && (
+              {i < list.length - 1 && (
                 <div className="flex-1 h-0.5 mx-1.5 rounded-full overflow-hidden" style={{ background: 'var(--border)', marginTop: -14 }}>
                   <motion.div
                     initial={false}

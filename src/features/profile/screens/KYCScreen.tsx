@@ -17,11 +17,13 @@ import { SelfieVerificationStep } from '../components/kyc/SelfieVerificationStep
 import { ReviewStep } from '../components/kyc/ReviewStep';
 import { SuccessView } from '../components/kyc/SuccessView';
 import { KycStatusView } from '../components/kyc/KycStatusView';
+import { NigeriaIdStep } from '../components/kyc/NigeriaIdStep';
 import {
   KYC_STEPS,
   DOC_TYPES,
   COUNTRIES,
   validatePersonalInfo,
+  stepsForCountry,
   type Country,
   type DocType,
   type UploadedFile,
@@ -35,11 +37,19 @@ interface KYCScreenProps {
 export function KYCScreen({ goBack }: KYCScreenProps) {
   const { t } = useLanguage();
   const { userId } = useAuth();
-  const { isApproved, isPending, isRejected, kycStatus, loading: kycLoading, invalidate: invalidateKyc, refresh: refreshKyc } =
-    useKycStatus();
+  const {
+    isApproved,
+    isPending,
+    isRejected,
+    kycStatus,
+    loading: kycLoading,
+    invalidate: invalidateKyc,
+    refresh: refreshKyc,
+  } = useKycStatus();
   const { profile } = useMyProfile();
   const { countries } = useSupportedCountries();
   const [forceForm, setForceForm] = useState(false);
+  const [tier2, setTier2] = useState(false);
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
 
   const [activeStep, setActiveStep] = useState(0);
@@ -54,6 +64,10 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
   const [postalCode, setPostalCode] = useState('');
   const [personalErrors, setPersonalErrors] = useState<Record<string, string>>({});
 
+  const [nin, setNin] = useState('');
+  const [bvn, setBvn] = useState('');
+  const [idErrors, setIdErrors] = useState<Record<string, string>>({});
+
   const [docType, setDocType] = useState<DocType | null>(null);
   const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
   const [docErrors, setDocErrors] = useState<Record<string, string>>({});
@@ -67,10 +81,16 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
   const [submitted, setSubmitted] = useState(false);
 
   const countryOptions = useMemo(() => {
-    const live = countries.map((c) => ({ code: c.code, name: c.name }));
+    const live = countries.map((c) => ({ code: c.code, name: c.name || c.code }));
     if (live.length) return live;
     return COUNTRIES;
   }, [countries]);
+
+  const isNG = (country?.code || profile?.country || '').toUpperCase() === 'NG';
+  const flowSteps = useMemo(
+    () => stepsForCountry(country?.code || profile?.country, tier2),
+    [country?.code, profile?.country, tier2],
+  );
 
   useEffect(() => {
     if (!profile) return;
@@ -84,13 +104,14 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
     }
   }, [profile, countryOptions, fullName, country]);
 
-  const goToStep = (index: number) => {
-    setDirection(index > activeStep ? 1 : -1);
-    setActiveStep(index);
-  };
+  // Reset step when country mode changes
+  useEffect(() => {
+    setActiveStep(0);
+  }, [isNG, tier2]);
+
   const nextStep = () => {
     setDirection(1);
-    setActiveStep((prev) => Math.min(prev + 1, KYC_STEPS.length - 1));
+    setActiveStep((prev) => Math.min(prev + 1, flowSteps.length - 1));
   };
   const prevStep = () => {
     setDirection(-1);
@@ -99,21 +120,31 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
 
   const clearPersonalError = (field: string) => setPersonalErrors((prev) => ({ ...prev, [field]: '' }));
   const clearDocError = (field: string) => setDocErrors((prev) => ({ ...prev, [field]: '' }));
+  const clearIdError = (field: string) => setIdErrors((prev) => ({ ...prev, [field]: '' }));
+
+  const currentId = flowSteps[activeStep]?.id;
 
   const handleNext = () => {
-    if (activeStep === 0) {
+    if (currentId === 'nin') {
+      const errors: Record<string, string> = {};
+      if (nin.length !== 11) errors.nin = 'Enter a valid 11-digit NIN';
+      if (bvn && bvn.length !== 11) errors.bvn = 'BVN must be 11 digits if provided';
+      setIdErrors(errors);
+      if (Object.keys(errors).length > 0) return;
+    }
+    if (currentId === 'personal') {
       const errors = validatePersonalInfo({ fullName, dob, country, address1, address2, city, postalCode });
       setPersonalErrors(errors);
       if (Object.keys(errors).length > 0) return;
     }
-    if (activeStep === 1) {
+    if (currentId === 'document' || currentId === 'utility') {
       const errors: Record<string, string> = {};
-      if (!docType) errors.docType = 'Select a document type';
-      if (!uploadedFile) errors.uploadedFile = 'Upload or photograph your document';
+      if (currentId === 'document' && !docType) errors.docType = 'Select a document type';
+      if (!uploadedFile) errors.uploadedFile = currentId === 'utility' ? 'Upload a utility bill' : 'Upload your document';
       setDocErrors(errors);
       if (Object.keys(errors).length > 0) return;
     }
-    if (activeStep === 2 && !selfieCaptured) {
+    if (currentId === 'selfie' && !selfieCaptured) {
       setSelfieErrors({ selfie: 'Capture a selfie to continue' });
       return;
     }
@@ -136,9 +167,15 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
       uploadedFile?.dataUrl && /^https?:\/\//i.test(uploadedFile.dataUrl) ? uploadedFile.dataUrl : null;
     const hostedSelfie = selfieDataUrl && /^https?:\/\//i.test(selfieDataUrl) ? selfieDataUrl : null;
     const docUrl = hostedDoc || 'https://example.com/kyc/document-placeholder.jpg';
-    const selfieUrl = hostedSelfie || 'https://example.com/kyc/selfie-placeholder.jpg';
+    const selfieUrl = hostedSelfie || (isNG && !tier2 ? '' : 'https://example.com/kyc/selfie-placeholder.jpg');
     const mapDoc =
-      docType === 'passport' ? 'passport' : docType === 'license' ? 'drivers_license' : 'national_id';
+      isNG && !tier2
+        ? 'national_id'
+        : docType === 'passport'
+          ? 'passport'
+          : docType === 'license'
+            ? 'drivers_license'
+            : 'national_id';
 
     setSubmitting(true);
     setApiError(null);
@@ -146,74 +183,68 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
       await securityApi.submitKyc(userId, {
         documentType: mapDoc,
         documentImageUrl: docUrl,
-        selfieImageUrl: selfieUrl,
+        selfieImageUrl: selfieUrl || docUrl,
         declaredCountry: country?.code?.length === 2 ? country.code.toUpperCase() : undefined,
       });
       invalidateKyc();
       await refreshKyc();
       setSubmitted(true);
     } catch (err) {
-      if (err instanceof ApiError) setApiError({ code: err.code, message: err.body.message || err.message });
-      else setApiError({ message: 'KYC submission failed' });
+      if (err instanceof ApiError) setApiError({ code: err.code, message: err.body?.message || err.message });
+      else setApiError({ message: 'Could not submit KYC' });
     } finally {
       setSubmitting(false);
     }
   };
 
-  const docTypeLabel = DOC_TYPES.find((d) => d.id === docType)?.label ?? '';
-
   if (kycLoading) {
     return (
-      <div className="flex flex-col h-full items-center justify-center gap-3" style={{ background: 'var(--background)' }}>
+      <div className="flex flex-col h-full items-center justify-center" style={{ background: 'var(--background)' }}>
         <Loader className="animate-spin" style={{ color: 'var(--muted-foreground)' }} />
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Checking verification…</p>
       </div>
     );
+  }
+
+  if (submitted) {
+    return <SuccessView onDone={goBack} />;
   }
 
   if ((isApproved || isPending) && !forceForm) {
     return (
       <KycStatusView
-        mode={isApproved ? 'approved' : 'pending'}
-        statusLabel={kycStatus}
+        mode={isApproved ? 'approved' : isPending ? 'pending' : 'rejected'}
+        statusLabel={String(kycStatus || (isApproved ? 'approved' : isPending ? 'pending' : 'rejected'))}
         onBack={goBack}
+        onResubmit={() => {
+          setForceForm(true);
+          if (isNG && isApproved) setTier2(true);
+        }}
       />
     );
-  }
-
-  if (isRejected && !forceForm && !submitted) {
-    return (
-      <KycStatusView
-        mode="rejected"
-        statusLabel={kycStatus}
-        onBack={goBack}
-        onResubmit={() => setForceForm(true)}
-      />
-    );
-  }
-
-  if (submitted) {
-    return <SuccessView firstName={fullName.split(' ')[0]} onDone={goBack} />;
   }
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
       <ScreenHeader
-        title={t('kyc.title')}
-        subtitle="Encrypted identity check"
+        title={t('kyc.title') || 'Identity'}
+        subtitle={isNG ? (tier2 ? 'Nigeria · Tier 2' : 'Nigeria · Tier 1') : 'Identity verification'}
         onBack={goBack}
         marginBottom={12}
         right={
           <div className="px-2.5 py-1 rounded-full" style={{ background: 'var(--muted)' }}>
             <span style={{ color: 'var(--foreground)', fontSize: 11, fontWeight: 700 }}>
-              {activeStep + 1}/{KYC_STEPS.length}
+              {activeStep + 1}/{flowSteps.length}
             </span>
           </div>
         }
       />
       <div className="flex items-center gap-1.5 px-5 mb-3">
         <Shield size={11} style={{ color: 'var(--primary)' }} />
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>Bank-grade encryption · 24–48h review</p>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>
+          {isNG && !tier2
+            ? 'NIN verification · No face capture required'
+            : 'Bank-grade encryption · 24–48h review'}
+        </p>
       </div>
 
       {apiError && (
@@ -221,19 +252,30 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
           <FeatureAlert reason={mapApiCodeToReason(apiError.code)} message={apiError.message} detail={apiError.code} />
         </div>
       )}
-      <StepIndicator activeStep={activeStep} />
+      <StepIndicator activeStep={activeStep} steps={flowSteps} />
 
       <div className="flex-1 overflow-y-auto px-5 pb-4">
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
-            key={activeStep}
+            key={`${currentId}-${activeStep}`}
             custom={direction}
-            initial={{ opacity: 0, x: direction > 0 ? 24 : -24 }}
+            initial={{ opacity: 0, x: direction * 24 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: direction > 0 ? -24 : 24 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            exit={{ opacity: 0, x: direction * -24 }}
+            transition={{ duration: 0.22 }}
           >
-            {activeStep === 0 && (
+            {currentId === 'nin' && (
+              <NigeriaIdStep
+                nin={nin}
+                setNin={setNin}
+                bvn={bvn}
+                setBvn={setBvn}
+                errors={idErrors}
+                clearError={clearIdError}
+                onContinue={handleNext}
+              />
+            )}
+            {currentId === 'personal' && (
               <PersonalInfoStep
                 fullName={fullName}
                 setFullName={setFullName}
@@ -255,19 +297,22 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
                 countryOptions={countryOptions}
               />
             )}
-            {activeStep === 1 && (
+            {(currentId === 'document' || currentId === 'utility') && (
               <DocumentUploadStep
-                docType={docType}
-                setDocType={setDocType}
+                docType={docType || (currentId === 'utility' ? 'id' : null)}
+                setDocType={(d) => {
+                  setDocType(d);
+                  if (currentId === 'utility') setDocType('id');
+                }}
                 uploadedFile={uploadedFile}
                 setUploadedFile={setUploadedFile}
                 errors={docErrors}
                 clearError={clearDocError}
-                onBack={prevStep}
                 onContinue={handleNext}
+                onBack={prevStep}
               />
             )}
-            {activeStep === 2 && (
+            {currentId === 'selfie' && (
               <SelfieVerificationStep
                 selfieCaptured={selfieCaptured}
                 onStartCapture={() => setShowSelfieCamera(true)}
@@ -280,7 +325,7 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
                 onContinue={handleNext}
               />
             )}
-            {activeStep === 3 && (
+            {currentId === 'review' && (
               <ReviewStep
                 fullName={fullName}
                 dob={dob}
@@ -289,12 +334,21 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
                 address2={address2}
                 city={city}
                 postalCode={postalCode}
-                docTypeLabel={docTypeLabel}
+                docTypeLabel={
+                  isNG && !tier2
+                    ? `NIN ${nin}${bvn ? ` · BVN ${bvn}` : ''}`
+                    : tier2
+                      ? 'Utility bill'
+                      : DOC_TYPES.find((d) => d.id === docType)?.label || 'Document'
+                }
                 uploadedFile={uploadedFile}
                 submitting={submitting}
-                onEditStep={goToStep}
+                onEditStep={(s) => {
+                  setDirection(s < activeStep ? -1 : 1);
+                  setActiveStep(s);
+                }}
                 onBack={prevStep}
-                onSubmit={handleSubmit}
+                onSubmit={() => void handleSubmit()}
               />
             )}
           </motion.div>

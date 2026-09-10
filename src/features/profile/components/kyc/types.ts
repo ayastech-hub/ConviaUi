@@ -1,8 +1,8 @@
 import type React from 'react';
-import { User, FileText, Camera, ShieldCheck, IdCard, BookUser, Car } from 'lucide-react';
+import { User, FileText, Camera, ShieldCheck, IdCard, BookUser, Car, BadgeCheck, Receipt } from 'lucide-react';
 
 export type DocType = 'passport' | 'id' | 'license';
-export type KYCStepId = 'personal' | 'document' | 'selfie' | 'review';
+export type KYCStepId = 'nin' | 'personal' | 'document' | 'selfie' | 'review' | 'utility';
 
 export interface UploadedFile {
   name: string;
@@ -39,16 +39,39 @@ export const COUNTRIES: Country[] = [
   { code: 'NA', name: 'Namibia' },
 ];
 
-export const KYC_STEPS: {
+
+export type KycStepDef = {
   id: KYCStepId;
   label: string;
   icon: React.ComponentType<{ size?: number; style?: React.CSSProperties; className?: string }>;
-}[] = [
+};
+
+export const KYC_STEPS: KycStepDef[] = [
   { id: 'personal', label: 'Personal', icon: User },
   { id: 'document', label: 'ID', icon: FileText },
   { id: 'selfie', label: 'Selfie', icon: Camera },
   { id: 'review', label: 'Review', icon: ShieldCheck },
 ];
+
+/** Nigeria Tier-1: NIN/BVN → details → review (no face). */
+export const NG_TIER1_STEPS: KycStepDef[] = [
+  { id: 'nin', label: 'NIN', icon: BadgeCheck },
+  { id: 'personal', label: 'Details', icon: User },
+  { id: 'review', label: 'Submit', icon: ShieldCheck },
+];
+
+/** Nigeria Tier-2 upgrade: utility bill + face. */
+export const NG_TIER2_STEPS: KycStepDef[] = [
+  { id: 'utility', label: 'Bill', icon: Receipt },
+  { id: 'selfie', label: 'Face', icon: Camera },
+  { id: 'review', label: 'Submit', icon: ShieldCheck },
+];
+
+export function stepsForCountry(code: string | null | undefined, tier2 = false): KycStepDef[] {
+  const c = (code || '').toUpperCase();
+  if (c === 'NG') return tier2 ? NG_TIER2_STEPS : NG_TIER1_STEPS;
+  return KYC_STEPS;
+}
 
 export const DOC_TYPES: {
   id: DocType;

@@ -5,7 +5,7 @@ import {
   notifications,
   marketData,
 } from '../data/mockData';
-import { MOCK_USER, MOCK_BANK_ACCOUNTS } from './mockMode';
+import { MOCK_USER, MOCK_BANK_ACCOUNTS, MOCK_DIRECTORY_BANKS } from './mockMode';
 
 function holdings() {
   return cryptoAssets
@@ -337,13 +337,21 @@ export function resolveMockResponse(method: string, path: string, body?: unknown
     if (pathname.includes('/prices') || pathname.includes('/market')) {
       return { items: marketData };
     }
-    if (
-      pathname.includes('/banks') ||
-      pathname.includes('/payment-methods') ||
-      pathname.includes('/payment_methods') ||
-      pathname.includes('/bank-accounts')
-    ) {
+    if (pathname.includes('/bank-accounts') || pathname.includes('/payment-methods') || pathname.includes('/payment_methods')) {
       return { banks: MOCK_BANK_ACCOUNTS, methods: MOCK_BANK_ACCOUNTS, accounts: MOCK_BANK_ACCOUNTS };
+    }
+    if (pathname.includes('/banks')) {
+      // Directory for add-bank: ?country=XX
+      const qIdx = path.indexOf('?');
+      let country = 'NG';
+      if (qIdx >= 0) {
+        try {
+          const params = new URLSearchParams(path.slice(qIdx));
+          country = (params.get('country') || 'NG').toUpperCase();
+        } catch { /* */ }
+      }
+      const list = MOCK_DIRECTORY_BANKS[country] || MOCK_DIRECTORY_BANKS.NG || [];
+      return { country, currency: country === 'NG' ? 'NGN' : country === 'GH' ? 'GHS' : country === 'KE' ? 'KES' : 'ZAR', banks: list };
     }
     if (pathname.includes('/eligibility') || pathname.includes('/offramp') || pathname.includes('/onramp')) {
       return {

@@ -18,7 +18,6 @@ import { ReferralModal } from '../../../shared/components/ReferralModal';
 import { ListSection } from '../../../shared/components/ListSection';
 import { ListRow } from '../../../shared/components/ListRow';
 import { ProfileCard } from '../components/ProfileCard';
-import { AccountHealthCard } from '../components/AccountHealthCard';
 import { ProfileQuickActions } from '../components/ProfileQuickActions';
 import { ReferralBanner } from '../components/ReferralBanner';
 import { SignOutButton } from '../components/SignOutButton';
@@ -107,25 +106,10 @@ export function ProfileScreen({ navigate }: ProfileScreenProps) {
   return (
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
       <PageTop />
-
-      <div className="px-5 mb-5">
-        <h1 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 26, letterSpacing: '-0.04em' }}>
-          Account
-        </h1>
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginTop: 4 }}>
-          Identity, security, and preferences
-        </p>
-      </div>
+      <div className="h-2" />
 
       <div className="px-5 mb-4">
         <ProfileCard onOpenProfile={() => navigate('edit-profile')} />
-      </div>
-
-      <div className="px-5 mb-4">
-        <AccountHealthCard
-          onKyc={() => navigate('kyc')}
-          onSupport={() => navigate('support-center')}
-        />
       </div>
 
       <ProfileQuickActions onNavigate={navigate} kycDone={isApproved} />

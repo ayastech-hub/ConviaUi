@@ -117,27 +117,51 @@ export function ProfileCard({ onOpenProfile }: ProfileCardProps) {
         }}
       >
         <div className="flex items-start gap-3.5">
-          <div
-            className="relative flex-shrink-0 rounded-[18px] overflow-hidden flex items-center justify-center"
-            style={{
-              width: 64,
-              height: 64,
-              background: avatarUrl ? 'var(--muted)' : 'color-mix(in oklab, var(--primary) 18%, var(--muted))',
-            }}
-          >
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="" width={64} height={64} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            ) : (
-              <span style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 22, letterSpacing: '-0.04em' }}>
-                {initials}
-              </span>
-            )}
+          <div className="relative flex-shrink-0" style={{ width: 68, height: 68 }}>
+            {/* Enterprise ring */}
+            <div
+              className="absolute inset-0 rounded-full"
+              style={{
+                background:
+                  'conic-gradient(from 210deg, var(--primary), transparent 40%, color-mix(in oklab, var(--primary) 40%, transparent) 70%, var(--primary))',
+                opacity: 0.9,
+              }}
+            />
+            <div
+              className="absolute inset-[2.5px] rounded-full overflow-hidden flex items-center justify-center"
+              style={{
+                background: avatarUrl
+                  ? 'var(--muted)'
+                  : 'linear-gradient(145deg, color-mix(in oklab, var(--primary) 35%, #1a1a22) 0%, color-mix(in oklab, var(--primary) 12%, #0c0c10) 100%)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2), 0 8px 24px rgba(0,0,0,0.25)',
+              }}
+            >
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="" width={64} height={64} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <span
+                  style={{
+                    color: '#fff',
+                    fontWeight: 800,
+                    fontSize: 22,
+                    letterSpacing: '-0.04em',
+                    textShadow: '0 1px 2px rgba(0,0,0,0.35)',
+                  }}
+                >
+                  {initials}
+                </span>
+              )}
+            </div>
             {isApproved && !isFrozen && (
               <span
                 className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full flex items-center justify-center"
-                style={{ background: 'var(--card)', border: '2px solid var(--card)' }}
+                style={{
+                  background: 'var(--card)',
+                  border: '2px solid var(--card)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                }}
               >
-                <BadgeCheck size={16} style={{ color: 'var(--primary)' }} />
+                <BadgeCheck size={15} style={{ color: 'var(--primary)' }} />
               </span>
             )}
           </div>
