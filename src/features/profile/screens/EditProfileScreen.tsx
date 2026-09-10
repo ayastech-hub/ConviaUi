@@ -1,21 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { User, AtSign, Mail, Lock, Check, Loader, AlignLeft, Globe } from 'lucide-react';
+import { User, AtSign, Mail, Lock, Check, Loader, AlignLeft } from 'lucide-react';
 import { ScreenHeader } from '../../../shared/components/ScreenHeader';
 import { ProfileFormField } from '../components/ProfileFormField';
 import { AvatarUploader } from '../components/AvatarUploader';
-import { CountrySelect, type CountryOption } from '../components/CountrySelect';
-import { COUNTRIES } from '../components/kyc/types';
 import { useAuth } from '../../../shared/context/AuthContext';
-import { useSupportedCountries } from '../../../shared/hooks/useSupportedCountries';
-import { useCurrency } from '../../../shared/context/CurrencyContext';
-import { useKycStatus } from '../../../shared/hooks/useKycStatus';
 import { useMyProfile } from '../../../shared/hooks/useMyProfile';
 import * as profileApi from '../../../shared/api/profile';
 import { ApiError } from '../../../shared/api/types';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { cacheInvalidate } from '../../../shared/cache/queryCache';
-import { CurrencyIcon } from '../../../shared/icons/CurrencyIcon';
 
 interface EditProfileScreenProps {
   goBack: () => void;
@@ -41,10 +35,7 @@ function initialsOf(name: string) {
 /** PATCH /profiles/me — username is registration-only; country locks after KYC. */
 export function EditProfileScreen({ goBack }: EditProfileScreenProps) {
   const { username, email } = useAuth();
-  const { isApproved } = useKycStatus();
   const { invalidate } = useMyProfile();
-  const { countries } = useSupportedCountries();
-  const { currencies, setCurrency } = useCurrency();
 
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
@@ -57,16 +48,6 @@ export function EditProfileScreen({ goBack }: EditProfileScreenProps) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<{ code?: string; message?: string } | null>(null);
-
-  const countryOptions: CountryOption[] = useMemo(() => {
-    const live = countries.map((c) => ({ code: c.code, name: c.name }));
-    const map = new Map(live.map((c) => [c.code, c]));
-    for (const c of COUNTRIES) if (!map.has(c.code)) map.set(c.code, c);
-    return [...map.values()];
-  }, [countries]);
-
-  const selectedCountry = countryOptions.find((c) => c.code === country) || (country ? { code: country, name: country } : null);
-  const countryLocked = isApproved && Boolean(orig.country);
 
   useEffect(() => {
     setLoading(true);
@@ -96,8 +77,6 @@ export function EditProfileScreen({ goBack }: EditProfileScreenProps) {
   const dirty =
     displayName.trim() !== orig.displayName ||
     bio.trim() !== orig.bio ||
-    country !== orig.country ||
-    currency !== orig.currency ||
     visibility !== orig.visibility;
 
   const save = async () => {
@@ -108,28 +87,22 @@ export function EditProfileScreen({ goBack }: EditProfileScreenProps) {
       const body: {
         displayName?: string;
         bio?: string;
-        country?: string;
-        preferredCurrency?: string;
         avatarUrl?: string;
       } = {};
       if (displayName.trim()) body.displayName = displayName.trim();
       body.bio = bio.trim();
-      if (!countryLocked && country.trim().length === 2) body.country = country.trim().toUpperCase();
-      if (currency.trim().length === 3) body.preferredCurrency = currency.trim().toUpperCase();
       if (avatar && /^https?:\/\//i.test(avatar)) body.avatarUrl = avatar;
       await profileApi.updateMyProfile(body);
       if (visibility !== orig.visibility) {
         await profileApi.updatePrivacy(visibility);
       }
-      const match = currencies.find((c) => c.code === currency);
-      if (match) setCurrency(match);
       cacheInvalidate('profile:');
       invalidate();
       setOrig({
         displayName: displayName.trim(),
         bio: bio.trim(),
-        country: countryLocked ? orig.country : country.toUpperCase(),
-        currency: currency.toUpperCase(),
+        country: orig.country,
+        currency: orig.currency,
         visibility,
       });
       setSaved(true);
@@ -145,7 +118,7 @@ export function EditProfileScreen({ goBack }: EditProfileScreenProps) {
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <ScreenHeader title="Edit profile" subtitle="How you appear on Convia" onBack={goBack} />
+      <ScreenHeader title="Edit profile" onBack={goBack} />
       <div className="flex-1 overflow-y-auto px-5 pb-8">
         {error && <FeatureAlert reason={mapApiCodeToReason(error.code)} message={error.message} detail={error.code} />}
         {loading ? (
@@ -201,59 +174,6 @@ export function EditProfileScreen({ goBack }: EditProfileScreenProps) {
                 maxLength={160}
                 hint={`${bio.length}/160`}
               />
-            </div>
-
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600, letterSpacing: '0.04em', marginBottom: 10 }}>
-              MARKET
-            </p>
-            <div className="rounded-[20px] p-4 mb-6" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-              <CountrySelect
-                value={selectedCountry}
-                options={countryOptions}
-                disabled={countryLocked}
-                hint={countryLocked ? 'Country is locked after KYC approval.' : 'Used for bills, banks, and compliance.'}
-                onChange={(c) => {
-                  setCountry(c.code);
-                  const match = currencies.find((x) => x.code === (countries.find((k) => k.code === c.code)?.currency || ''));
-                  if (match) setCurrencyCode(match.code);
-                }}
-              />
-              <div className="mt-4">
-                <label style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600, marginBottom: 8, display: 'block' }}>
-                  Display currency
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {currencies.map((c) => {
-                    const on = currency === c.code;
-                    return (
-                      <button
-                        key={c.code}
-                        type="button"
-                        onClick={() => setCurrencyCode(c.code)}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full"
-                        style={{
-                          background: on ? 'var(--liquid-chip-on-bg)' : 'var(--muted)',
-                color: on ? 'var(--liquid-chip-on-text)' : 'var(--foreground)',
-                border: on ? '1px solid var(--liquid-pill-border)' : '1px solid var(--border)',
-                boxShadow: on ? 'var(--liquid-chip-on-shadow)' : undefined,
-                backdropFilter: on ? 'blur(12px)' : undefined,
-                WebkitBackdropFilter: on ? 'blur(12px)' : undefined,
-                          fontSize: 12,
-                          fontWeight: 600,
-                        }}
-                      >
-                        <CurrencyIcon code={c.code} size={14} />
-                        {c.code}
-                      </button>
-                    );
-                  })}
-                  {currencies.length === 0 && (
-                    <span className="inline-flex items-center gap-1" style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
-                      <Globe size={12} /> {currency}
-                    </span>
-                  )}
-                </div>
-              </div>
             </div>
 
             <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600, letterSpacing: '0.04em', marginBottom: 10 }}>

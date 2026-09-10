@@ -53,25 +53,9 @@ export function NigeriaIdStep({
   return (
     <div className="pb-8">
       <div className="mb-6">
-        <p
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full mb-3"
-          style={{
-            background: 'color-mix(in oklab, var(--primary) 12%, transparent)',
-            color: 'var(--primary)',
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: 0.3,
-          }}
-        >
-          Nigeria · Tier 1
-        </p>
-        <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 24, letterSpacing: '-0.04em', lineHeight: 1.15 }}>
-          Choose how to verify
+        <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 26, letterSpacing: '-0.04em' }}>
+          Verify with
         </h2>
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 14, marginTop: 8, lineHeight: 1.5 }}>
-          Pick <strong style={{ color: 'var(--foreground)', fontWeight: 650 }}>one</strong> — NIN or BVN. They are
-          different systems; you only need either.
-        </p>
       </div>
 
       <AnimatePresence mode="wait">
@@ -85,14 +69,14 @@ export function NigeriaIdStep({
           >
             <ChoiceCard
               title="National ID (NIN)"
-              desc="11-digit number from NIMC"
+              desc="National Identity Number"
               icon={IdCard}
               selected={method === 'nin' && valid}
               onClick={() => pick('nin')}
             />
             <ChoiceCard
               title="Bank Verification (BVN)"
-              desc="11-digit number linked to your bank"
+              desc="Bank Verification Number"
               icon={BadgeCheck}
               recommended
               selected={method === 'bvn' && valid}
@@ -123,14 +107,9 @@ export function NigeriaIdStep({
               Change method
             </button>
 
-            <h3 style={{ color: 'var(--foreground)', fontWeight: 750, fontSize: 18, marginBottom: 6 }}>
-              {method === 'bvn' ? 'Enter your BVN' : 'Enter your NIN'}
+            <h3 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22, letterSpacing: '-0.03em', marginBottom: 16 }}>
+              {method === 'bvn' ? 'BVN' : 'NIN'}
             </h3>
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginBottom: 18, lineHeight: 1.45 }}>
-              {method === 'bvn'
-                ? 'Your 11-digit Bank Verification Number.'
-                : 'Your 11-digit National Identity Number from NIMC.'}
-            </p>
 
             <div
               className="rounded-2xl px-4 py-1 mb-3"

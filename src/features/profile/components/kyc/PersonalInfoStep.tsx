@@ -99,12 +99,9 @@ export function PersonalInfoStep({
   return (
     <div>
       <div className="mb-6">
-        <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 24, letterSpacing: '-0.04em', lineHeight: 1.15 }}>
-          Your details
+        <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 26, letterSpacing: '-0.04em' }}>
+          Details
         </h2>
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 14, marginTop: 8, lineHeight: 1.5 }}>
-          Use the legal name that appears on your ID documents.
-        </p>
       </div>
 
       <div className="rounded-[20px] p-4 mb-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>

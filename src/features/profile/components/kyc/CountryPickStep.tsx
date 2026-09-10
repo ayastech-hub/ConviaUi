@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Check, Globe2 } from 'lucide-react';
+import { Check } from 'lucide-react';
 import type { Country } from './types';
 
 interface CountryPickStepProps {
@@ -9,27 +9,20 @@ interface CountryPickStepProps {
   onContinue: () => void;
 }
 
-/** First KYC gate — choose operating country, then route to local flow. */
 export function CountryPickStep({ options, selected, onSelect, onContinue }: CountryPickStepProps) {
   return (
     <div className="pb-6">
-      <div className="mb-6">
-        <div
-          className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
-          style={{
-            background: 'color-mix(in oklab, var(--primary) 14%, var(--muted))',
-            border: '1px solid var(--border)',
-          }}
-        >
-          <Globe2 size={22} style={{ color: 'var(--primary)' }} />
-        </div>
-        <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 24, letterSpacing: '-0.04em', lineHeight: 1.15 }}>
-          Where do you live?
-        </h2>
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 14, marginTop: 8, lineHeight: 1.5 }}>
-          Verification requirements depend on your country. Pick the one that matches your ID.
-        </p>
-      </div>
+      <h2
+        style={{
+          color: 'var(--foreground)',
+          fontWeight: 800,
+          fontSize: 26,
+          letterSpacing: '-0.04em',
+          marginBottom: 20,
+        }}
+      >
+        Country
+      </h2>
 
       <div className="space-y-2 mb-8">
         {options.map((c) => {
@@ -41,12 +34,10 @@ export function CountryPickStep({ options, selected, onSelect, onContinue }: Cou
               type="button"
               whileTap={{ scale: 0.98 }}
               onClick={() => onSelect(c)}
-              className="w-full flex items-center gap-3.5 px-4 h-[56px] rounded-2xl text-left"
+              className="w-full flex items-center gap-3.5 px-4 h-[54px] rounded-2xl text-left"
               style={{
                 background: on ? 'var(--liquid-chip-on-bg)' : 'var(--card)',
-                border: on
-                  ? '1.5px solid var(--liquid-chip-on-border)'
-                  : '1px solid var(--border)',
+                border: on ? '1.5px solid var(--liquid-chip-on-border)' : '1px solid var(--border)',
                 boxShadow: on ? 'var(--liquid-chip-on-shadow)' : 'none',
               }}
             >
@@ -78,13 +69,12 @@ export function CountryPickStep({ options, selected, onSelect, onContinue }: Cou
         whileTap={{ scale: 0.98 }}
         disabled={!selected}
         onClick={onContinue}
-        className="w-full h-13 rounded-full h-12"
+        className="w-full h-12 rounded-full"
         style={{
           background: selected ? 'var(--primary)' : 'var(--muted)',
           color: selected ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
           fontWeight: 700,
           fontSize: 15,
-          opacity: selected ? 1 : 0.7,
         }}
       >
         Continue

@@ -7,7 +7,7 @@ import * as securityApi from '../../../shared/api/security';
 import { ApiError } from '../../../shared/api/types';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { motion, AnimatePresence } from 'motion/react';
-import { Shield, Loader } from 'lucide-react';
+import { Loader } from 'lucide-react';
 import { CameraCapture } from '../../../shared/components/CameraCapture';
 import { ScreenHeader } from '../../../shared/components/ScreenHeader';
 import { PersonalInfoStep } from '../components/kyc/PersonalInfoStep';
@@ -234,29 +234,7 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <ScreenHeader
-        title={t('kyc.title') || 'Identity'}
-        subtitle={
-          tier2
-            ? 'Nigeria · Tier 2'
-            : currentId === 'country'
-              ? 'Select your country'
-              : isNG
-                ? 'Nigeria · Tier 1'
-                : 'Identity verification'
-        }
-        onBack={goBack}
-        marginBottom={12}
-        right={undefined}
-      />
-      <div className="flex items-center gap-1.5 px-5 mb-3">
-        <Shield size={11} style={{ color: 'var(--primary)' }} />
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>
-          {isNG && !tier2
-            ? 'NIN verification · No face capture required'
-            : 'Bank-grade encryption · 24–48h review'}
-        </p>
-      </div>
+      <ScreenHeader title="Verify" onBack={goBack} marginBottom={8} />
 
       {apiError && (
         <div className="px-5">
