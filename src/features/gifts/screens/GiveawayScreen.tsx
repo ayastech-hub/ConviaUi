@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Gift, ScanLine, ChevronDown, Copy, Check, Share2 } from 'lucide-react';
 import { PageTop } from '../../../shared/components/PageTop';
@@ -703,8 +703,8 @@ function Field({
   children,
 }: {
   label: string;
-  right?: React.ReactNode;
-  children: React.ReactNode;
+  right?: ReactNode;
+  children: ReactNode;
 }) {
   return (
     <div>
