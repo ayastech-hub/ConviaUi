@@ -127,16 +127,16 @@ export function FeatureAlert({
     <AnimatePresence>
       {open && (
         <motion.div
-          initial={{ opacity: 0, y: floating ? -8 : 4 }}
+          initial={{ opacity: 0, y: floating ? 12 : 4 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6, height: floating ? undefined : 0, marginBottom: 0 }}
+          exit={{ opacity: 0, y: floating ? 10 : -4, height: floating ? undefined : 0, marginBottom: 0 }}
           transition={{ duration: 0.22 }}
           className={floating ? '' : 'mb-3'}
           style={
             floating
               ? {
                   position: 'fixed',
-                  top: 'max(12px, env(safe-area-inset-top))',
+                  bottom: 'max(88px, calc(env(safe-area-inset-bottom) + 72px))',
                   left: 16,
                   right: 16,
                   zIndex: 9998,
