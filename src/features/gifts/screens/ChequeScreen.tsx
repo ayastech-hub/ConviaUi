@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Link2, Copy, Check, Share2, ChevronDown } from 'lucide-react';
+import { Link2, Copy, Check, Share2, ChevronDown, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { PageTop } from '../../../shared/components/PageTop';
 import { BackButton } from '../../../shared/components/BackButton';
 import { AssetIcon } from '../../../shared/components/AssetIcon';
@@ -18,67 +18,102 @@ interface Props {
 
 const EXPIRY = [
   { id: '1d', label: '24h', ms: 864e5 },
-  { id: '7d', label: '7 days', ms: 7 * 864e5 },
-  { id: '30d', label: '30 days', ms: 30 * 864e5 },
+  { id: '7d', label: '7d', ms: 7 * 864e5 },
+  { id: '30d', label: '30d', ms: 30 * 864e5 },
 ];
 
 export function ChequeScreen({ goBack }: Props) {
   const [mode, setMode] = useState<Mode>('hub');
   const [detailId, setDetailId] = useState('');
+  const [hubKey, setHubKey] = useState(0);
   const detail = detailId ? getGift(detailId) : null;
+
+  const back = () => {
+    if (mode === 'hub') goBack();
+    else {
+      setMode('hub');
+      setDetailId('');
+      setHubKey((k) => k + 1);
+    }
+  };
+
+  const title =
+    mode === 'create' ? 'Create' : mode === 'claim' ? 'Claim' : mode === 'detail' ? 'Cheque' : 'Cheque link';
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
       <PageTop />
-      <div className="flex items-center gap-3 px-5 mb-1">
-        <BackButton
-          onClick={() => {
-            if (mode === 'hub') goBack();
-            else {
-              setMode('hub');
-              setDetailId('');
-            }
-          }}
-        />
+      <div className="flex items-center gap-3 px-5 mb-3">
+        <BackButton onClick={back} />
         <h1 className="flex-1 text-center pr-10" style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 17 }}>
-          {mode === 'create' ? 'Create cheque' : mode === 'claim' ? 'Claim cheque' : mode === 'detail' ? 'Cheque' : 'Cheque link'}
+          {title}
         </h1>
       </div>
+
       <div className="flex-1 overflow-y-auto">
         <AnimatePresence mode="wait">
           {mode === 'hub' && (
-            <motion.div key="hub" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-5 pb-12">
-              <div className="flex flex-col items-center text-center pt-6 pb-6">
+            <motion.div
+              key={`hub-${hubKey}`}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="px-5 pb-14"
+            >
+              <div
+                className="relative overflow-hidden rounded-[28px] px-5 pt-8 pb-6 mb-5 text-center"
+                style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+              >
                 <div
-                  className="w-16 h-16 rounded-2xl flex items-center justify-center mb-3"
-                  style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+                  className="pointer-events-none absolute -top-16 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full"
+                  style={{
+                    background: 'radial-gradient(circle, color-mix(in oklab, var(--primary) 28%, transparent), transparent 70%)',
+                  }}
+                />
+                <div
+                  className="relative mx-auto mb-4 w-[72px] h-[72px] rounded-[22px] flex items-center justify-center"
+                  style={{
+                    background:
+                      'linear-gradient(145deg, color-mix(in oklab, var(--primary) 22%, var(--muted)), var(--muted))',
+                    border: '1px solid var(--border)',
+                  }}
                 >
-                  <Link2 size={28} style={{ color: 'var(--primary)' }} />
+                  <Link2 size={28} style={{ color: 'var(--primary)' }} strokeWidth={1.6} />
                 </div>
-                <p style={{ color: 'var(--muted-foreground)', fontSize: 14, lineHeight: 1.45, maxWidth: 280 }}>
-                  Lock an amount and send a one-time claim link. Recipient claims once; you can cancel before claim.
+                <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 16 }}>One-time claim link</p>
+                <p className="mt-1.5 mx-auto" style={{ color: 'var(--muted-foreground)', fontSize: 13, maxWidth: 280, lineHeight: 1.45 }}>
+                  Lock an amount, share the link. Recipient claims once. Cancel anytime before claim.
                 </p>
+                <div className="grid grid-cols-2 gap-2.5 mt-6">
+                  <motion.button
+                    type="button"
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setMode('create')}
+                    className="flex items-center justify-center gap-2 h-12 rounded-2xl"
+                    style={{ background: 'var(--primary)', color: 'var(--primary-foreground)', fontWeight: 700, fontSize: 14 }}
+                  >
+                    <ArrowUpRight size={16} strokeWidth={2.4} />
+                    Create
+                  </motion.button>
+                  <motion.button
+                    type="button"
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setMode('claim')}
+                    className="flex items-center justify-center gap-2 h-12 rounded-2xl"
+                    style={{
+                      background: 'var(--muted)',
+                      color: 'var(--foreground)',
+                      fontWeight: 700,
+                      fontSize: 14,
+                      border: '1px solid var(--border)',
+                    }}
+                  >
+                    <ArrowDownLeft size={16} strokeWidth={2.4} />
+                    Claim
+                  </motion.button>
+                </div>
               </div>
-              <div className="flex gap-3 mb-6">
-                <motion.button
-                  type="button"
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setMode('create')}
-                  className="flex-1 py-3.5 rounded-2xl font-bold text-[14px]"
-                  style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
-                >
-                  Create
-                </motion.button>
-                <motion.button
-                  type="button"
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setMode('claim')}
-                  className="flex-1 py-3.5 rounded-2xl font-bold text-[14px]"
-                  style={{ background: 'var(--muted)', color: 'var(--foreground)', border: '1px solid var(--border)' }}
-                >
-                  Claim
-                </motion.button>
-              </div>
+
               <MineList
                 onOpen={(id) => {
                   setDetailId(id);
@@ -88,21 +123,24 @@ export function ChequeScreen({ goBack }: Props) {
             </motion.div>
           )}
           {mode === 'create' && (
-            <CreateCheque
-              onDone={(id) => {
-                setDetailId(id);
-                setMode('detail');
-              }}
-            />
+            <motion.div key="create" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              <CreateCheque
+                onDone={(id) => {
+                  setDetailId(id);
+                  setMode('detail');
+                }}
+              />
+            </motion.div>
           )}
-          {mode === 'claim' && <ClaimCheque />}
+          {mode === 'claim' && (
+            <motion.div key="claim" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              <ClaimCheque />
+            </motion.div>
+          )}
           {mode === 'detail' && detail && (
-            <Detail
-              gift={detail}
-              onUpdate={(g) => {
-                setDetailId(g.id);
-              }}
-            />
+            <motion.div key="detail" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              <Detail gift={detail} onUpdate={(g) => setDetailId(g.id)} />
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
@@ -111,30 +149,43 @@ export function ChequeScreen({ goBack }: Props) {
 }
 
 function MineList({ onOpen }: { onOpen: (id: string) => void }) {
-  const list = useMemo(() => listGifts('cheque').slice(0, 8), []);
+  const list = useMemo(() => listGifts('cheque').slice(0, 10), []);
   if (!list.length) return null;
   return (
     <div>
-      <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 700, marginBottom: 8 }}>YOUR CHEQUES</p>
-      {list.map((g) => (
-        <button
-          key={g.id}
-          type="button"
-          onClick={() => onOpen(g.id)}
-          className="w-full flex justify-between py-3.5 text-left"
-          style={{ borderBottom: '1px solid var(--border)' }}
-        >
-          <div>
-            <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>
-              {g.totalAmount} {g.asset}
-            </p>
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
-              {g.code} · {g.status}
-            </p>
-          </div>
-          <span style={{ color: 'var(--primary)', fontSize: 12, fontWeight: 600 }}>Open</span>
-        </button>
-      ))}
+      <p
+        className="mb-2.5 px-0.5"
+        style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase' }}
+      >
+        Your cheques
+      </p>
+      <div className="rounded-[22px] overflow-hidden" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+        {list.map((g, i) => (
+          <button
+            key={g.id}
+            type="button"
+            onClick={() => onOpen(g.id)}
+            className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
+            style={{ borderTop: i ? '1px solid var(--border)' : undefined }}
+          >
+            <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'var(--muted)' }}>
+              <AssetIcon symbol={g.asset} size={20} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p style={{ color: 'var(--foreground)', fontWeight: 650, fontSize: 14 }}>
+                {fmt(g.totalAmount)} {g.asset}
+              </p>
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 2 }}>
+                {g.code} · {g.status}
+              </p>
+            </div>
+            <span
+              className="w-2 h-2 rounded-full"
+              style={{ background: g.status === 'open' ? 'var(--primary)' : 'var(--muted-foreground)' }}
+            />
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -183,13 +234,13 @@ function CreateCheque({ onDone }: { onDone: (id: string) => void }) {
   };
 
   return (
-    <div className="px-5 pb-28 space-y-4">
+    <div className="px-5 pb-14 space-y-4">
       <Field
         label="Amount"
         right={
           selected ? (
-            <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
-              Available {Number(selected.balance || 0).toLocaleString()}
+            <span style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>
+              Avail {fmt(Number(selected.balance || 0))}
             </span>
           ) : null
         }
@@ -204,23 +255,34 @@ function CreateCheque({ onDone }: { onDone: (id: string) => void }) {
             inputMode="decimal"
             placeholder="0.00"
             className="flex-1 bg-transparent outline-none tabular-nums"
-            style={{ color: 'var(--foreground)', fontSize: 18, fontWeight: 700 }}
+            style={{ color: 'var(--foreground)', fontSize: 22, fontWeight: 700 }}
           />
           <div className="relative">
             <button
               type="button"
               onClick={() => setShowToken(!showToken)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full"
-              style={{ background: 'var(--card)', fontSize: 13, fontWeight: 700, color: 'var(--foreground)' }}
+              style={{
+                background: 'var(--card)',
+                fontSize: 13,
+                fontWeight: 700,
+                color: 'var(--foreground)',
+                border: '1px solid var(--border)',
+              }}
             >
               <AssetIcon symbol={asset} size={16} />
               {asset}
-              <ChevronDown size={14} />
+              <ChevronDown size={14} style={{ opacity: 0.6 }} />
             </button>
             {showToken && (
               <div
-                className="absolute right-0 top-full mt-1 z-10 rounded-2xl overflow-hidden max-h-48 overflow-y-auto"
-                style={{ background: 'var(--card)', border: '1px solid var(--border)', minWidth: 140 }}
+                className="absolute right-0 top-full mt-1.5 z-20 rounded-2xl overflow-hidden max-h-48 overflow-y-auto"
+                style={{
+                  background: 'var(--card)',
+                  border: '1px solid var(--border)',
+                  minWidth: 140,
+                  boxShadow: '0 12px 32px rgba(0,0,0,0.2)',
+                }}
               >
                 {tokens.slice(0, 10).map((t: any) => (
                   <button
@@ -253,51 +315,57 @@ function CreateCheque({ onDone }: { onDone: (id: string) => void }) {
         />
       </Field>
 
-      <Field label="Expires">
+      <div>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600, marginBottom: 8 }}>Expires</p>
         <div className="flex gap-2 mb-2">
-          {EXPIRY.map((o) => (
-            <button
-              key={o.id}
-              type="button"
-              onClick={() => {
-                setExpiry(o.id);
-                setCustomDate('');
-              }}
-              className="flex-1 py-2 rounded-full"
-              style={{
-                background: expiry === o.id && !customDate ? 'var(--foreground)' : 'var(--card)',
-                color: expiry === o.id && !customDate ? 'var(--background)' : 'var(--foreground)',
-                fontSize: 12,
-                fontWeight: 700,
-              }}
-            >
-              {o.label}
-            </button>
-          ))}
+          {EXPIRY.map((o) => {
+            const on = expiry === o.id && !customDate;
+            return (
+              <button
+                key={o.id}
+                type="button"
+                onClick={() => {
+                  setExpiry(o.id);
+                  setCustomDate('');
+                }}
+                className="flex-1 h-10 rounded-full text-[12px] font-bold"
+                style={{
+                  background: on ? 'var(--foreground)' : 'var(--muted)',
+                  color: on ? 'var(--background)' : 'var(--foreground)',
+                  border: on ? undefined : '1px solid var(--border)',
+                }}
+              >
+                {o.label}
+              </button>
+            );
+          })}
         </div>
-        <input
-          type="date"
-          value={customDate}
-          min={new Date().toISOString().slice(0, 10)}
-          onChange={(e) => setCustomDate(e.target.value)}
-          className="w-full bg-transparent outline-none"
-          style={{ color: 'var(--foreground)', fontSize: 14 }}
-        />
-      </Field>
+        <div
+          className="rounded-2xl px-3.5 h-11 flex items-center"
+          style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+        >
+          <input
+            type="date"
+            value={customDate}
+            min={new Date().toISOString().slice(0, 10)}
+            onChange={(e) => setCustomDate(e.target.value)}
+            className="w-full bg-transparent outline-none"
+            style={{ color: 'var(--foreground)', fontSize: 14 }}
+          />
+        </div>
+      </div>
 
       {error && <p style={{ color: 'var(--destructive, #ef4444)', fontSize: 13 }}>{error}</p>}
 
-      <div className="pt-2">
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.98 }}
-          onClick={submit}
-          className="w-full py-4 rounded-full font-bold text-[15px]"
-          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
-        >
-          Create cheque
-        </motion.button>
-      </div>
+      <motion.button
+        type="button"
+        whileTap={{ scale: 0.98 }}
+        onClick={submit}
+        className="w-full py-4 rounded-full font-bold text-[15px] mt-2"
+        style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+      >
+        Create cheque
+      </motion.button>
     </div>
   );
 }
@@ -318,18 +386,19 @@ function ClaimCheque() {
   };
 
   const claim = () => {
+    if (!code.trim()) return setError('Enter passcode');
     const res = claimGift(code, userId || 'claimer_local');
     if (!res.ok) return setError(res.error);
-    setOk(`Claimed ${res.amount} ${res.gift.asset}`);
+    setOk(`Claimed ${fmt(res.amount)} ${res.gift.asset}`);
     setError('');
   };
 
   return (
-    <div className="px-5 pb-12 space-y-4">
+    <div className="px-5 pb-14 space-y-4">
       <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Enter the cheque passcode</p>
       <div
-        className="flex items-center gap-2 px-3.5 h-12 rounded-2xl"
-        style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+        className="flex items-center gap-2 px-4 rounded-2xl"
+        style={{ background: 'var(--muted)', border: '1px solid var(--border)', height: 52 }}
       >
         <input
           value={code}
@@ -339,8 +408,8 @@ function ClaimCheque() {
             setOk('');
           }}
           placeholder="Passcode"
-          className="flex-1 bg-transparent outline-none tracking-widest"
-          style={{ color: 'var(--foreground)', fontSize: 15, fontWeight: 600 }}
+          className="flex-1 bg-transparent outline-none"
+          style={{ color: 'var(--foreground)', fontSize: 16, fontWeight: 650, letterSpacing: 2 }}
         />
         <button type="button" onClick={() => void paste()} style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 13 }}>
           Paste
@@ -350,13 +419,20 @@ function ClaimCheque() {
         type="button"
         whileTap={{ scale: 0.98 }}
         onClick={claim}
-        className="w-full py-4 rounded-full font-bold"
+        className="w-full py-4 rounded-full font-bold text-[15px]"
         style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
       >
         Claim
       </motion.button>
       {error && <p style={{ color: 'var(--destructive, #ef4444)', fontSize: 13 }}>{error}</p>}
-      {ok && <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>{ok}</p>}
+      {ok && (
+        <div
+          className="rounded-2xl px-4 py-3.5"
+          style={{ background: 'color-mix(in oklab, var(--primary) 14%, transparent)' }}
+        >
+          <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14 }}>{ok}</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -378,8 +454,9 @@ function Detail({ gift: initial, onUpdate }: { gift: Gift; onUpdate: (g: Gift) =
 
   const share = async () => {
     try {
-      if (navigator.share) await navigator.share({ title: 'Convia Cheque', text: `Claim ${gift.totalAmount} ${gift.asset}`, url });
-      else await copy();
+      if (navigator.share) {
+        await navigator.share({ title: 'Convia Cheque', text: `Claim ${gift.totalAmount} ${gift.asset}`, url });
+      } else await copy();
     } catch {
       /* cancel */
     }
@@ -388,7 +465,7 @@ function Detail({ gift: initial, onUpdate }: { gift: Gift; onUpdate: (g: Gift) =
   const onCancel = () => {
     if (gift.status !== 'open') return;
     const left = remainingAmount(gift);
-    if (!window.confirm(`Cancel and return ${left} ${gift.asset}?`)) return;
+    if (!window.confirm(`Cancel and return ${fmt(left)} ${gift.asset}?`)) return;
     const u = cancelGift(gift.id);
     if (u) {
       setGift(u);
@@ -397,27 +474,33 @@ function Detail({ gift: initial, onUpdate }: { gift: Gift; onUpdate: (g: Gift) =
   };
 
   return (
-    <div className="px-5 pb-12 space-y-4">
+    <div className="px-5 pb-14 space-y-4">
       <GiftCard gift={gift} />
-      <div className="flex gap-2">
+      <div className="grid grid-cols-2 gap-2.5">
         <motion.button
           type="button"
-          whileTap={{ scale: 0.98 }}
+          whileTap={{ scale: 0.97 }}
           onClick={() => void copy()}
-          className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-full"
-          style={{ background: 'var(--muted)', color: 'var(--foreground)', fontWeight: 600, fontSize: 13 }}
+          className="flex items-center justify-center gap-2 h-12 rounded-full"
+          style={{
+            background: 'var(--muted)',
+            color: 'var(--foreground)',
+            fontWeight: 650,
+            fontSize: 13,
+            border: '1px solid var(--border)',
+          }}
         >
-          {copied ? <Check size={14} /> : <Copy size={14} />}
+          {copied ? <Check size={15} /> : <Copy size={15} />}
           {copied ? 'Copied' : 'Copy link'}
         </motion.button>
         <motion.button
           type="button"
-          whileTap={{ scale: 0.98 }}
+          whileTap={{ scale: 0.97 }}
           onClick={() => void share()}
-          className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-full"
+          className="flex items-center justify-center gap-2 h-12 rounded-full"
           style={{ background: 'var(--primary)', color: 'var(--primary-foreground)', fontWeight: 700, fontSize: 13 }}
         >
-          <Share2 size={14} />
+          <Share2 size={15} />
           Share
         </motion.button>
       </div>
@@ -425,7 +508,7 @@ function Detail({ gift: initial, onUpdate }: { gift: Gift; onUpdate: (g: Gift) =
         <button
           type="button"
           onClick={onCancel}
-          className="w-full py-3.5 rounded-full"
+          className="w-full h-12 rounded-full"
           style={{ border: '1px solid var(--border)', color: 'var(--muted-foreground)', fontWeight: 600, fontSize: 13 }}
         >
           Cancel · return funds
@@ -435,24 +518,21 @@ function Detail({ gift: initial, onUpdate }: { gift: Gift; onUpdate: (g: Gift) =
   );
 }
 
-function Field({
-  label,
-  right,
-  children,
-}: {
-  label: string;
-  right?: ReactNode;
-  children: ReactNode;
-}) {
+function Field({ label, right, children }: { label: string; right?: ReactNode; children: ReactNode }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 13, fontWeight: 500 }}>{label}</p>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }}>{label}</p>
         {right}
       </div>
-      <div className="rounded-2xl px-3.5 py-3" style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}>
+      <div className="rounded-2xl px-3.5 py-3.5" style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}>
         {children}
       </div>
     </div>
   );
+}
+
+function fmt(n: number) {
+  if (!Number.isFinite(n)) return '0';
+  return n.toLocaleString(undefined, { maximumFractionDigits: 8 });
 }
