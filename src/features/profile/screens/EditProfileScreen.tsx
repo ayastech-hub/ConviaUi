@@ -232,8 +232,12 @@ export function EditProfileScreen({ goBack }: EditProfileScreenProps) {
                         onClick={() => setCurrencyCode(c.code)}
                         className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full"
                         style={{
-                          background: on ? 'var(--foreground)' : 'var(--muted)',
-                          color: on ? 'var(--background)' : 'var(--foreground)',
+                          background: on ? 'var(--liquid-pill-bg)' : 'var(--muted)',
+                color: on ? 'var(--liquid-icon-active)' : 'var(--foreground)',
+                border: on ? '1px solid var(--liquid-pill-border)' : '1px solid var(--border)',
+                boxShadow: on ? 'var(--liquid-pill-shadow)' : undefined,
+                backdropFilter: on ? 'blur(12px)' : undefined,
+                WebkitBackdropFilter: on ? 'blur(12px)' : undefined,
                           fontSize: 12,
                           fontWeight: 600,
                         }}

@@ -46,8 +46,12 @@ export function ExpiryPicker({
               }}
               className="flex-1 h-10 rounded-full text-[12px] font-bold"
               style={{
-                background: on ? 'var(--foreground)' : 'var(--muted)',
-                color: on ? 'var(--background)' : 'var(--foreground)',
+                background: on ? 'var(--liquid-pill-bg)' : 'var(--muted)',
+                color: on ? 'var(--liquid-icon-active)' : 'var(--foreground)',
+                border: on ? '1px solid var(--liquid-pill-border)' : '1px solid var(--border)',
+                boxShadow: on ? 'var(--liquid-pill-shadow)' : undefined,
+                backdropFilter: on ? 'blur(12px)' : undefined,
+                WebkitBackdropFilter: on ? 'blur(12px)' : undefined,
                 border: on ? undefined : '1px solid var(--border)',
               }}
             >

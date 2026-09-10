@@ -137,8 +137,12 @@ export function OnRampFormStep({
               onClick={() => setAmount(String(n))}
               className="flex-1 py-2 rounded-full tabular-nums"
               style={{
-                background: amount === String(n) ? 'var(--foreground)' : 'var(--muted)',
-                color: amount === String(n) ? 'var(--background)' : 'var(--foreground)',
+                background: amount === String(n) ? 'var(--liquid-pill-bg)' : 'var(--muted)',
+                color: amount === String(n) ? 'var(--liquid-icon-active)' : 'var(--foreground)',
+                border: amount === String(n) ? '1px solid var(--liquid-pill-border)' : '1px solid var(--border)',
+                boxShadow: amount === String(n) ? 'var(--liquid-pill-shadow)' : undefined,
+                backdropFilter: amount === String(n) ? 'blur(12px)' : undefined,
+                WebkitBackdropFilter: amount === String(n) ? 'blur(12px)' : undefined,
                 fontSize: 12,
                 fontWeight: 600,
                 border: amount === String(n) ? 'none' : '1px solid var(--border)',
