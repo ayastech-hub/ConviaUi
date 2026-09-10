@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertTriangle, ShieldAlert, Ban, Snowflake, ChevronRight, X } from 'lucide-react';
+import { AlertTriangle, ShieldAlert, Ban, Snowflake, ChevronRight, X, Info, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export type FeatureBlockReason =
@@ -17,57 +17,64 @@ const COPY: Record<
 > = {
   kyc_required: {
     title: 'Verification required',
-    body: 'Complete identity verification (KYC) to unlock this feature.',
+    body: 'Complete identity verification to unlock this feature.',
     icon: ShieldAlert,
     tone: 'warn',
   },
   kyc_pending: {
     title: 'Verification in review',
-    body: 'Your KYC is pending. This feature stays locked until approval.',
-    icon: ShieldAlert,
+    body: 'Your KYC is pending. This feature unlocks after approval.',
+    icon: Info,
     tone: 'info',
   },
   country_feature_suspended: {
-    title: 'Feature unavailable in your region',
-    body: 'This product surface is suspended for your country. Try again later or contact support.',
+    title: 'Unavailable in your region',
+    body: 'This feature is suspended for your country.',
     icon: Ban,
     tone: 'danger',
   },
   account_frozen: {
     title: 'Account frozen',
-    body: 'Your account is frozen. Contact support before initiating transfers or withdrawals.',
+    body: 'Contact support before transfers or withdrawals.',
     icon: Snowflake,
     tone: 'danger',
   },
   address_not_whitelisted: {
     title: 'Address not whitelisted',
-    body: 'Add this destination under Security → Withdrawal whitelist, wait for the cooldown, then retry.',
+    body: 'Add this destination under Security → Whitelist, then retry.',
     icon: AlertTriangle,
     tone: 'warn',
   },
   limit_exceeded: {
     title: 'Limit exceeded',
-    body: 'This amount exceeds your tier limit. Lower the amount or complete higher KYC tier.',
+    body: 'Lower the amount or complete a higher KYC tier.',
     icon: AlertTriangle,
     tone: 'warn',
   },
   generic: {
     title: 'Action blocked',
-    body: 'The server refused this action. Check the details below or try again later.',
-    icon: AlertTriangle,
+    body: 'This action was refused. Check details or try again.',
+    icon: XCircle,
     tone: 'warn',
   },
 };
 
-const TONE_BG: Record<string, string> = {
-  warn: 'rgba(245, 158, 11, 0.12)',
-  danger: 'rgba(239, 68, 68, 0.12)',
-  info: 'rgba(74, 155, 146, 0.12)',
-};
-const TONE_FG: Record<string, string> = {
-  warn: '#D97706',
-  danger: '#EF4444',
-  info: 'var(--primary)',
+const TONE = {
+  warn: {
+    accent: 'var(--warning)',
+    bg: 'color-mix(in oklab, var(--warning) 12%, var(--card))',
+    border: 'color-mix(in oklab, var(--warning) 32%, var(--border))',
+  },
+  danger: {
+    accent: 'var(--destructive)',
+    bg: 'color-mix(in oklab, var(--destructive) 12%, var(--card))',
+    border: 'color-mix(in oklab, var(--destructive) 32%, var(--border))',
+  },
+  info: {
+    accent: 'var(--primary)',
+    bg: 'color-mix(in oklab, var(--primary) 12%, var(--card))',
+    border: 'color-mix(in oklab, var(--primary) 28%, var(--border))',
+  },
 };
 
 export function mapApiCodeToReason(code?: string): FeatureBlockReason {
@@ -76,7 +83,7 @@ export function mapApiCodeToReason(code?: string): FeatureBlockReason {
   if (c.includes('kyc') && c.includes('pend')) return 'kyc_pending';
   if (c.includes('kyc') || c === 'complete_kyc') return 'kyc_required';
   if (c.includes('country') || c.includes('suspended')) return 'country_feature_suspended';
-  if (c.includes('freeze') || c.includes('frozen')) return 'account_frozen';
+  if (c.includes('frozen')) return 'account_frozen';
   if (c.includes('whitelist')) return 'address_not_whitelisted';
   if (c.includes('limit')) return 'limit_exceeded';
   return 'generic';
@@ -84,107 +91,121 @@ export function mapApiCodeToReason(code?: string): FeatureBlockReason {
 
 interface FeatureAlertProps {
   reason: FeatureBlockReason;
-  message?: string | Error | unknown;
-  detail?: string | unknown;
+  message?: string;
+  detail?: string;
   onAction?: () => void;
   actionLabel?: string;
-  compact?: boolean;
+  /** When true, sits as overlay-friendly fixed toast style — default inline */
   floating?: boolean;
-  dismissible?: boolean;
-  onDismiss?: () => void;
 }
 
+/**
+ * Enterprise feature-block / error banner.
+ * Absolute-safe: dismiss does not reflow surrounding content when floating.
+ * Inline mode uses reserved min-height so dismiss doesn't jump UI.
+ */
 export function FeatureAlert({
   reason,
   message,
   detail,
   onAction,
-  actionLabel = 'Resolve',
-  compact = false,
-  floating = true,
-  dismissible = true,
-  onDismiss,
+  actionLabel = 'Continue',
+  floating = false,
 }: FeatureAlertProps) {
-  const [dismissed, setDismissed] = useState(false);
-  const meta = COPY[reason] || COPY.generic;
-  const Icon = meta.icon;
-  const safeMessage =
-    message == null
-      ? ''
-      : typeof message === 'string'
-        ? message
-        : typeof message === 'object' && message !== null && 'message' in (message as object)
-          ? String((message as { message: unknown }).message)
-          : String(message);
-  const safeDetail = detail == null ? '' : typeof detail === 'string' ? detail : String(detail);
+  const [open, setOpen] = useState(true);
+  const copy = COPY[reason] || COPY.generic;
+  const tone = TONE[copy.tone];
+  const Icon = copy.icon;
+  const body = message || copy.body;
 
-  if (dismissed) return null;
-
-  const card = (
-    <motion.div
-      initial={{ opacity: 0, y: floating ? -8 : 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: floating ? -8 : 0 }}
-      className="rounded-[16px] p-3.5 flex gap-3"
-      style={{
-        background: TONE_BG[meta.tone],
-        border: `1px solid ${TONE_FG[meta.tone]}33`,
-        marginBottom: floating ? 0 : compact ? 8 : 12,
-        boxShadow: floating ? '0 8px 24px rgba(0,0,0,0.25)' : undefined,
-      }}
-    >
-      <Icon size={18} style={{ color: TONE_FG[meta.tone], flexShrink: 0, marginTop: 2 }} />
-      <div className="flex-1 min-w-0">
-        <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 13 }}>{meta.title}</p>
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 12, lineHeight: 1.45, marginTop: 2 }}>
-          {safeMessage || meta.body}
-        </p>
-        {safeDetail ? (
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 11, marginTop: 4, opacity: 0.85 }}>
-            {safeDetail}
-          </p>
-        ) : null}
-        {onAction ? (
-          <button
-            type="button"
-            onClick={onAction}
-            className="flex items-center gap-1 mt-2"
-            style={{ color: TONE_FG[meta.tone], fontSize: 12, fontWeight: 700 }}
-          >
-            {actionLabel} <ChevronRight size={14} />
-          </button>
-        ) : null}
-      </div>
-      {dismissible ? (
-        <button
-          type="button"
-          onClick={() => {
-            setDismissed(true);
-            onDismiss?.();
-          }}
-          aria-label="Dismiss"
-          className="flex-shrink-0 p-0.5"
-        >
-          <X size={16} style={{ color: 'var(--muted-foreground)' }} />
-        </button>
-      ) : null}
-    </motion.div>
-  );
-
-  if (floating) {
-    return (
-      <AnimatePresence>
-        <div
-          className="fixed left-0 right-0 z-[60] px-4 pointer-events-none"
-          style={{ top: 'max(12px, env(safe-area-inset-top))' }}
-        >
-          <div className="pointer-events-auto mx-auto" style={{ maxWidth: 480 }}>
-            {card}
-          </div>
-        </div>
-      </AnimatePresence>
-    );
+  if (!open && !floating) {
+    // Keep height so layout does not jump
+    return <div className="mb-3" style={{ minHeight: 0 }} />;
   }
 
-  return card;
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0, y: floating ? -8 : 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6, height: floating ? undefined : 0, marginBottom: 0 }}
+          transition={{ duration: 0.22 }}
+          className={floating ? '' : 'mb-3'}
+          style={
+            floating
+              ? {
+                  position: 'fixed',
+                  top: 'max(12px, env(safe-area-inset-top))',
+                  left: 16,
+                  right: 16,
+                  zIndex: 9998,
+                  maxWidth: 420,
+                  margin: '0 auto',
+                }
+              : undefined
+          }
+        >
+          <div
+            className="relative overflow-hidden rounded-[18px] px-3.5 py-3 flex gap-3 items-start"
+            style={{
+              background: tone.bg,
+              border: `1px solid ${tone.border}`,
+              boxShadow: floating ? '0 12px 36px rgba(0,0,0,0.25)' : 'none',
+            }}
+            role="alert"
+          >
+            <span className="absolute left-0 top-0 bottom-0 w-1" style={{ background: tone.accent }} />
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: 'color-mix(in oklab, var(--background) 50%, transparent)' }}
+            >
+              <Icon size={17} style={{ color: tone.accent }} strokeWidth={2.25} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p style={{ color: 'var(--foreground)', fontWeight: 750, fontSize: 13.5, letterSpacing: '-0.02em' }}>
+                {copy.title}
+              </p>
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 12.5, marginTop: 3, lineHeight: 1.4 }}>
+                {body}
+              </p>
+              {detail && (
+                <p
+                  style={{
+                    color: 'var(--muted-foreground)',
+                    fontSize: 11,
+                    marginTop: 6,
+                    fontFamily: 'ui-monospace, monospace',
+                    opacity: 0.75,
+                  }}
+                >
+                  {detail}
+                </p>
+              )}
+              {onAction && (
+                <button
+                  type="button"
+                  onClick={onAction}
+                  className="inline-flex items-center gap-1 mt-2.5"
+                  style={{ color: tone.accent, fontWeight: 700, fontSize: 12.5 }}
+                >
+                  {actionLabel}
+                  <ChevronRight size={14} />
+                </button>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ background: 'var(--muted)', color: 'var(--muted-foreground)' }}
+              aria-label="Dismiss"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 }

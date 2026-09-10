@@ -1,3 +1,4 @@
+import { ToastProvider } from '../../shared/context/ToastContext';
 import type { ReactNode } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '../../shared/query/queryClient';
@@ -12,6 +13,7 @@ import { LanguageProvider } from '../../shared/context/LanguageContext';
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
+      <ToastProvider>
       <AuthProvider>
         <LanguageProvider>
           <CurrencyProvider>
@@ -19,6 +21,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
           </CurrencyProvider>
         </LanguageProvider>
       </AuthProvider>
+    </ToastProvider>
     </QueryClientProvider>
   );
 }

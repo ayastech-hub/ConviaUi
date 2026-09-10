@@ -21,6 +21,7 @@ import * as rewardsApi from '../../../shared/api/rewards';
 import { ApiError } from '../../../shared/api/types';
 import { PageTop } from '../../../shared/components/PageTop';
 import { BackButton } from '../../../shared/components/BackButton';
+import { useToast } from '../../../shared/context/ToastContext';
 
 interface RewardsScreenProps {
   goBack: () => void;
@@ -43,7 +44,6 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
   const { userId } = useAuth();
   const [points, setPoints] = useState(0);
   const [tasks, setTasks] = useState<RewardTask[]>([]);
-  const [toast, setToast] = useState<string | null>(null);
   const [referralCode, setReferralCode] = useState('');
   const [referralShare, setReferralShare] = useState('');
   const [referredCount, setReferredCount] = useState(0);
@@ -53,9 +53,12 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [badges, setBadges] = useState<Badge[]>([])
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2800);
+  const { success, error, warning, info } = useToast();
+  const showToast = (msg: string, tone: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    if (tone === 'success') success(msg);
+    else if (tone === 'error') error(msg);
+    else if (tone === 'warning') warning(msg);
+    else info(msg);
   };
 
   const refresh = useCallback(async () => {
@@ -138,17 +141,17 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
 
   const claimTask = async (id: string) => {
     if (!userId) {
-      showToast('Sign in to claim');
+      showToast('Sign in to claim', 'warning');
       return;
     }
     if (claimingId) return;
     const task = tasks.find((x) => x.id === id);
     if (task && !task.canClaim && !task.completed) {
-      showToast('Finish the task before claiming');
+      showToast('Finish the task before claiming', 'warning');
       return;
     }
     if (task?.expired) {
-      showToast('Task expired — claim window closed');
+      showToast('Task expired — claim window closed', 'warning');
       return;
     }
     setClaimingId(id);
@@ -163,7 +166,7 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
         ),
       );
       const usdt = res.usdtCredited && Number(res.usdtCredited) > 0 ? ` · +${res.usdtCredited} USDT` : '';
-      showToast(`Claimed +${res.points || 0} pts${usdt}`);
+      showToast(`Claimed +${res.points || 0} pts${usdt}`, 'success');
       void refresh();
     } catch (e) {
       const msg =
@@ -172,7 +175,7 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
           : e instanceof Error
             ? e.message
             : 'Could not claim';
-      showToast(msg);
+      showToast(msg, 'error');
     } finally {
       setClaimingId(null);
     }
@@ -256,20 +259,6 @@ export function RewardsScreen({ goBack }: RewardsScreenProps) {
         shareUrl={referralShare}
         reward="Invite friends"
       />
-
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="absolute bottom-24 left-5 right-5 py-3 px-4 rounded-2xl text-center text-sm font-semibold z-50"
-            style={{ background: 'var(--primary)', color: '#ffffff' }}
-          >
-            {toast}
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
