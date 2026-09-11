@@ -89,7 +89,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       const payload: ToastInput = typeof input === 'string' ? { message: input } : input;
       const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
       const tone = payload.tone || 'info';
-      const duration = payload.duration ?? 3800;
+      const duration = payload.duration ?? 4000;
       setItems((prev) => [...prev.slice(-2), { ...payload, id, tone }]);
       window.setTimeout(() => dismiss(id), duration);
     },

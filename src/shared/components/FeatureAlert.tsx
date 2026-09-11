@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AlertTriangle, ShieldAlert, Ban, Snowflake, ChevronRight, X, Info, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -114,6 +114,13 @@ export function FeatureAlert({
 }: FeatureAlertProps) {
   const [open, setOpen] = useState(true);
   const copy = COPY[reason] || COPY.generic;
+
+  // Auto-hide even if user never taps X
+  useEffect(() => {
+    const t = window.setTimeout(() => setOpen(false), 4000);
+    return () => window.clearTimeout(t);
+  }, [reason, message, detail]);
+
   const tone = TONE[copy.tone];
   const Icon = copy.icon;
   const body = message || copy.body;
