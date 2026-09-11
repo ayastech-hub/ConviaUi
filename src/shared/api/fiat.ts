@@ -99,3 +99,44 @@ export function fiatQuote(params: Record<string, string>) {
   const q = new URLSearchParams(params);
   return api.get(`/fiat/quote?${q}`);
 }
+
+/** PaymentIntent card domain — no PAN/CVV. */
+export type PaymentCustomerAction =
+  | { type: 'REDIRECT'; url: string }
+  | { type: 'HOSTED_FIELDS'; publicKey: string; provider: string; clientReference: string }
+  | { type: 'OTP'; challengeId: string }
+  | { type: 'THREE_DS'; providerSessionId: string; clientActionToken?: string };
+
+export type PaymentIntent = {
+  id: string;
+  status: string;
+  amount: string;
+  currency: string;
+  asset: string | null;
+  assetAmount: string | null;
+  provider: string;
+  clientReference: string;
+  customerAction: PaymentCustomerAction | null;
+  failureCode: string | null;
+  failureReason: string | null;
+  ledgerPosted: boolean;
+};
+
+export function createCardPayment(body: {
+  amount: string;
+  currency?: string;
+  asset?: string;
+  paymentMethodToken?: string;
+  callbackUrl?: string;
+  idempotencyKey?: string;
+}) {
+  return api.post<PaymentIntent>('/payments/card', body, { idempotent: true });
+}
+
+export function getPayment(id: string) {
+  return api.get<PaymentIntent>(`/payments/${id}`);
+}
+
+export function refreshPayment(id: string) {
+  return api.post<PaymentIntent>(`/payments/${id}/refresh`, {});
+}

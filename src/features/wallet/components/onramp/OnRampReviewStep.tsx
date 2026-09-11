@@ -60,11 +60,8 @@ export function OnRampReviewStep({
     reference: 'Shown after confirm',
   };
 
-  const cardOk =
-    paymentMethod !== 'card' ||
-    (newCard.number.replace(/\s/g, '').length >= 12 &&
-      newCard.expiry.length >= 4 &&
-      newCard.cvc.length >= 3);
+  // Card PAN never collected in Convia — provider hosted / redirect after confirm
+  const cardOk = true;
 
   const canConfirm = cardOk && !confirming;
 
@@ -152,93 +149,21 @@ export function OnRampReviewStep({
         </div>
       )}
 
-      {/* Card input */}
+      {/* Card: provider-hosted — never enter PAN here */}
       {paymentMethod === 'card' && (
         <div
           className="rounded-[24px] p-4 mb-4"
           style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
         >
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 mb-2">
             <CreditCard size={16} style={{ color: 'var(--foreground)' }} />
-            <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14 }}>Card details</p>
+            <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14 }}>Card payment</p>
           </div>
-          <label style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 600 }}>
-            Cardholder name
-          </label>
-          <input
-            value={newCard.name || ''}
-            onChange={(e) => setNewCard({ ...newCard, name: e.target.value })}
-            placeholder="Name on card"
-            className="w-full px-3.5 h-12 rounded-xl mb-3 mt-1 outline-none"
-            style={{
-              background: 'var(--muted)',
-              border: '1px solid var(--border)',
-              color: 'var(--foreground)',
-              fontSize: 14,
-            }}
-          />
-          <label style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 600 }}>
-            Card number
-          </label>
-          <input
-            inputMode="numeric"
-            value={newCard.number}
-            onChange={(e) =>
-              setNewCard({
-                ...newCard,
-                number: e.target.value.replace(/[^\d\s]/g, '').slice(0, 19),
-              })
-            }
-            placeholder="1234 5678 9012 3456"
-            className="w-full px-3.5 h-12 rounded-xl mb-3 mt-1 outline-none tabular-nums"
-            style={{
-              background: 'var(--muted)',
-              border: '1px solid var(--border)',
-              color: 'var(--foreground)',
-              fontSize: 15,
-              fontWeight: 600,
-            }}
-          />
-          <div className="grid grid-cols-2 gap-2.5">
-            <div>
-              <label style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 600 }}>
-                Expiry
-              </label>
-              <input
-                inputMode="numeric"
-                value={newCard.expiry}
-                onChange={(e) => {
-                  let v = e.target.value.replace(/[^\d]/g, '').slice(0, 4);
-                  if (v.length >= 3) v = `${v.slice(0, 2)}/${v.slice(2)}`;
-                  setNewCard({ ...newCard, expiry: v });
-                }}
-                placeholder="MM/YY"
-                className="w-full px-3.5 h-12 rounded-xl mt-1 outline-none tabular-nums"
-                style={{
-                  background: 'var(--muted)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--foreground)',
-                  fontSize: 14,
-                }}
-              />
-            </div>
-            <div>
-              <label style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 600 }}>CVC</label>
-              <input
-                inputMode="numeric"
-                value={newCard.cvc}
-                onChange={(e) => setNewCard({ ...newCard, cvc: e.target.value.replace(/\D/g, '').slice(0, 4) })}
-                placeholder="123"
-                className="w-full px-3.5 h-12 rounded-xl mt-1 outline-none tabular-nums"
-                style={{
-                  background: 'var(--muted)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--foreground)',
-                  fontSize: 14,
-                }}
-              />
-            </div>
-          </div>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 13, lineHeight: 1.5 }}>
+            Card details are entered on a secure provider screen (Monnify / Flutterwave).
+            Convia never sees or stores your card number or CVC. After confirm you may be
+            asked to complete bank OTP or 3-D Secure, then we credit your wallet.
+          </p>
         </div>
       )}
 

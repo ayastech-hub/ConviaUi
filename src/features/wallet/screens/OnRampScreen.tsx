@@ -13,6 +13,7 @@ import { useAuth } from '../../../shared/context/AuthContext';
 import { useAccountGates } from '../../../shared/hooks/useAccountGates';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import * as fiatApi from '../../../shared/api/fiat';
+import { createCardPayment, refreshPayment } from '../../../shared/api/fiat';
 import type { LocalOnrampOrder, LocalOnrampQuote } from '../../../shared/api/fiat';
 import { ApiError } from '../../../shared/api/types';
 import { queryClient, queryKeys } from '../../../shared/query/queryClient';
@@ -26,8 +27,7 @@ interface OnRampScreenProps {
 }
 
 /**
- * Live local on-ramp: quote → order (Paystack/Flutterwave by country) → bank details or checkout URL.
- * No mock bank accounts.
+ * On-ramp: bank transfer (VA in-app) or card via PaymentIntent (provider-hosted — no PAN on Convia).
  */
 export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
   const { t } = useLanguage();
@@ -53,7 +53,7 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
       },
   );
   const [paymentMethod, setPaymentMethod] = useState<'bank' | 'card'>('bank');
-  const [newCard, setNewCard] = useState({ number: '', expiry: '', cvc: '', name: '' });
+  const [cardPaymentId, setCardPaymentId] = useState<string | null>(null);
   const [amount, setAmount] = useState('');
   const [amountMode, setAmountMode] = useState<'fiat' | 'usd'>('fiat');
   const [step, setStep] = useState<'form' | 'review' | 'processing' | 'done'>(
@@ -139,18 +139,58 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
     setSubmitting(true);
     setApiError(null);
     try {
+      if (paymentMethod === 'card') {
+        // PaymentIntent domain — no PAN; provider-hosted action
+        const payment = await createCardPayment({
+          amount: fiatAmount,
+          currency: fiatCurrency,
+          asset: selectedAsset.symbol,
+          callbackUrl: typeof window !== 'undefined' ? `${window.location.origin}/payments/return` : undefined,
+        });
+        setCardPaymentId(payment.id);
+        const action = payment.customerAction;
+        if (action?.type === 'REDIRECT' && action.url) {
+          window.open(action.url, '_blank', 'noopener,noreferrer');
+        }
+        setStep('processing');
+        // Poll status until SUCCESS / FAILED (max ~2 min)
+        const started = Date.now();
+        while (Date.now() - started < 120_000) {
+          await new Promise((r) => setTimeout(r, 3000));
+          const latest = await refreshPayment(payment.id);
+          if (latest.status === 'SUCCESS') {
+            if (userId) {
+              void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
+              void queryClient.invalidateQueries({ queryKey: queryKeys.transactions(userId, 50) });
+            }
+            setStep('done');
+            return;
+          }
+          if (['FAILED', 'CANCELLED', 'EXPIRED'].includes(latest.status)) {
+            setApiError({ code: latest.failureCode || 'payment_failed', message: latest.failureReason || 'Payment failed' });
+            setStep('form');
+            return;
+          }
+          if (latest.status === 'RECONCILIATION_REQUIRED') {
+            setApiError({ message: 'Payment is being verified. Balance will update shortly.' });
+            setStep('done');
+            return;
+          }
+        }
+        setApiError({ message: 'Payment still processing. Check history shortly.' });
+        setStep('done');
+        return;
+      }
+
       const res = await fiatApi.localOnrampOrder({
         userId,
         email: authEmail || `${userId}@users.convia.app`,
         fiatCurrency,
         fiatAmount,
         toAsset: selectedAsset.symbol,
-        method: paymentMethod === 'card' ? 'card' : 'bank_transfer',
+        method: 'bank_transfer',
       });
       setOrder(res);
-      if (res.payment?.checkoutUrl && paymentMethod === 'card') {
-        window.open(res.payment.checkoutUrl, '_blank', 'noopener,noreferrer');
-      }
       setStep('processing');
       setTimeout(() => {
         if (userId) {
@@ -215,8 +255,8 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
               setSelectedCardId={() => {}}
               showNewCard={false}
               setShowNewCard={() => {}}
-              newCard={newCard}
-              setNewCard={setNewCard}
+              newCard={ number: '', expiry: '', cvc: '', name: '' }
+              setNewCard={() => {}}
               onAddCard={() => {}}
               fee={feeDisplay}
               youGet={youGet}
@@ -239,8 +279,8 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
               youGet={youGet}
               fee={feeDisplay}
               paymentMethod={paymentMethod === 'card' ? 'card' : 'bank'}
-              newCard={newCard}
-              setNewCard={setNewCard}
+              newCard={ number: '', expiry: '', cvc: '', name: '' }
+              setNewCard={() => {}}
               confirming={submitting}
               onConfirm={() => {
                 if (!gates.canOnramp || submitting) return;
