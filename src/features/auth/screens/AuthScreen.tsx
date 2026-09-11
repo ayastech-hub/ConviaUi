@@ -175,15 +175,15 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
       <PageTop />
       <div className="px-6 flex-1 flex flex-col pb-8">
-        <div className="mb-8">
+        <div className="mb-8 flex flex-col items-center text-center">
           <div
-            className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5"
+            className="w-14 h-14 rounded-[18px] flex items-center justify-center mb-5"
             style={{
-              background: 'linear-gradient(145deg, var(--primary), color-mix(in oklab, var(--primary) 60%, #0a0a0c))',
-              boxShadow: '0 8px 24px color-mix(in oklab, var(--primary) 35%, transparent)',
+              background: 'var(--card)',
+              border: '1px solid var(--border)',
             }}
           >
-            <ConviaLogo size={24} color="#FFFFFF" />
+            <ConviaLogo size={28} color="var(--foreground)" />
           </div>
           <h1
             style={{
@@ -196,7 +196,7 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
           >
             {titles[mode]}
           </h1>
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 14, marginTop: 8, lineHeight: 1.45 }}>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 14, marginTop: 8, lineHeight: 1.45, maxWidth: 280 }}>
             {subtitles[mode]}
           </p>
         </div>

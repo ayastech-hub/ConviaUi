@@ -34,6 +34,7 @@ export function ActiveSessionsView({ onBack }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<{ code?: string; message?: string } | null>(null);
   const [revoking, setRevoking] = useState<string | null>(null);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
 
   const load = async () => {
     if (!userId) return;
@@ -133,7 +134,7 @@ export function ActiveSessionsView({ onBack }: Props) {
                     type="button"
                     whileTap={{ scale: 0.92 }}
                     disabled={revoking === s.id}
-                    onClick={() => void revoke(s.id)}
+                    onClick={() => setConfirmId(s.id)}
                     className="h-9 px-3 rounded-full flex items-center gap-1.5"
                     style={{
                       background: 'color-mix(in oklab, var(--destructive) 12%, transparent)',
@@ -148,6 +149,53 @@ export function ActiveSessionsView({ onBack }: Props) {
                 </div>
               );
             })}
+          </div>
+        )}
+        {/* Confirm revoke */}
+        {confirmId && (
+          <div
+            className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center px-4 pb-8"
+            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}
+            onClick={() => setConfirmId(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-[400px] rounded-[24px] p-5"
+              style={{ background: 'var(--card)', border: '1px solid var(--border)', boxShadow: '0 20px 50px rgba(0,0,0,0.4)' }}
+            >
+              <p style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 18, letterSpacing: '-0.03em' }}>
+                Revoke this session?
+              </p>
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginTop: 8, lineHeight: 1.45 }}>
+                That device will be signed out immediately. You can sign in again from it later.
+              </p>
+              <div className="flex gap-2 mt-5">
+                <button
+                  type="button"
+                  onClick={() => setConfirmId(null)}
+                  className="flex-1 h-11 rounded-full font-bold text-[14px]"
+                  style={{ background: 'var(--muted)', color: 'var(--foreground)' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={revoking === confirmId}
+                  onClick={() => {
+                    const id = confirmId;
+                    setConfirmId(null);
+                    void revoke(id);
+                  }}
+                  className="flex-1 h-11 rounded-full font-bold text-[14px] flex items-center justify-center gap-2"
+                  style={{ background: 'var(--destructive)', color: '#fff' }}
+                >
+                  {revoking === confirmId ? <Loader size={15} className="animate-spin" /> : null}
+                  Revoke
+                </button>
+              </div>
+            </motion.div>
           </div>
         )}
       </div>
