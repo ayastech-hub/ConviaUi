@@ -18,6 +18,7 @@ import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBan
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { useLanguage } from '../../../shared/context/LanguageContext';
 import { PageTop } from '../../../shared/components/PageTop';
+import { LocalPaymentSheet } from '../../../shared/components/LocalPaymentSheet';
 
 interface ServicesScreenProps {
   navigate: (s: Screen) => void;
@@ -49,6 +50,7 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
   const [billerCurrency, setBillerCurrency] = useState('NGN');
   const [loadingBillers, setLoadingBillers] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [showPaySheet, setShowPaySheet] = useState(false);
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
   const { countries: marketCountries } = useSupportedCountries();
   const [country, setCountry] = useState('');
@@ -105,7 +107,7 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
     return phoneNumber.trim();
   }, [activeService, meterNumber, phoneNumber]);
 
-  const handlePay = async () => {
+  const handlePay = () => {
     const amount = selectedAmount ?? parseFloat(customAmount);
     if (!amount || !selectedProvider) return;
     if (!userId) {
@@ -120,42 +122,26 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
       setApiError({ message: 'Enter phone / meter / account reference' });
       return;
     }
-
-    setPaying(true);
     setApiError(null);
-    try {
-      const category = toCategory(activeService!);
-      const localAmount = String(amount);
-      // Crypto debit amount: use local amount as string; FX is caller responsibility per API docs
-      await billsApi.payBill({
-        userId,
-        country,
-        category,
-        billerCode: selectedBillerCode,
-        customerRef,
-        amount: localAmount,
-        asset: 'USDT',
-        localAmount,
-        localCurrency: billerCurrency || currency.code || 'NGN',
-      });
-      setSuccessInfo({ label: activeItem?.label ?? '', amount, provider: selectedProvider });
-      setReceiptTx({
-        id: 'svc_' + Date.now(),
-        type: 'send',
-        asset: 'USDT',
-        amount,
-        valueUSD: amount,
-        status: 'confirmed',
-        time: 'Just now',
-        username: selectedProvider,
-      });
-      setStep('success');
-    } catch (err) {
-      if (err instanceof ApiError) setApiError({ code: err.code, message: err.body.message || err.message });
-      else setApiError({ message: 'Payment failed' });
-    } finally {
-      setPaying(false);
-    }
+    setShowPaySheet(true);
+  };
+
+  const onLocalPaid = (info: { paymentId?: string; legs: { asset: string; cryptoAmount: string }[] }) => {
+    const amount = selectedAmount ?? parseFloat(customAmount);
+    const asset = info.legs[0]?.asset || 'USDT';
+    setShowPaySheet(false);
+    setSuccessInfo({ label: activeItem?.label ?? '', amount: amount || 0, provider: selectedProvider || '' });
+    setReceiptTx({
+      id: info.paymentId || 'svc_' + Date.now(),
+      type: 'send',
+      asset,
+      amount: amount || 0,
+      valueUSD: amount || 0,
+      status: 'confirmed',
+      time: 'Just now',
+      username: selectedProvider || '',
+    });
+    setStep('success');
   };
 
   const canPay = () => {
@@ -340,6 +326,16 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
       <TransactionReceipt tx={receiptTx} open={!!receiptTx} onClose={() => setReceiptTx(null)} />
 
       <div style={{ height: 100 }} />
+      {showPaySheet && (
+        <LocalPaymentSheet
+          fiatAmount={selectedAmount ?? parseFloat(customAmount) ?? 0}
+          fiatCurrency={billerCurrency || currency.code || 'NGN'}
+          purpose={toCategory(activeService || 'airtime')}
+          purposeRef={selectedBillerCode || undefined}
+          onPaid={onLocalPaid}
+          onCancel={() => setShowPaySheet(false)}
+        />
+      )}
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { ApiError } from '../../../shared/api/types';
 import { FeatureAlert } from '../../../shared/components/FeatureAlert';
 import { PageTop } from '../../../shared/components/PageTop';
 import { BackButton } from '../../../shared/components/BackButton';
+import { SupportAgentChat } from '../components/SupportAgentChat';
 
 interface SupportCenterScreenProps {
   goBack: () => void;
@@ -36,7 +37,7 @@ export function SupportCenterScreen({ goBack }: SupportCenterScreenProps) {
   const [cases, setCases] = useState<SupportCase[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [view, setView] = useState<'list' | 'thread' | 'new'>('list');
+  const [view, setView] = useState<'list' | 'thread' | 'new' | 'agent'>('list');
   const [active, setActive] = useState<SupportCase | null>(null);
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [input, setInput] = useState('');
@@ -154,7 +155,21 @@ export function SupportCenterScreen({ goBack }: SupportCenterScreenProps) {
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
       <PageTop />
 
+      {view === 'agent' && <SupportAgentChat onBack={() => setView('list')} />}
+
       {view === 'list' && (
+        <div className="px-5 mb-3">
+          <button
+            type="button"
+            onClick={() => setView('agent')}
+            className="w-full h-12 rounded-2xl font-bold text-[14px] flex items-center justify-center gap-2"
+            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+          >
+            Chat with Support Agent
+          </button>
+        </div>
+
+
         <>
           <Header
             title="Support Centre"
