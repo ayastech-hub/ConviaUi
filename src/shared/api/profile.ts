@@ -4,6 +4,8 @@ export type UserProfile = {
   userId?: string;
   username: string;
   displayName?: string | null;
+  nameLocked?: boolean;
+  kycStatus?: string | null;
   avatarUrl?: string | null;
   bio?: string | null;
   country?: string | null;

@@ -37,6 +37,7 @@ export function EditProfileScreen({ goBack }: EditProfileScreenProps) {
   const { username, email } = useAuth();
   const { invalidate } = useMyProfile();
 
+  const [nameLocked, setNameLocked] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
   const [country, setCountry] = useState('');
@@ -69,6 +70,10 @@ export function EditProfileScreen({ goBack }: EditProfileScreenProps) {
         setVisibility(next.visibility);
         setAvatar(p.avatarUrl || null);
         setOrig(next);
+        const locked =
+          Boolean((p as { nameLocked?: boolean }).nameLocked) ||
+          (p as { kycStatus?: string }).kycStatus === 'approved';
+        setNameLocked(locked);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -89,7 +94,7 @@ export function EditProfileScreen({ goBack }: EditProfileScreenProps) {
         bio?: string;
         avatarUrl?: string;
       } = {};
-      if (displayName.trim()) body.displayName = displayName.trim();
+      if (displayName.trim() && !nameLocked) body.displayName = displayName.trim();
       body.bio = bio.trim();
       if (avatar && /^https?:\/\//i.test(avatar)) body.avatarUrl = avatar;
       await profileApi.updateMyProfile(body);
@@ -143,8 +148,11 @@ export function EditProfileScreen({ goBack }: EditProfileScreenProps) {
                 label="Name"
                 icon={User}
                 value={displayName}
-                onChange={setDisplayName}
+                onChange={nameLocked ? () => {} : setDisplayName}
                 placeholder="Your name"
+                readOnly={nameLocked}
+                trailing={nameLocked ? <Lock size={14} style={{ color: 'var(--muted-foreground)' }} /> : undefined}
+                hint={nameLocked ? 'Locked after identity verification' : undefined}
               />
               <ProfileFormField
                 label="Username"
