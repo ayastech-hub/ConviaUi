@@ -1,4 +1,3 @@
-import { motion } from 'motion/react';
 import {
   Shield, Fingerprint, Bell, Eye, EyeOff, Lock, Smartphone, ChevronRight, Copy, Check,
 } from 'lucide-react';
@@ -7,7 +6,7 @@ import { ListSection } from '../../../shared/components/ListSection';
 import { ListRow } from '../../../shared/components/ListRow';
 import { ToggleSwitch } from '../../../shared/components/ToggleSwitch';
 import type { SecurityStep } from './types';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../../shared/context/AuthContext';
 import * as securityApi from '../../../shared/api/security';
 import { useLanguage } from '../../../shared/context/LanguageContext';
@@ -52,23 +51,6 @@ export function SecurityMenu({
       .catch(() => {});
   }, [userId]);
 
-  const score = useMemo(() => {
-    let n = 35;
-    if (hasPin) n += 20;
-    if (biometric) n += 10;
-    if (twoFA) n += 15;
-    if (loginAlerts) n += 8;
-    if (txAlerts) n += 7;
-    if (antiPhishing) n += 5;
-    return Math.min(100, n);
-  }, [hasPin, biometric, twoFA, loginAlerts, txAlerts, antiPhishing]);
-
-  const scoreLabel = score >= 85 ? 'Strong' : score >= 65 ? 'Good' : 'Needs work';
-  const hint = !hasPin
-    ? 'Set a transaction PIN first.'
-    : !twoFA
-      ? 'Authenticator enrollment is coming — keep alerts on.'
-      : 'Enable address whitelist for withdrawals.';
 
   const copyCode = async () => {
     if (!antiPhishing) return;
@@ -83,35 +65,10 @@ export function SecurityMenu({
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <ScreenHeader title={t('security.title')} subtitle="PIN, biometrics, sessions" onBack={goBack} />
+      <ScreenHeader title={t('security.title')} subtitle="Password, PIN, devices" onBack={goBack} />
 
       <div className="flex-1 overflow-y-auto px-5">
-        <div className="rounded-[22px] p-4 mb-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: 'var(--muted)' }}>
-                <Shield size={20} style={{ color: 'var(--foreground)' }} />
-              </div>
-              <div>
-                <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 16, letterSpacing: '-0.02em' }}>
-                  {score}
-                  <span style={{ color: 'var(--muted-foreground)', fontWeight: 500, fontSize: 13 }}>/100</span>
-                </p>
-                <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>{scoreLabel}</p>
-              </div>
-            </div>
-          </div>
-          <div className="w-full h-1.5 rounded-full overflow-hidden mb-2" style={{ background: 'var(--muted)' }}>
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${score}%` }}
-              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-              className="h-full rounded-full"
-              style={{ background: score >= 85 ? 'var(--positive)' : 'var(--primary)' }}
-            />
-          </div>
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>{hint}</p>
-        </div>
+        
 
         {antiPhishing ? (
           <button

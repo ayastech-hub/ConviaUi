@@ -50,6 +50,10 @@ export function listSessions(userId: string) {
   return api.get<SessionRow[]>(`/security/${userId}/sessions`);
 }
 
+export function revokeSession(userId: string, sessionId: string) {
+  return api.delete<void>(`/security/${userId}/sessions/${sessionId}`);
+}
+
 export function changeTransactionPin(userId: string, body: { currentPin: string; newPin: string }) {
   return api.put(`/security/${userId}/transaction-pin`, body);
 }

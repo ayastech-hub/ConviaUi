@@ -1,6 +1,5 @@
 import { motion } from 'motion/react';
 import { Mail, Lock, Eye, EyeOff, Check, ArrowRight, Loader, AlertCircle, Gift, User } from 'lucide-react';
-import { InputField, SocialButton } from './FormPrimitives';
 import type { PasswordStrength } from './passwordStrength';
 
 interface CredentialsStepProps {
@@ -29,14 +28,7 @@ interface CredentialsStepProps {
   onLogin: () => void;
 }
 
-const iconMuted = <Mail size={18} style={{ color: 'var(--muted-foreground)' }} />;
-const lockIcon = <Lock size={18} style={{ color: 'var(--muted-foreground)' }} />;
-const userIcon = <User size={18} style={{ color: 'var(--muted-foreground)' }} />;
-const giftIcon = <Gift size={18} style={{ color: 'var(--muted-foreground)' }} />;
-
-/**
- * Email/password (or reset-email) form for login / signup / forgot-password.
- */
+/** Clean enterprise email/password form. */
 export function CredentialsStep({
   mode,
   email,
@@ -62,125 +54,132 @@ export function CredentialsStep({
   onSignup,
   onLogin,
 }: CredentialsStepProps) {
+  const isSignup = mode === 'signup';
+  const isForgot = mode === 'forgot-password';
+
   return (
     <motion.div
       key="credentials"
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.22 }}
+      className="flex flex-col flex-1"
     >
-      {mode !== 'forgot-password' && (
+      {/* Social */}
+      {!isForgot && (
         <>
-          <div className="flex flex-col gap-3 mb-6">
-            <SocialButton icon="google" label="Continue with Google" onClick={onQuickAccess} />
-            <SocialButton icon="apple" label="Continue with Apple" onClick={onQuickAccess} />
-            <SocialButton icon="facebook" label="Continue with Facebook" onClick={onQuickAccess} />
+          <div className="flex flex-col gap-2.5 mb-5">
+            <SocialBtn label="Continue with Google" onClick={onQuickAccess} />
+            <SocialBtn label="Continue with Apple" onClick={onQuickAccess} dark />
           </div>
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-3 mb-5">
             <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
-            <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>or</span>
+            <span style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }}>or</span>
             <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
           </div>
         </>
       )}
 
-      <div className="flex flex-col gap-4">
-        <InputField
-          icon={iconMuted}
+      <div className="flex flex-col gap-3.5">
+        <Field
+          icon={<Mail size={17} style={{ color: 'var(--muted-foreground)' }} />}
           type="email"
-          placeholder="Email address"
+          placeholder="Email"
           value={email}
           onChange={setEmail}
+          autoComplete="email"
         />
 
-        {mode === 'signup' && setUsername && (
-          <InputField
-            icon={userIcon}
+        {isSignup && setUsername && (
+          <Field
+            icon={<User size={17} style={{ color: 'var(--muted-foreground)' }} />}
             type="text"
-            placeholder="Username (optional)"
+            placeholder="Username"
             value={username}
-            onChange={(v) => setUsername(v.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 24))}
+            onChange={setUsername}
+            autoComplete="username"
           />
         )}
 
-        {mode === 'signup' && setReferralCode && (
-          <InputField
-            icon={giftIcon}
-            type="text"
-            placeholder="Referral code (optional)"
-            value={referralCode}
-            onChange={(v) => setReferralCode(v.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 32))}
+        {!isForgot && (
+          <Field
+            icon={<Lock size={17} style={{ color: 'var(--muted-foreground)' }} />}
+            type={showPassword ? 'text' : 'password'}
+            placeholder="Password"
+            value={password}
+            onChange={setPassword}
+            autoComplete={isSignup ? 'new-password' : 'current-password'}
+            trailing={
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-1">
+                {showPassword ? (
+                  <EyeOff size={16} style={{ color: 'var(--muted-foreground)' }} />
+                ) : (
+                  <Eye size={16} style={{ color: 'var(--muted-foreground)' }} />
+                )}
+              </button>
+            }
           />
         )}
 
-        {mode !== 'forgot-password' && (
+        {isSignup && (
           <>
-            <InputField
-              icon={lockIcon}
+            <Field
+              icon={<Lock size={17} style={{ color: 'var(--muted-foreground)' }} />}
               type={showPassword ? 'text' : 'password'}
-              placeholder="Password"
-              value={password}
-              onChange={setPassword}
-              trailing={
-                <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label="Toggle password">
-                  {showPassword ? (
-                    <EyeOff size={18} style={{ color: 'var(--muted-foreground)' }} />
-                  ) : (
-                    <Eye size={18} style={{ color: 'var(--muted-foreground)' }} />
-                  )}
-                </button>
-              }
+              placeholder="Confirm password"
+              value={confirmPassword}
+              onChange={setConfirmPassword}
+              autoComplete="new-password"
             />
-            {mode === 'signup' && password && (
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-1">
-                <div className="flex gap-1 mb-1">
-                  {[0, 1, 2, 3, 4].map((i) => (
-                    <div
-                      key={i}
-                      className="flex-1 h-1 rounded-full"
-                      style={{ background: i < strength.score ? strength.color : 'var(--border)' }}
-                    />
-                  ))}
-                </div>
-                <p style={{ color: strength.color, fontSize: 11, fontWeight: 600 }}>{strength.label}</p>
-              </motion.div>
-            )}
-
-            {mode === 'signup' && (
-              <InputField
-                icon={lockIcon}
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Confirm password"
-                value={confirmPassword}
-                onChange={setConfirmPassword}
+            {/* Strength */}
+            <div className="px-1">
+              <div className="flex gap-1 mb-1.5">
+                {[0, 1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="h-1 flex-1 rounded-full"
+                    style={{
+                      background:
+                        i < strength.score
+                          ? strength.score <= 1
+                            ? 'var(--destructive)'
+                            : strength.score === 2
+                              ? 'var(--warning)'
+                              : 'var(--positive)'
+                          : 'var(--muted)',
+                    }}
+                  />
+                ))}
+              </div>
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>{strength.label}</p>
+            </div>
+            {setReferralCode && (
+              <Field
+                icon={<Gift size={17} style={{ color: 'var(--muted-foreground)' }} />}
+                type="text"
+                placeholder="Referral code (optional)"
+                value={referralCode}
+                onChange={setReferralCode}
               />
             )}
+            <label className="flex items-start gap-2.5 px-1 cursor-pointer">
+              <button
+                type="button"
+                onClick={() => setAgreeTerms(!agreeTerms)}
+                className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5"
+                style={{
+                  background: agreeTerms ? 'var(--primary)' : 'var(--muted)',
+                  border: agreeTerms ? 'none' : '1px solid var(--border)',
+                }}
+              >
+                {agreeTerms && <Check size={12} style={{ color: 'var(--primary-foreground)' }} strokeWidth={3} />}
+              </button>
+              <span style={{ color: 'var(--muted-foreground)', fontSize: 12, lineHeight: 1.45 }}>
+                I agree to the Terms of Service and Privacy Policy
+              </span>
+            </label>
           </>
-        )}
-
-        {mode === 'signup' && (
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setAgreeTerms(!agreeTerms)}
-            className="flex items-start gap-3 text-left"
-          >
-            <div
-              className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5"
-              style={{
-                background: agreeTerms ? 'var(--primary)' : 'transparent',
-                border: `1.5px solid ${agreeTerms ? 'var(--primary)' : 'var(--border)'}`,
-              }}
-            >
-              {agreeTerms && <Check size={12} style={{ color: '#fff' }} strokeWidth={3} />}
-            </div>
-            <span style={{ color: 'var(--muted-foreground)', fontSize: 12, lineHeight: 1.5 }}>
-              I agree to Convia&apos;s{' '}
-              <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>Terms of Service</span>,{' '}
-              <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>Privacy Policy</span>, and KYC
-              verification requirements.
-            </span>
-          </motion.button>
         )}
 
         {mode === 'login' && (
@@ -188,76 +187,130 @@ export function CredentialsStep({
             <button
               type="button"
               onClick={onForgotPassword}
-              style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: 600 }}
+              style={{ color: 'var(--primary)', fontSize: 13, fontWeight: 650 }}
             >
               Forgot password?
             </button>
           </div>
         )}
-
-        {error && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex items-center gap-1.5"
-            style={{ color: 'var(--destructive)', fontSize: 13 }}
-          >
-            <AlertCircle size={14} /> {error}
-          </motion.p>
-        )}
-
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.97 }}
-          onClick={onSubmit}
-          disabled={loading}
-          className="w-full py-3.5 rounded-[16px] text-white flex items-center justify-center gap-2"
-          style={{ background: 'var(--primary)', fontWeight: 700, fontSize: 15 }}
-        >
-          {loading ? (
-            <Loader size={18} className="animate-spin" />
-          ) : mode === 'signup' ? (
-            'Create account'
-          ) : mode === 'forgot-password' ? (
-            'Send reset link'
-          ) : (
-            'Sign In'
-          )}
-          {!loading && <ArrowRight size={18} />}
-        </motion.button>
       </div>
 
-      {mode === 'login' && (
-        <p className="text-center mt-6" style={{ color: 'var(--muted-foreground)', fontSize: 14 }}>
-          Don&apos;t have an account?{' '}
-          <button type="button" onClick={onSignup} style={{ color: 'var(--foreground)', fontWeight: 700 }}>
-            Sign up
-          </button>
-        </p>
-      )}
-      {mode === 'signup' && (
-        <p className="text-center mt-6" style={{ color: 'var(--muted-foreground)', fontSize: 14 }}>
-          Already have an account?{' '}
-          <button type="button" onClick={onLogin} style={{ color: 'var(--foreground)', fontWeight: 700 }}>
-            Sign in
-          </button>
-        </p>
-      )}
-      {mode === 'forgot-password' && (
-        <p className="text-center mt-6" style={{ color: 'var(--muted-foreground)', fontSize: 14 }}>
-          Remember your password?{' '}
-          <button type="button" onClick={onLogin} style={{ color: 'var(--foreground)', fontWeight: 700 }}>
-            Sign in
-          </button>
-        </p>
+      {error && (
+        <div
+          className="flex items-start gap-2 mt-4 px-3.5 py-3 rounded-2xl"
+          style={{
+            background: 'color-mix(in oklab, var(--destructive) 12%, var(--card))',
+            border: '1px solid color-mix(in oklab, var(--destructive) 30%, var(--border))',
+          }}
+        >
+          <AlertCircle size={16} style={{ color: 'var(--destructive)', marginTop: 1, flexShrink: 0 }} />
+          <p style={{ color: 'var(--foreground)', fontSize: 13, lineHeight: 1.4 }}>{error}</p>
+        </div>
       )}
 
-      <p
-        className="text-center mt-4 mb-8"
-        style={{ color: 'var(--muted-foreground)', fontSize: 11, lineHeight: 1.5 }}
+      <motion.button
+        type="button"
+        whileTap={{ scale: 0.98 }}
+        disabled={loading}
+        onClick={onSubmit}
+        className="w-full h-12 rounded-full mt-6 flex items-center justify-center gap-2"
+        style={{
+          background: 'var(--primary)',
+          color: 'var(--primary-foreground)',
+          fontWeight: 750,
+          fontSize: 15,
+          opacity: loading ? 0.7 : 1,
+        }}
       >
-        By continuing, you agree to Convia&apos;s Terms of Service and Privacy Policy.
+        {loading ? (
+          <Loader size={18} className="animate-spin" />
+        ) : (
+          <>
+            {isForgot ? 'Send reset link' : isSignup ? 'Create account' : 'Sign in'}
+            <ArrowRight size={17} />
+          </>
+        )}
+      </motion.button>
+
+      <p className="text-center mt-6 mb-4" style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
+        {isForgot ? (
+          <>
+            Remember it?{' '}
+            <button type="button" onClick={onLogin} style={{ color: 'var(--primary)', fontWeight: 700 }}>
+              Sign in
+            </button>
+          </>
+        ) : isSignup ? (
+          <>
+            Already have an account?{' '}
+            <button type="button" onClick={onLogin} style={{ color: 'var(--primary)', fontWeight: 700 }}>
+              Sign in
+            </button>
+          </>
+        ) : (
+          <>
+            New to Convia?{' '}
+            <button type="button" onClick={onSignup} style={{ color: 'var(--primary)', fontWeight: 700 }}>
+              Create account
+            </button>
+          </>
+        )}
       </p>
     </motion.div>
+  );
+}
+
+function Field({
+  icon,
+  type,
+  placeholder,
+  value,
+  onChange,
+  trailing,
+  autoComplete,
+}: {
+  icon: React.ReactNode;
+  type: string;
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+  trailing?: React.ReactNode;
+  autoComplete?: string;
+}) {
+  return (
+    <div
+      className="flex items-center gap-3 px-4 h-12 rounded-2xl"
+      style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+    >
+      {icon}
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        className="flex-1 bg-transparent outline-none"
+        style={{ color: 'var(--foreground)', fontSize: 15, fontWeight: 500 }}
+      />
+      {trailing}
+    </div>
+  );
+}
+
+function SocialBtn({ label, onClick, dark }: { label: string; onClick: () => void; dark?: boolean }) {
+  return (
+    <motion.button
+      type="button"
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      className="w-full h-12 rounded-2xl font-semibold text-[14px]"
+      style={{
+        background: dark ? 'var(--foreground)' : 'var(--card)',
+        color: dark ? 'var(--background)' : 'var(--foreground)',
+        border: dark ? 'none' : '1px solid var(--border)',
+      }}
+    >
+      {label}
+    </motion.button>
   );
 }

@@ -295,6 +295,9 @@ export function resolveMockResponse(method: string, path: string, body?: unknown
     if (pathname.includes('transaction-pin') || pathname.includes('/pin')) {
       return { hasPin: true, set: true };
     }
+    if (pathname.includes('/sessions/') && m === 'DELETE') {
+      return { ok: true };
+    }
     if (pathname.includes('/sessions')) {
       return [
         {

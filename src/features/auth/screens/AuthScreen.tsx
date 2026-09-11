@@ -174,15 +174,31 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
   return (
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
       <PageTop />
-<div className="px-6 flex-1 flex flex-col">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'var(--primary)' }}>
-            <ConviaLogo size={28} color="#FFFFFF" />
+      <div className="px-6 flex-1 flex flex-col pb-8">
+        <div className="mb-8">
+          <div
+            className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5"
+            style={{
+              background: 'linear-gradient(145deg, var(--primary), color-mix(in oklab, var(--primary) 60%, #0a0a0c))',
+              boxShadow: '0 8px 24px color-mix(in oklab, var(--primary) 35%, transparent)',
+            }}
+          >
+            <ConviaLogo size={24} color="#FFFFFF" />
           </div>
-          <div>
-            <h1 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 24, letterSpacing: -0.5 }}>{titles[mode]}</h1>
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>{subtitles[mode]}</p>
-          </div>
+          <h1
+            style={{
+              color: 'var(--foreground)',
+              fontWeight: 800,
+              fontSize: 28,
+              letterSpacing: '-0.04em',
+              lineHeight: 1.15,
+            }}
+          >
+            {titles[mode]}
+          </h1>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 14, marginTop: 8, lineHeight: 1.45 }}>
+            {subtitles[mode]}
+          </p>
         </div>
 
         <AnimatePresence mode="wait">
