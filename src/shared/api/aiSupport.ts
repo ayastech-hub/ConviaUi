@@ -11,7 +11,7 @@ export type AgentMessage = {
 export type AgentTurnResult = {
   reply: string;
   intent: string;
-  toolsRun: Array<{ name: string; ok: boolean; summary?: string }>;
+  toolsRun: Array<{ name: string; ok: boolean; summary?: string; error?: string; data?: unknown }>;
   suggestAttachTx: boolean;
   suggestEscalate: boolean;
   suggestReconcile?: boolean;
@@ -60,6 +60,25 @@ export function reconcileDeposit(sessionId: string, depositRequestId: string) {
     { depositRequestId },
     { idempotent: true },
   );
+}
+
+export type PendingConfirmTool = {
+  pendingTool: string;
+  args?: Record<string, unknown>;
+  confirmHint?: string;
+};
+
+/** Confirm a yellow-tier AI tool that returned needs_confirmation. */
+export function confirmAgentTool(
+  sessionId: string,
+  body: { toolName: string; args?: Record<string, unknown> },
+) {
+  return api.post<{
+    ok: boolean;
+    summary?: string;
+    error?: string;
+    data?: unknown;
+  }>(`/support/agent/sessions/${sessionId}/confirm-tool`, body, { idempotent: true });
 }
 
 /** SSE stream helper — falls back to non-stream send on failure. */

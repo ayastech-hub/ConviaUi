@@ -23,6 +23,11 @@ export function SupportAgentChat({ onBack }: { onBack: () => void }) {
   const [suggestEscalate, setSuggestEscalate] = useState(false);
   const [suggestReconcile, setSuggestReconcile] = useState(false);
   const [pendingDepositId, setPendingDepositId] = useState<string | null>(null);
+  const [pendingConfirm, setPendingConfirm] = useState<{
+    toolName: string;
+    args?: Record<string, unknown>;
+    summary?: string;
+  } | null>(null);
   const [pickerTab, setPickerTab] = useState<'all' | 'deposit' | 'withdrawal' | 'swap'>('all');
   const [attachedLabel, setAttachedLabel] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -66,8 +71,19 @@ export function SupportAgentChat({ onBack }: { onBack: () => void }) {
     setSuggestEscalate(!!res.suggestEscalate);
     setSuggestReconcile(!!res.suggestReconcile);
     if (res.attachedTxLabel) setAttachedLabel(res.attachedTxLabel);
-    const dep = res.toolsRun?.find((t) => t.name === 'verify_deposit' || t.name === 'get_deposit_requests');
-    // best-effort: user can still attach; deposit id may be in tools summary
+
+    // Yellow tools that need human confirmation
+    const needs = res.toolsRun?.find((t) => t.error === 'needs_confirmation' || !t.ok && t.summary?.includes('confirmation'));
+    if (needs) {
+      const data = (needs.data || {}) as { pendingTool?: string; args?: Record<string, unknown> };
+      setPendingConfirm({
+        toolName: data.pendingTool || needs.name,
+        args: data.args,
+        summary: needs.summary,
+      });
+    } else {
+      setPendingConfirm(null);
+    }
   };
 
   const send = async (text: string, forceEscalate?: boolean) => {
@@ -216,7 +232,68 @@ export function SupportAgentChat({ onBack }: { onBack: () => void }) {
         )}
       </div>
 
-      {(suggestAttach || suggestEscalate) && (
+      {pendingConfirm && (
+        <div
+          className="mx-4 mb-2 p-3 rounded-2xl border flex flex-col gap-2"
+          style={{ borderColor: 'var(--border)', background: 'var(--muted)' }}
+        >
+          <p className="text-[12px] font-medium" style={{ color: 'var(--foreground)' }}>
+            Confirm action: <span className="font-bold">{pendingConfirm.toolName.replace(/_/g, ' ')}</span>
+          </p>
+          {pendingConfirm.summary && (
+            <p className="text-[11px]" style={{ color: 'var(--muted-foreground)' }}>
+              {pendingConfirm.summary}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={busy || !sessionId}
+              onClick={async () => {
+                if (!sessionId || !pendingConfirm) return;
+                setBusy(true);
+                try {
+                  const r = await aiSupport.confirmAgentTool(sessionId, {
+                    toolName: pendingConfirm.toolName,
+                    args: pendingConfirm.args,
+                  });
+                  setBubbles((b) => [
+                    ...b,
+                    {
+                      id: `confirm-${Date.now()}`,
+                      role: r.ok ? 'assistant' : 'system',
+                      body: r.summary || (r.ok ? 'Action confirmed and completed.' : r.error || 'Action failed.'),
+                    },
+                  ]);
+                  if (r.ok) setPendingConfirm(null);
+                } catch {
+                  setBubbles((b) => [
+                    ...b,
+                    { id: `confirm-e-${Date.now()}`, role: 'system', body: 'Could not confirm action. Try again.' },
+                  ]);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+              className="h-9 px-4 rounded-full text-[12px] font-bold"
+              style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+            >
+              Approve
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setPendingConfirm(null)}
+              className="h-9 px-4 rounded-full text-[12px] font-bold"
+              style={{ background: 'var(--muted)', color: 'var(--foreground)' }}
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
+      {(suggestAttach || suggestEscalate || suggestReconcile) && (
         <div className="px-5 pb-2 flex flex-wrap gap-2">
           {suggestAttach && (
             <button
