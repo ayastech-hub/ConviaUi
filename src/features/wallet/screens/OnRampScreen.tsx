@@ -210,9 +210,38 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
         toAsset: selectedAsset.symbol,
         method: 'bank_transfer',
       });
-      setOrder(res);
+      // Normalize provider payload → payment.* the UI expects
+      const payRaw = (res as { payment?: Record<string, unknown>; bank?: Record<string, unknown> }).payment
+        || (res as { bank?: Record<string, unknown> }).bank
+        || {};
+      const normalized: LocalOnrampOrder = {
+        ...res,
+        payment: {
+          provider: String(payRaw.provider ?? res.provider ?? ''),
+          externalId: String(payRaw.externalId ?? payRaw.transactionReference ?? ''),
+          reference: String(payRaw.reference ?? res.reference ?? ''),
+          amount: String(payRaw.amount ?? res.quote?.fiatAmount ?? fiatAmount),
+          currency: String(payRaw.currency ?? res.quote?.fiatCurrency ?? fiatCurrency),
+          bankName: String(payRaw.bankName ?? payRaw.bank_name ?? payRaw.destinationBankName ?? '') || undefined,
+          accountNumber: String(payRaw.accountNumber ?? payRaw.account_number ?? payRaw.accountNumber ?? '') || undefined,
+          accountName: String(payRaw.accountName ?? payRaw.account_name ?? payRaw.accountName ?? '') || undefined,
+          checkoutUrl: payRaw.checkoutUrl ? String(payRaw.checkoutUrl) : undefined,
+          accessCode: payRaw.accessCode ? String(payRaw.accessCode) : undefined,
+          status: String(payRaw.status ?? res.status ?? 'pending'),
+          expiresAt: (payRaw.expiresAt || payRaw.expiryDate || payRaw.expiredTime) as string | undefined,
+        },
+        expiresAt: (res as { expiresAt?: string }).expiresAt
+          || (payRaw.expiresAt as string | undefined)
+          || (payRaw.expiryDate as string | undefined),
+      };
+      setOrder(normalized);
       setStep('processing');
-      // Stay on processing with VA details until user confirms payment / webhook credits
+      if (!normalized.payment?.accountNumber) {
+        setApiError({
+          message: res.note || 'Could not get a bank account for this payment. Try again or use card.',
+        });
+      }
+      // Stay on processing with VA until user taps I've paid / webhook credits
     } catch (err) {
       if (err instanceof ApiError) {
         setApiError({ code: err.code, message: err.body.message || err.message });
@@ -309,6 +338,7 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
               youGet={youGet}
               quote={quote}
               quoting={quoting}
+              submitting={submitting}
               onPreview={() => {
                 if (!gates.canOnramp || submitting) return;
                 if (!quote || Number(fiatAmount) <= 0) return;
@@ -339,12 +369,16 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
           {step === 'processing' && (
             <OnRampProcessingStep
               currency={payCurrencyDisplay}
-              amount={fiatAmount || amount}
+              amount={String(order?.payment?.amount || order?.quote?.fiatAmount || fiatAmount || amount)}
               youGet={youGet}
               symbol={selectedAsset.symbol}
               bankName={order?.payment?.bankName}
               accountNumber={order?.payment?.accountNumber}
               accountName={order?.payment?.accountName}
+              reference={order?.payment?.reference || order?.reference}
+              expiresAt={(order?.payment as { expiresAt?: string } | undefined)?.expiresAt
+                || (order as { expiresAt?: string } | null)?.expiresAt
+                || null}
               checking={checkingPaid}
               onConfirmPaid={() => void checkPaid()}
             />

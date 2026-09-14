@@ -29,7 +29,9 @@ export type LocalOnrampOrder = {
     checkoutUrl?: string;
     accessCode?: string;
     status: string;
+    expiresAt?: string;
   };
+  expiresAt?: string;
   status: string;
   note?: string;
 };

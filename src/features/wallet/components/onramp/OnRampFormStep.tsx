@@ -35,6 +35,7 @@ interface OnRampFormStepProps {
   quote: LocalOnrampQuote | null;
   quoting: boolean;
   onPreview: () => void;
+  submitting?: boolean;
 }
 
 const QUICK_LOCAL = [5000, 10000, 25000, 50000];
@@ -68,10 +69,11 @@ export function OnRampFormStep({
   quote,
   quoting,
   onPreview,
+  submitting,
 }: OnRampFormStepProps) {
   const paySymbol = amountMode === 'usd' ? '$' : currency.symbol;
   const quick = amountMode === 'usd' ? QUICK_USD : QUICK_LOCAL;
-  const canContinue = Number(amount) > 0 && !quoting && !!quote;
+  const canContinue = Number(amount) > 0 && !quoting && !!quote && !submitting;
 
   return (
     <motion.div
@@ -255,7 +257,7 @@ export function OnRampFormStep({
         <motion.button
           type="button"
           whileTap={{ scale: canContinue ? 0.98 : 1 }}
-          disabled={!canContinue}
+          disabled={!canContinue || !!submitting}
           onClick={onPreview}
           className="w-full py-4 rounded-full mx-auto block"
           style={{
@@ -266,7 +268,7 @@ export function OnRampFormStep({
             fontSize: 16,
           }}
         >
-          {!Number(amount) ? 'Enter amount' : quoting ? 'Getting quote…' : !quote ? 'Quote unavailable' : 'Continue'}
+          {submitting ? 'Creating payment…' : !Number(amount) ? 'Enter amount' : quoting ? 'Getting quote…' : !quote ? 'Quote unavailable' : 'Continue'}
         </motion.button>
       </div>
     </motion.div>
