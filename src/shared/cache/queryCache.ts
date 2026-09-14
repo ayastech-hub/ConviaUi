@@ -1,15 +1,17 @@
 /**
- * Lightweight in-memory + sessionStorage cache so navigating between tabs
- * does not flash empty/loading states when data was already fetched.
+ * In-memory + sessionStorage + optional localStorage so refresh does not
+ * flash empty/zero while the network catches up.
  */
 type Entry<T> = { data: T; at: number };
 
 const memory = new Map<string, Entry<unknown>>();
 const PREFIX = 'convia.q.';
+const LOCAL_PREFIX = 'convia.lq.';
 
-function readStorage<T>(key: string): Entry<T> | null {
+function readStorage<T>(key: string, store: Storage | null): Entry<T> | null {
+  if (!store) return null;
   try {
-    const raw = sessionStorage.getItem(PREFIX + key);
+    const raw = store.getItem(PREFIX + key) ?? store.getItem(LOCAL_PREFIX + key);
     if (!raw) return null;
     return JSON.parse(raw) as Entry<T>;
   } catch {
@@ -17,46 +19,69 @@ function readStorage<T>(key: string): Entry<T> | null {
   }
 }
 
-function writeStorage<T>(key: string, entry: Entry<T>) {
+function writeStorage<T>(key: string, entry: Entry<T>, persist: 'session' | 'local' = 'session') {
   try {
-    sessionStorage.setItem(PREFIX + key, JSON.stringify(entry));
+    if (persist === 'local') {
+      localStorage.setItem(LOCAL_PREFIX + key, JSON.stringify(entry));
+    } else {
+      sessionStorage.setItem(PREFIX + key, JSON.stringify(entry));
+    }
   } catch {
     /* quota / private mode */
   }
 }
 
-export function cacheGet<T>(key: string, maxAgeMs = 60_000): T | undefined {
+/**
+ * @param maxAgeMs soft TTL for “fresh”; if exceeded we still return stale data
+ *   when `allowStale` is true so UI can show last-known values.
+ */
+export function cacheGet<T>(
+  key: string,
+  maxAgeMs = 60_000,
+  opts?: { allowStale?: boolean; preferLocal?: boolean },
+): T | undefined {
+  const allowStale = opts?.allowStale !== false;
   const mem = memory.get(key) as Entry<T> | undefined;
   if (mem && Date.now() - mem.at < maxAgeMs) return mem.data;
-  const stored = readStorage<T>(key);
-  if (stored && Date.now() - stored.at < maxAgeMs) {
-    memory.set(key, stored);
-    return stored.data;
-  }
-  if (mem) return mem.data;
+
+  const session = typeof sessionStorage !== 'undefined' ? sessionStorage : null;
+  const local = opts?.preferLocal && typeof localStorage !== 'undefined' ? localStorage : null;
+
+  const stored =
+    readStorage<T>(key, local) ||
+    readStorage<T>(key, session) ||
+    (opts?.preferLocal ? readStorage<T>(key, session) : readStorage<T>(key, local));
+
   if (stored) {
     memory.set(key, stored);
-    return stored.data;
+    if (Date.now() - stored.at < maxAgeMs || allowStale) return stored.data;
   }
+  if (mem && allowStale) return mem.data;
   return undefined;
 }
 
-export function cacheSet<T>(key: string, data: T) {
+export function cacheSet<T>(key: string, data: T, opts?: { persist?: 'session' | 'local' }) {
   const entry: Entry<T> = { data, at: Date.now() };
   memory.set(key, entry);
-  writeStorage(key, entry);
+  writeStorage(key, entry, opts?.persist || 'session');
+  // Always mirror prices-style keys to local for hard refresh survival
+  if (opts?.persist === 'local') {
+    writeStorage(key, entry, 'local');
+  }
 }
 
 export function cacheInvalidate(prefix?: string) {
   if (!prefix) {
     memory.clear();
     try {
-      const keys: string[] = [];
-      for (let i = 0; i < sessionStorage.length; i++) {
-        const k = sessionStorage.key(i);
-        if (k?.startsWith(PREFIX)) keys.push(k);
+      for (const store of [sessionStorage, localStorage]) {
+        const keys: string[] = [];
+        for (let i = 0; i < store.length; i++) {
+          const k = store.key(i);
+          if (k?.startsWith(PREFIX) || k?.startsWith(LOCAL_PREFIX)) keys.push(k);
+        }
+        keys.forEach((k) => store.removeItem(k));
       }
-      keys.forEach((k) => sessionStorage.removeItem(k));
     } catch {
       /* ignore */
     }
@@ -66,12 +91,14 @@ export function cacheInvalidate(prefix?: string) {
     if (k.startsWith(prefix)) memory.delete(k);
   }
   try {
-    const keys: string[] = [];
-    for (let i = 0; i < sessionStorage.length; i++) {
-      const k = sessionStorage.key(i);
-      if (k?.startsWith(PREFIX + prefix)) keys.push(k);
+    for (const store of [sessionStorage, localStorage]) {
+      const keys: string[] = [];
+      for (let i = 0; i < store.length; i++) {
+        const k = store.key(i);
+        if (k?.startsWith(PREFIX + prefix) || k?.startsWith(LOCAL_PREFIX + prefix)) keys.push(k);
+      }
+      keys.forEach((k) => store.removeItem(k));
     }
-    keys.forEach((k) => sessionStorage.removeItem(k));
   } catch {
     /* ignore */
   }
