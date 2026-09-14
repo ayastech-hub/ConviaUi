@@ -2,7 +2,8 @@ import { queryClient, queryKeys } from './queryClient';
 import { fetchPortfolio } from '../api/portfolio';
 import { fetchTransactions } from '../api/transactions';
 import { fetchNotifications } from '../api/notifications';
-import { fetchTokenCatalog, fetchChainCatalog, fetchTokensInfo } from '../api/tokens';
+import { fetchTokensInfo } from '../api/tokens';
+import { fetchTokenCatalog, fetchChainCatalog } from '../api/registry';
 import * as profileApi from '../api/profile';
 import { cacheSet } from '../cache/queryCache';
 

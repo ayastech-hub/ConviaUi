@@ -138,7 +138,6 @@ export function OnRampFormStep({
                 WebkitBackdropFilter: amount === String(n) ? 'blur(12px)' : undefined,
                 fontSize: 12,
                 fontWeight: 600,
-                border: amount === String(n) ? 'none' : '1px solid var(--border)',
               }}
             >
               {amountMode === 'usd' ? `$${n}` : `${currency.symbol}${n >= 1000 ? `${n / 1000}k` : n}`}

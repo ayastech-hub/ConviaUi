@@ -52,7 +52,6 @@ export function ExpiryPicker({
                 boxShadow: on ? 'var(--liquid-chip-on-shadow)' : 'none',
                 backdropFilter: on ? 'blur(16px)' : undefined,
                 WebkitBackdropFilter: on ? 'blur(16px)' : undefined,
-                border: on ? undefined : '1px solid var(--border)',
               }}
             >
               {o.label}

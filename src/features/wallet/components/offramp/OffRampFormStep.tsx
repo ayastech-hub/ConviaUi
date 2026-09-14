@@ -136,7 +136,6 @@ export function OffRampFormStep({
                 WebkitBackdropFilter: active ? 'blur(12px)' : undefined,
                   fontSize: 12,
                   fontWeight: 600,
-                  border: active ? 'none' : '1px solid var(--border)',
                 }}
               >
                 {label}
