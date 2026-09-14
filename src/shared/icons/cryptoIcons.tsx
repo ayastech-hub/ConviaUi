@@ -11,7 +11,6 @@ type AssetIconProps = SvgProps & {
   contractAddress?: string;
 };
 
-
 /** Direct logo URLs when TrustWallet/cdn packs miss the asset */
 const IMAGE_URL_OVERRIDES: Record<string, string> = {
   AERO: "https://coin-images.coingecko.com/coins/images/31745/large/token.png",
@@ -78,6 +77,7 @@ const COMMON_TOKEN_FALLBACKS: Record<string, { chainId: number; address: string 
   USDC: { chainId: 1, address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' },
   DAI:  { chainId: 1, address: '0x6B175474E89094C44Da98b954EedeAC495271d0F' },
   BUSD: { chainId: 1, address: '0x4Fabb145d64652a948d72533023f6E7A623C7C53' },
+  AERO: { chainId: 8453, address: '0x940181a94a35a4569e4529a3cdfb74e38fd98631' },
 };
 
 /**
@@ -86,11 +86,16 @@ const COMMON_TOKEN_FALLBACKS: Record<string, { chainId: number; address: string 
 function getAssetUrl(symbol: string, chainId?: number, address?: string): string | null {
   const sym = (symbol || '').toUpperCase();
 
+  // 1. Check explicit manual overrides first
+  if (IMAGE_URL_OVERRIDES[sym]) {
+    return IMAGE_URL_OVERRIDES[sym];
+  }
+
   // Handle explicit contract lookup OR fallback to default mainnet contract
   const targetChainId = chainId ?? COMMON_TOKEN_FALLBACKS[sym]?.chainId;
   const targetAddress = address ?? COMMON_TOKEN_FALLBACKS[sym]?.address;
 
-  // 1. Fetch by Contract Address & Chain ID (Most reliable for tokens like USDT/USDC)
+  // 2. Fetch by Contract Address & Chain ID (Most reliable for tokens like USDT/USDC)
   if (targetChainId && targetAddress && targetAddress.toLowerCase() !== 'native') {
     const chainSlug = TRUSTWALLET_CHAIN_SLUGS[targetChainId];
     if (chainSlug) {
@@ -98,13 +103,13 @@ function getAssetUrl(symbol: string, chainId?: number, address?: string): string
     }
   }
 
-  // 2. Fetch Native Mainnet Coin Logo
+  // 3. Fetch Native Mainnet Coin Logo
   const nativeSlug = TRUSTWALLET_NATIVE_MAP[sym];
   if (nativeSlug) {
     return `https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/${nativeSlug}/info/logo.png`;
   }
 
-  // 3. Generic crypto icon pack (covers JUP, AERO, etc.)
+  // 4. Generic crypto icon pack fallback
   const slug = sym.toLowerCase();
   return `https://cdn.jsdelivr.net/npm/cryptocurrency-icons@0.18.1/128/color/${slug}.png`;
 }
