@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
-import { ArrowDownUp } from 'lucide-react';
+import { Loader } from 'lucide-react';
+import { AssetIcon } from '../../../../shared/components/AssetIcon';
 
 interface SwapProcessingOverlayProps {
   fromSymbol: string;
@@ -7,29 +8,22 @@ interface SwapProcessingOverlayProps {
   chainName?: string;
 }
 
-/** Shown only while the execute API is in flight (ledger, not on-chain routing). */
+/** Opaque full-screen — never show the form underneath. */
 export function SwapProcessingOverlay({ fromSymbol, toSymbol }: SwapProcessingOverlayProps) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.12 }}
       className="absolute inset-0 z-[60] flex flex-col items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
+      style={{ background: 'var(--background)' }}
     >
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
-        className="w-14 h-14 rounded-full flex items-center justify-center mb-4"
-        style={{ background: 'var(--muted)' }}
-      >
-        <ArrowDownUp size={24} style={{ color: 'var(--foreground)' }} />
-      </motion.div>
-      <p style={{ color: '#FFF', fontSize: 15, fontWeight: 700 }}>
-        Swapping {fromSymbol} → {toSymbol}
-      </p>
-      <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 6 }}>Updating your ledger…</p>
+      <div className="flex items-center gap-3 mb-5">
+        <AssetIcon symbol={fromSymbol} size={36} />
+        <Loader size={18} className="animate-spin" style={{ color: 'var(--muted-foreground)' }} />
+        <AssetIcon symbol={toSymbol} size={36} />
+      </div>
+      <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 16 }}>Swapping…</p>
     </motion.div>
   );
 }

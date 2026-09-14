@@ -271,6 +271,7 @@ export function SwapScreen({ goBack, presetSymbol }: SwapScreenProps) {
   const platformFee = quoteFee != null ? Number(quoteFee) : 0;
   const canConfirmSwap = canSwap && receiveAmount > 0 && !quoteLoading && gates.canSwap;
   const openReview = useCallback(() => {
+    // Compact confirm sheet only — execution is instant after Confirm
     if (canConfirmSwap) setPhase('review');
   }, [canConfirmSwap]);
 
@@ -338,7 +339,12 @@ export function SwapScreen({ goBack, presetSymbol }: SwapScreenProps) {
     } catch (err) {
       setPhase('idle');
       if (err instanceof ApiError) {
-        setApiBlock({ code: err.code, message: err.body.message || err.message });
+        const code = String(err.code || '');
+        let msg = err.body.message || err.message;
+        if (code === 'pin_required' || code === 'pin_invalid') {
+          msg = 'Swap temporarily unavailable. Please try again in a few seconds.';
+        }
+        setApiBlock({ code: err.code, message: msg });
       } else {
         setApiBlock({ message: 'Swap failed. Please try again.' });
       }
@@ -483,6 +489,7 @@ export function SwapScreen({ goBack, presetSymbol }: SwapScreenProps) {
             <button type="button" className="absolute inset-0 bg-black/50" aria-label="Close" onClick={() => setPhase('idle')} />
             <div className="relative z-10 space-y-3 rounded-t-2xl border-t border-white/10 bg-[var(--background)] p-4 pb-6">
               <SwapReviewSheet
+                confirming={false}
                 fromAsset={fromAsset} toAsset={toAsset} fromNum={fromNum} toAmount={receiveAmount}
                 fromUSD={fromUSD} toUSD={receiveUSD} format={format} rate={displayRate}
                 priceImpactPct={0} effectiveSlippage={0} minReceived={receiveAmount}
