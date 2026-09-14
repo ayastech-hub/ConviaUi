@@ -32,7 +32,6 @@ export function getSwapQuote(params: {
 export function executeSwap(body: {
   userId: string;
   quoteId: string;
-  pin: string;
 }) {
   return api.post<{
     transactionId: string;

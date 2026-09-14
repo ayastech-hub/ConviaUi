@@ -213,7 +213,6 @@ export function SwapScreen({ goBack, presetSymbol }: SwapScreenProps) {
   const [quoteFee, setQuoteFee] = useState<string | null>(null);
   const [quoteFeeBps, setQuoteFeeBps] = useState<number | null>(null);
   const [quoteId, setQuoteId] = useState<string | null>(null);
-  const [swapPin, setSwapPin] = useState('');
   const [quoteLoading, setQuoteLoading] = useState(false);
 
 
@@ -281,13 +280,7 @@ export function SwapScreen({ goBack, presetSymbol }: SwapScreenProps) {
     try {
       if (!userId) throw new ApiError(401, { code: 'unauthorized', message: 'Sign in required' });
       if (!quoteId) throw new ApiError(400, { code: 'no_quote', message: 'Get a fresh quote first' });
-      const pin = (swapPin || '').replace(/\D/g, '');
-      if (pin.length < 4) throw new ApiError(401, { code: 'pin_required', message: 'Enter your transaction PIN' });
-      const res = await executeSwap({
-        userId,
-        quoteId,
-        pin,
-      });
+      const res = await executeSwap({ userId, quoteId });
       const amountIn = Number(res.fromAmount ?? fromNum) || fromNum;
       const amountOut = Number(res.toAmount ?? quoteOut ?? receiveAmount) || 0;
       const apiRate = Number(res.rate ?? quoteRate) || 0;
@@ -347,10 +340,10 @@ export function SwapScreen({ goBack, presetSymbol }: SwapScreenProps) {
       if (err instanceof ApiError) {
         setApiBlock({ code: err.code, message: err.body.message || err.message });
       } else {
-        setApiBlock({ message: 'Swap failed — is the API running?' });
+        setApiBlock({ message: 'Swap failed. Please try again.' });
       }
     }
-  }, [fromAsset, toAsset, fromNum, toAmount, fromUSD, userId, quoteOut, receiveAmount]);
+  }, [fromAsset, toAsset, fromNum, toAmount, fromUSD, userId, quoteId, quoteOut, receiveAmount, quoteRate, quoteFee, quoteFeeBps]);
 
   const resetSwap = useCallback(() => {
     setPhase('idle');
@@ -489,17 +482,6 @@ export function SwapScreen({ goBack, presetSymbol }: SwapScreenProps) {
           <div className="fixed inset-0 z-50 flex flex-col justify-end">
             <button type="button" className="absolute inset-0 bg-black/50" aria-label="Close" onClick={() => setPhase('idle')} />
             <div className="relative z-10 space-y-3 rounded-t-2xl border-t border-white/10 bg-[var(--background)] p-4 pb-6">
-              <p className="text-center text-sm text-muted-foreground">Transaction PIN</p>
-              <input
-                type="password"
-                inputMode="numeric"
-                maxLength={6}
-                value={swapPin}
-                onChange={(e) => setSwapPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="6-digit PIN"
-                className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-center text-lg tracking-[0.35em] outline-none focus:ring-2 focus:ring-primary"
-                autoFocus
-              />
               <SwapReviewSheet
                 fromAsset={fromAsset} toAsset={toAsset} fromNum={fromNum} toAmount={receiveAmount}
                 fromUSD={fromUSD} toUSD={receiveUSD} format={format} rate={displayRate}
