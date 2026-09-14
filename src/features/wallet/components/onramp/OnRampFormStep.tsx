@@ -253,6 +253,8 @@ export function OnRampFormStep({
             </div>
           </>
         )}
+      </div>
+
       <PaymentMethodSelector method={paymentMethod} setMethod={setPaymentMethod} />
 
       <div
