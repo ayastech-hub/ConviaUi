@@ -13,7 +13,7 @@ import { useAuth } from '../../../shared/context/AuthContext';
 import { useAccountGates } from '../../../shared/hooks/useAccountGates';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import * as fiatApi from '../../../shared/api/fiat';
-import { createCardPayment, refreshPayment, getLocalOnrampOrder } from '../../../shared/api/fiat';
+import { createCardPayment, refreshPayment, getLocalOnrampOrder, listDepositRequests } from '../../../shared/api/fiat';
 import type { LocalOnrampOrder, LocalOnrampQuote } from '../../../shared/api/fiat';
 import { ApiError } from '../../../shared/api/types';
 import { queryClient, queryKeys } from '../../../shared/query/queryClient';
@@ -262,46 +262,102 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
     setCheckingPaid(true);
     setPaidToast(null);
     setApiError(null);
+
+    const isCreditedStatus = (s: string) =>
+      ['completed', 'credited', 'success', 'confirmed', 'paid', 'settled'].includes(
+        String(s || '').toLowerCase(),
+      );
+
     try {
-      // Primary: order status by depositRequest id
-      if (order?.orderId) {
-        const st = await getLocalOnrampOrder(order.orderId);
-        if (st.credited) {
+      // 1) Authoritative: depositRequest list (works on production today)
+      try {
+        const rows = await listDepositRequests(userId);
+        const list = Array.isArray(rows) ? rows : [];
+        const match =
+          list.find((r) => order?.orderId && r.id === order.orderId) ||
+          list.find(
+            (r) =>
+              order?.reference &&
+              String(r.externalPaymentRef || '') === String(order.reference),
+          ) ||
+          list.find((r) => {
+            if (!order?.quote?.fiatAmount && !order?.payment?.amount) return false;
+            const want = Number(order?.payment?.amount || order?.quote?.fiatAmount || 0);
+            const got = Number(r.fiatAmount) || 0;
+            const sameAsset =
+              !r.asset || r.asset.toUpperCase() === selectedAsset.symbol.toUpperCase();
+            // same order window: created after this screen session roughly — prefer exact id/ref first
+            return sameAsset && want > 0 && Math.abs(got - want) < 0.01;
+          });
+
+        if (match && isCreditedStatus(match.status)) {
           void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
           void queryClient.invalidateQueries({ queryKey: queryKeys.transactions(userId, 50) });
           setStep('done');
           return;
         }
-        setPaidToast(
-          'We have not received this transfer yet. Complete the bank payment, wait a minute, then try again.',
-        );
-        return;
+
+        // Exact order still pending
+        if (match && !isCreditedStatus(match.status)) {
+          setPaidToast(
+            'Transfer not confirmed by the bank yet. If you already paid, wait 1–2 minutes and try again.',
+          );
+          return;
+        }
+      } catch {
+        /* fall through */
       }
-      // Fallback: recent history
-      const hist = await fetchTransactions(userId, { limit: 20 });
-      const items = hist.transactions || [];
-      const expected = Number(order?.quote?.netCrypto || youGet) || 0;
-      const hit = items.find((it) => {
-        const type = String((it as { type?: string }).type || '').toLowerCase();
-        const okType = type.includes('onramp') || type.includes('deposit') || type.includes('fiat');
-        const amt = Number((it as { amount?: string }).amount) || 0;
-        const assetOk =
-          !(it as { asset?: string }).asset ||
-          String((it as { asset?: string }).asset).toUpperCase() === selectedAsset.symbol.toUpperCase();
-        const status = String((it as { status?: string }).status || '').toLowerCase();
-        return (
-          okType &&
-          assetOk &&
-          status !== 'failed' &&
-          (expected <= 0 || Math.abs(amt - expected) < expected * 0.05 + 0.001)
-        );
-      });
-      if (hit) {
-        void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
-        void queryClient.invalidateQueries({ queryKey: queryKeys.transactions(userId, 50) });
-        setStep('done');
-        return;
+
+      // 2) Optional status route (when Railway has deployed it)
+      if (order?.orderId) {
+        try {
+          const st = await getLocalOnrampOrder(order.orderId);
+          if (st.credited || isCreditedStatus(st.status)) {
+            void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
+            void queryClient.invalidateQueries({ queryKey: queryKeys.transactions(userId, 50) });
+            setStep('done');
+            return;
+          }
+        } catch {
+          /* ignore — route may 404 until backend deploy */
+        }
       }
+
+      // 3) Ledger history fallback
+      try {
+        const hist = await fetchTransactions(userId, { limit: 30 });
+        const items = hist.transactions || [];
+        const expected = Number(order?.quote?.netCrypto || youGet) || 0;
+        const hit = items.find((it) => {
+          const type = String((it as { type?: string; kind?: string }).type || (it as { kind?: string }).kind || '').toLowerCase();
+          const okType =
+            type.includes('onramp') ||
+            type.includes('deposit') ||
+            type.includes('fiat') ||
+            type.includes('credit');
+          const amt = Math.abs(Number((it as { amount?: string }).amount) || 0);
+          const assetOk =
+            !(it as { asset?: string }).asset ||
+            String((it as { asset?: string }).asset).toUpperCase() === selectedAsset.symbol.toUpperCase();
+          const status = String((it as { status?: string }).status || 'confirmed').toLowerCase();
+          return (
+            okType &&
+            assetOk &&
+            status !== 'failed' &&
+            status !== 'pending' &&
+            (expected <= 0 || Math.abs(amt - expected) < expected * 0.08 + 0.001)
+          );
+        });
+        if (hit) {
+          void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.transactions(userId, 50) });
+          setStep('done');
+          return;
+        }
+      } catch {
+        /* ignore */
+      }
+
       setPaidToast(
         'Payment not confirmed yet. Transfer the exact amount, wait for the bank, then try again.',
       );
@@ -311,6 +367,7 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
       setCheckingPaid(false);
     }
   };
+
 
 
   return (

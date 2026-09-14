@@ -180,3 +180,21 @@ export type LocalOnrampOrderStatus = {
 export function getLocalOnrampOrder(orderId: string) {
   return api.get<LocalOnrampOrderStatus>(`/fiat/local/onramp/${encodeURIComponent(orderId)}`);
 }
+
+export type DepositRequestRow = {
+  id: string;
+  userId: string;
+  asset: string;
+  amount: string;
+  fiatAmount?: string | null;
+  source?: string;
+  currency?: string | null;
+  externalPaymentRef?: string | null;
+  status: string;
+  createdAt?: string;
+};
+
+/** Working production path — lists user depositRequest rows (pending/completed). */
+export function listDepositRequests(userId: string) {
+  return api.get<DepositRequestRow[]>(`/fiat/deposit/${encodeURIComponent(userId)}`);
+}
