@@ -16,3 +16,4 @@ export * as banksApi from './banks';
 export * as billsApi from './bills';
 export * as notificationsApi from './notifications';
 export * as registryApi from './registry';
+export * from './rates';

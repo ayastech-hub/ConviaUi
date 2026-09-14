@@ -1,52 +1,48 @@
 import { api } from './client';
 
-/** Internal omnibus swap — fee already applied in toAmount (net received). */
+/** POST /swap/quote — RateQuote / quoteId mechanism */
 export type SwapQuote = {
-  provider: 'internal';
-  model: 'omnibus';
+  quoteId: string;
+  kind: 'swap';
   fromAsset: string;
   toAsset: string;
-  fromAmount: string;
-  /** Net amount user receives after platform fee */
-  toAmount: string;
-  fee: string;
+  amount: string;
+  rate: number | string;
+  rateSource?: string;
   feeBps: number;
-  rate: string;
+  feeAmount: string;
+  toAmount: string;
+  expiresAt: string;
 };
 
 export function getSwapQuote(params: {
   fromAsset: string;
   toAsset: string;
   amount: string;
-  fromChain?: string;
-  toChain?: string;
+  userId?: string;
 }) {
-  const q = new URLSearchParams();
-  q.set('fromAsset', params.fromAsset);
-  q.set('toAsset', params.toAsset);
-  q.set('amount', params.amount);
-  if (params.fromChain) q.set('fromChain', params.fromChain);
-  if (params.toChain) q.set('toChain', params.toChain);
-  return api.get<SwapQuote>(`/swap/quote?${q}`);
+  return api.post<SwapQuote>('/swap/quote', {
+    fromAsset: params.fromAsset,
+    toAsset: params.toAsset,
+    amount: params.amount,
+    ...(params.userId ? { userId: params.userId } : {}),
+  });
 }
 
 export function executeSwap(body: {
   userId: string;
-  fromAsset: string;
-  toAsset: string;
-  amount: string;
-  fromChain?: string;
-  toChain?: string;
+  quoteId: string;
+  pin: string;
 }) {
   return api.post<{
-    model: string;
-    provider: string;
-    ledgerTransactionId?: string;
+    transactionId: string;
+    quoteId: string;
     fromAsset: string;
     toAsset: string;
-    amountIn: string;
-    amountOut: string;
-    fee: string;
+    fromAmount: string;
+    toAmount: string;
+    feeAmount: string;
+    feeBps: number;
     rate: string;
     status: string;
   }>('/swap/execute', body, { idempotent: true });

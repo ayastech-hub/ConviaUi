@@ -54,7 +54,7 @@ export function localOnrampOrder(body: {
   fiatAmount: string;
   toAsset?: string;
   method: 'bank_transfer' | 'card' | 'dedicated_account';
-  preferredProvider?: 'paystack' | 'flutterwave';
+  preferredProvider?: 'monnify' | 'flutterwave';
   callbackUrl?: string;
 }) {
   return api.post<LocalOnrampOrder>('/fiat/local/onramp', body, { idempotent: true });
@@ -65,12 +65,33 @@ export function localOfframp(body: {
   asset?: string;
   amount: string;
   fiatCurrency: string;
-  bankCode: string;
-  accountNumber: string;
-  accountName?: string;
-  preferredProvider?: 'paystack' | 'flutterwave';
+  bankAccountId: string;
+  pin: string;
+  quoteId?: string;
+  preferredProvider?: 'monnify' | 'flutterwave';
 }) {
   return api.post('/fiat/local/offramp', body, { idempotent: true });
+}
+
+export function localOfframpQuote(params: {
+  asset: string;
+  amount: string;
+  fiatCurrency: string;
+  userId?: string;
+}) {
+  const q = new URLSearchParams({
+    asset: params.asset,
+    amount: params.amount,
+    fiatCurrency: params.fiatCurrency,
+  });
+  if (params.userId) q.set('userId', params.userId);
+  return api.get<{
+    quoteId: string;
+    localAmount: string;
+    netAmount: string;
+    feeAmount: string;
+    rate: unknown;
+  }>(`/fiat/local/offramp-quote?${q}`);
 }
 
 /** Legacy Yellow Card paths (kept for compatibility). */

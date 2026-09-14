@@ -212,6 +212,8 @@ export function SwapScreen({ goBack, presetSymbol }: SwapScreenProps) {
   const [quoteRate, setQuoteRate] = useState<string | null>(null);
   const [quoteFee, setQuoteFee] = useState<string | null>(null);
   const [quoteFeeBps, setQuoteFeeBps] = useState<number | null>(null);
+  const [quoteId, setQuoteId] = useState<string | null>(null);
+  const [swapPin, setSwapPin] = useState('');
   const [quoteLoading, setQuoteLoading] = useState(false);
 
 
@@ -222,6 +224,7 @@ export function SwapScreen({ goBack, presetSymbol }: SwapScreenProps) {
       setQuoteRate(null);
       setQuoteFee(null);
       setQuoteFeeBps(null);
+      setQuoteId(null);
       return;
     }
     let cancelled = false;
@@ -235,9 +238,10 @@ export function SwapScreen({ goBack, presetSymbol }: SwapScreenProps) {
         .then((q) => {
           if (cancelled) return;
           setQuoteOut(q.toAmount);
-          setQuoteRate(q.rate);
-          setQuoteFee(q.fee);
+          setQuoteRate(String(q.rate));
+          setQuoteFee((q as { feeAmount?: string; fee?: string }).feeAmount || (q as { fee?: string }).fee || '0');
           setQuoteFeeBps(typeof q.feeBps === 'number' ? q.feeBps : null);
+          setQuoteId((q as { quoteId?: string }).quoteId || null);
           setError('');
         })
         .catch((err) => {
@@ -276,17 +280,19 @@ export function SwapScreen({ goBack, presetSymbol }: SwapScreenProps) {
     setPhase('swapping');
     try {
       if (!userId) throw new ApiError(401, { code: 'unauthorized', message: 'Sign in required' });
+      if (!quoteId) throw new ApiError(400, { code: 'no_quote', message: 'Get a fresh quote first' });
+      const pin = (swapPin || '').replace(/\D/g, '');
+      if (pin.length < 4) throw new ApiError(401, { code: 'pin_required', message: 'Enter your transaction PIN' });
       const res = await executeSwap({
         userId,
-        fromAsset: fromAsset.symbol,
-        toAsset: toAsset.symbol,
-        amount: String(fromNum),
+        quoteId,
+        pin,
       });
-      const amountIn = Number(res.amountIn ?? fromNum) || fromNum;
-      const amountOut = Number(res.amountOut ?? quoteOut ?? receiveAmount) || 0;
+      const amountIn = Number(res.fromAmount ?? fromNum) || fromNum;
+      const amountOut = Number(res.toAmount ?? quoteOut ?? receiveAmount) || 0;
       const apiRate = Number(res.rate ?? quoteRate) || 0;
-      const feeAmt = Number(res.fee ?? quoteFee) || 0;
-      const feeBps = quoteFeeBps ?? 0;
+      const feeAmt = Number(res.feeAmount ?? quoteFee) || 0;
+      const feeBps = res.feeBps ?? quoteFeeBps ?? 0;
       setSettlement({
         fromSymbol: (res.fromAsset || fromAsset.symbol).toString().toUpperCase(),
         toSymbol: (res.toAsset || toAsset.symbol).toString().toUpperCase(),
@@ -298,7 +304,7 @@ export function SwapScreen({ goBack, presetSymbol }: SwapScreenProps) {
         feeAsset: (res.toAsset || toAsset.symbol).toString().toUpperCase(),
       });
       setReceiptTx({
-        id: res.ledgerTransactionId || 'swap-' + Date.now(),
+        id: res.transactionId || 'swap-' + Date.now(),
         type: 'swap',
         asset: fromAsset.symbol,
         assetTo: toAsset.symbol,
@@ -307,7 +313,7 @@ export function SwapScreen({ goBack, presetSymbol }: SwapScreenProps) {
         valueUSD: 0,
         status: 'confirmed',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        hash: res.ledgerTransactionId || 'internal',
+        hash: res.transactionId || 'internal',
       });
       // Success immediately — do not block UI on portfolio refetch (was ~20s)
       setPhase('success');
@@ -480,13 +486,29 @@ export function SwapScreen({ goBack, presetSymbol }: SwapScreenProps) {
 
       <AnimatePresence>
         {phase === 'review' && (
-          <SwapReviewSheet
-            fromAsset={fromAsset} toAsset={toAsset} fromNum={fromNum} toAmount={receiveAmount}
-            fromUSD={fromUSD} toUSD={receiveUSD} format={format} rate={displayRate}
-            priceImpactPct={0} effectiveSlippage={0} minReceived={receiveAmount}
-            networkFeeUSD={platformFee} route={[fromAsset.symbol, toAsset.symbol]}
-            onClose={() => setPhase('idle')} onConfirm={confirmSwap}
-          />
+          <div className="fixed inset-0 z-50 flex flex-col justify-end">
+            <button type="button" className="absolute inset-0 bg-black/50" aria-label="Close" onClick={() => setPhase('idle')} />
+            <div className="relative z-10 space-y-3 rounded-t-2xl border-t border-white/10 bg-[var(--background)] p-4 pb-6">
+              <p className="text-center text-sm text-muted-foreground">Transaction PIN</p>
+              <input
+                type="password"
+                inputMode="numeric"
+                maxLength={6}
+                value={swapPin}
+                onChange={(e) => setSwapPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="6-digit PIN"
+                className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-center text-lg tracking-[0.35em] outline-none focus:ring-2 focus:ring-primary"
+                autoFocus
+              />
+              <SwapReviewSheet
+                fromAsset={fromAsset} toAsset={toAsset} fromNum={fromNum} toAmount={receiveAmount}
+                fromUSD={fromUSD} toUSD={receiveUSD} format={format} rate={displayRate}
+                priceImpactPct={0} effectiveSlippage={0} minReceived={receiveAmount}
+                networkFeeUSD={platformFee} route={[fromAsset.symbol, toAsset.symbol]}
+                onClose={() => setPhase('idle')} onConfirm={confirmSwap}
+              />
+            </div>
+          </div>
         )}
       </AnimatePresence>
 
