@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Eye, EyeOff, ChevronDown, Check, Search, X } from 'lucide-react';
-import { usePortfolio } from '../../../shared/hooks/usePortfolio';
+import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useCurrency, type Currency } from '../../../shared/context/CurrencyContext';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { CurrencyIcon } from '../../../shared/icons/CurrencyIcon';
@@ -27,13 +27,13 @@ function splitAmount(n: number, decimals: number) {
  * the number uses high-contrast tabular figures.
  */
 export function CenteredBalance({ balanceVisible, onToggle }: Props) {
-  const { data, loading } = usePortfolio();
+  const { totalValueUsd, loading } = useWalletAssets();
   const { currency, currencies, setCurrency, convert } = useCurrency();
   const { status } = useAuth();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [q, setQ] = useState('');
 
-  const totalUsd = data ? Number(data.totalValueUsd) || 0 : 0;
+  const totalUsd = Number(totalValueUsd) || 0;
   const converted = convert(totalUsd);
   const decimals = (currency.rate || 1) > 100 ? 0 : 2;
   const { whole, frac } = splitAmount(Number.isFinite(converted) ? converted : 0, decimals);
@@ -55,7 +55,7 @@ export function CenteredBalance({ balanceVisible, onToggle }: Props) {
     setQ('');
   };
 
-  const showSkeleton = loading && status === 'authenticated' && data == null;
+  const showSkeleton = loading && status === 'authenticated' && totalUsd <= 0;
 
   return (
     <div className="flex flex-col items-center px-5 pt-1 pb-6">
@@ -85,7 +85,7 @@ export function CenteredBalance({ balanceVisible, onToggle }: Props) {
       {/* Amount + hide */}
       <div className="flex items-start justify-center gap-2">
         <motion.div
-          key={String(balanceVisible) + currency.code + whole + frac}
+          key={String(balanceVisible) + currency.code}
           initial={{ opacity: 0.55, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex items-baseline justify-center"
