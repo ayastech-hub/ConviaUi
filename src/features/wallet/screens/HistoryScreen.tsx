@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import type { Transaction } from '../../../shared/data/mockData';
 import { TransactionReceipt } from '../../../shared/components/TransactionReceipt';
+import { formatTokenAmount } from '../../../shared/utils/formatAmount';
 import { PageTop } from '../../../shared/components/PageTop';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { useTransactions } from '../../../shared/hooks/useTransactions';
@@ -299,10 +300,8 @@ export function HistoryScreen({ goBack }: Props) {
                 const last = i === group.items.length - 1;
                 const amountLine =
                   tx.type === 'swap'
-                    ? `${tx.amount} ${tx.asset || ''} → ${tx.amountTo ?? '—'} ${tx.assetTo || ''}`
-                    : `${m.sign}${Number(tx.amount).toLocaleString(undefined, {
-                        maximumFractionDigits: 6,
-                      })} ${tx.asset || ''}`;
+                    ? `${formatTokenAmount(tx.amount)} ${tx.asset || ''} → ${formatTokenAmount(tx.amountTo)} ${tx.assetTo || ''}`
+                    : `${m.sign}${formatTokenAmount(tx.amount)} ${tx.asset || ''}`;
 
                 return (
                   <motion.button

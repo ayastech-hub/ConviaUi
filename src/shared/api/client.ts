@@ -74,27 +74,49 @@ async function parseBody(res: Response): Promise<ApiErrorBody | unknown> {
   }
 }
 
+/** Concurrent 401s share one refresh — prevents refresh-token reuse storms from prefetch. */
+let refreshInFlight: Promise<SessionTokens | null> | null = null;
+
 async function refreshSession(): Promise<SessionTokens | null> {
-  const current = getTokens();
-  if (!current?.refreshToken || !current.sessionId) return null;
-  const res = await fetch(`${BASE_URL}/auth/refresh`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sessionId: current.sessionId, refreshToken: current.refreshToken }),
+  if (refreshInFlight) return refreshInFlight;
+
+  refreshInFlight = (async (): Promise<SessionTokens | null> => {
+    const current = getTokens();
+    if (!current?.refreshToken || !current.sessionId) return null;
+    try {
+      const res = await fetch(`${BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: current.sessionId, refreshToken: current.refreshToken }),
+      });
+      if (!res.ok) {
+        // Parallel refresh race — wait; winner may already have written new tokens
+        if (res.status === 409) {
+          await new Promise((r) => setTimeout(r, 250));
+          const again = getTokens();
+          if (again?.accessToken && again.accessToken !== current.accessToken) return again;
+        }
+        setTokens(null);
+        onAuthFailure();
+        return null;
+      }
+      const data = (await res.json()) as { accessToken: string; refreshToken: string; sessionId?: string };
+      const next: SessionTokens = {
+        ...current,
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        ...(data.sessionId ? { sessionId: data.sessionId } : {}),
+      };
+      setTokens(next);
+      return next;
+    } catch {
+      return null;
+    }
+  })().finally(() => {
+    refreshInFlight = null;
   });
-  if (!res.ok) {
-    setTokens(null);
-    onAuthFailure();
-    return null;
-  }
-  const data = (await res.json()) as { accessToken: string; refreshToken: string };
-  const next: SessionTokens = {
-    ...current,
-    accessToken: data.accessToken,
-    refreshToken: data.refreshToken,
-  };
-  setTokens(next);
-  return next;
+
+  return refreshInFlight;
 }
 
 export async function apiRequest<T>(path: string, opts: RequestOptions = {}): Promise<T> {

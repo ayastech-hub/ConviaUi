@@ -1,3 +1,4 @@
+import { formatTokenAmount, formatMoneyAmount } from '../utils/formatAmount';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   X, CheckCircle2, Clock, AlertCircle, ArrowUpRight, ArrowDownLeft,
@@ -182,8 +183,8 @@ export function TransactionReceipt({ tx, open, onClose }: TransactionReceiptProp
   const buildReceiptCanvas = () =>
     renderReceiptCanvas({
       typeLabel: meta.label,
-      amountLine: `${meta.sign}${tx.amount} ${tx.asset}`,
-      secondaryLine: tx.assetTo ? `+${tx.amountTo} ${tx.assetTo}` : undefined,
+      amountLine: `${meta.sign}${formatTokenAmount(tx.amount)} ${tx.asset}`,
+      secondaryLine: tx.assetTo ? `+${formatTokenAmount(tx.amountTo)} ${tx.assetTo}` : undefined,
       valueLine: `${meta.sign}${format(tx.valueUSD)}`,
       statusLabel: status.label,
       rows,
@@ -288,11 +289,11 @@ export function TransactionReceipt({ tx, open, onClose }: TransactionReceiptProp
               </div>
               <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginBottom: 4 }}>{meta.label}</p>
               <p style={{ color: meta.color, fontSize: 32, fontWeight: 800, letterSpacing: -1 }}>
-                {meta.sign}{tx.amount} {tx.asset}
+                {meta.sign}{formatTokenAmount(tx.amount)} {tx.asset}
               </p>
               {tx.assetTo && (
                 <p style={{ color: 'var(--positive)', fontSize: 13, fontWeight: 600, marginTop: 2 }}>
-                  +{tx.amountTo} {tx.assetTo}
+                  +{formatTokenAmount(tx.amountTo)} {tx.assetTo}
                 </p>
               )}
               <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 2 }}>

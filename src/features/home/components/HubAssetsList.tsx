@@ -1,3 +1,4 @@
+import { formatTokenAmount } from '../../../shared/utils/formatAmount';
 import { motion } from 'motion/react';
 import type { Asset } from '../../../shared/data/mockData';
 import { AssetIcon } from '../../../shared/components/AssetIcon';
@@ -78,7 +79,7 @@ export function HubAssetsList({ assets, loading, hideSmall, balanceVisible = tru
                 <div className="text-right flex-shrink-0 pl-2">
                   <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>
                     {balanceVisible
-                      ? Number(asset.balance).toLocaleString(undefined, { maximumFractionDigits: 6 })
+                      ? formatTokenAmount(asset.balance)
                       : '••••'}{' '}
                     {asset.symbol}
                   </p>
