@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Mail, Lock, Eye, EyeOff, Check, ArrowRight, Loader, AlertCircle, Gift, User } from 'lucide-react';
+import {  Mail, Lock, Eye, EyeOff, Check, ArrowRight, Loader, AlertCircle, Gift, User , Phone } from 'lucide-react';
 import type { PasswordStrength } from './passwordStrength';
 
 interface CredentialsStepProps {
@@ -8,6 +8,9 @@ interface CredentialsStepProps {
   setEmail: (v: string) => void;
   username?: string;
   setUsername?: (v: string) => void;
+  usernameStatus?: 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
+  phone?: string;
+  setPhone?: (v: string) => void;
   referralCode?: string;
   setReferralCode?: (v: string) => void;
   password: string;
@@ -35,6 +38,9 @@ export function CredentialsStep({
   setEmail,
   username = '',
   setUsername,
+  usernameStatus = 'idle',
+  phone = '',
+  setPhone,
   referralCode = '',
   setReferralCode,
   password,
@@ -102,6 +108,19 @@ export function CredentialsStep({
           />
         )}
 
+        {isSignup && setUsername && usernameStatus !== 'idle' && (
+          <p className="px-1 -mt-2" style={{ fontSize: 12, fontWeight: 600, color:
+            usernameStatus === 'available' ? 'var(--positive)' :
+            usernameStatus === 'checking' ? 'var(--muted-foreground)' :
+            'var(--destructive)'
+          }}>
+            {usernameStatus === 'checking' && 'Checking username…'}
+            {usernameStatus === 'available' && 'Username is available'}
+            {usernameStatus === 'taken' && 'Username is taken'}
+            {usernameStatus === 'invalid' && 'Use 3–24 letters, numbers, or _'}
+          </p>
+        )}
+
         {!isForgot && (
           <Field
             icon={<Lock size={17} style={{ color: 'var(--muted-foreground)' }} />}
@@ -119,6 +138,17 @@ export function CredentialsStep({
                 )}
               </button>
             }
+          />
+        )}
+
+        {isSignup && setPhone && (
+          <Field
+            icon={<Phone size={17} style={{ color: 'var(--muted-foreground)' }} />}
+            type="tel"
+            placeholder="Phone number"
+            value={phone}
+            onChange={setPhone}
+            autoComplete="tel"
           />
         )}
 

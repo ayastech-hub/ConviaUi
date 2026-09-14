@@ -46,3 +46,19 @@ export function usernameFromEmail(email: string): string {
   if (cleaned.length < 3) cleaned = `${cleaned}_user`;
   return cleaned.slice(0, 24);
 }
+
+
+export function checkUsernameAvailable(username: string) {
+  return api.get<{ username: string; available: boolean }>(
+    `/auth/username-available?username=${encodeURIComponent(username)}`,
+    { auth: false },
+  );
+}
+
+export function sendEmailOtp(email: string) {
+  return api.post<{ status: string; devCode?: string }>('/auth/email/send-otp', { email }, { auth: false });
+}
+
+export function verifyEmailOtp(email: string, code: string) {
+  return api.post<{ verified: boolean }>('/auth/email/verify-otp', { email, code }, { auth: false });
+}

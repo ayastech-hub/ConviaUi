@@ -1,10 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ConviaLogo } from '../../../shared/components/ConviaLogo';
 import type { Screen } from '../../../shared/data/mockData';
 import { passwordStrength } from '../components/passwordStrength';
 import { CredentialsStep } from '../components/CredentialsStep';
-import { PhoneStep } from '../components/PhoneStep';
 import { OtpStep } from '../components/OtpStep';
 import { AuthSuccessView } from '../components/AuthSuccessView';
 import { useLanguage } from '../../../shared/context/LanguageContext';
@@ -24,13 +23,14 @@ interface AuthScreenProps {
   switchTab: (s: Screen) => void;
 }
 
-type Step = 'credentials' | 'phone' | 'otp';
+type Step = 'credentials' | 'otp';
 
 export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProps) {
   const { t } = useLanguage();
   const { login, register } = useAuth();
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
+  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle');
   const [referralCode, setReferralCode] = useState(() => {
     try {
       const pathMatch = (window.location.pathname || '').match(/^\/ref\/([A-Za-z0-9_-]+)/i);
@@ -53,6 +53,29 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
 
   const strength = useMemo(() => passwordStrength(password), [password]);
 
+  // Live username availability
+  useEffect(() => {
+    if (mode !== 'signup') return;
+    const u = username.trim().toLowerCase();
+    if (!u) {
+      setUsernameStatus('idle');
+      return;
+    }
+    if (!/^[a-z0-9_]{3,24}$/i.test(u)) {
+      setUsernameStatus(u.length < 3 ? 'idle' : 'invalid');
+      return;
+    }
+    setUsernameStatus('checking');
+    const tmr = setTimeout(() => {
+      void authApi
+        .checkUsernameAvailable(u)
+        .then((r) => setUsernameStatus(r.available ? 'available' : 'taken'))
+        .catch(() => setUsernameStatus('idle'));
+    }, 400);
+    return () => clearTimeout(tmr);
+  }, [username, mode]);
+
+
   const finishWithSuccess = (delay: number) => {
     setLoading(true);
     setTimeout(() => {
@@ -71,8 +94,33 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
       if (password !== confirmPassword) { setError('Passwords do not match'); return; }
       if (strength.score < 3) { setError('Password is too weak. Use 8+ chars with upper/lower/numbers/symbols'); return; }
       if (!agreeTerms) { setError('Please accept the Terms of Service to continue'); return; }
-      // Optional phone step still available; registration hits the API after OTP or skip.
-      setStep('phone');
+      if (username.trim() && usernameStatus === 'taken') { setError('That username is taken — pick another'); return; }
+      if (username.trim() && usernameStatus === 'invalid') { setError('Username must be 3–24 letters, numbers, or _'); return; }
+      setLoading(true);
+      try {
+        await authApi.sendEmailOtp(email.trim().toLowerCase());
+        setStep('otp');
+        setOtp(['', '', '', '', '', '']);
+      } catch (err) {
+        if (err instanceof ApiError) {
+          const code = String(err.code || err.body?.code || '').toLowerCase();
+          if (code.includes('email_taken') || code.includes('already')) {
+            setError('This email is already registered. Try signing in.');
+          } else if (err.status === 503 || err.status === 501) {
+            // OTP provider down — register directly
+            await completeSignup();
+            return;
+          } else {
+            setError(String(err.body?.message || err.message || 'Could not send verification code'));
+          }
+        } else {
+          // Network / unknown — try direct register
+          await completeSignup();
+          return;
+        }
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 
@@ -150,39 +198,37 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
     }
   };
 
-  const handlePhoneSubmit = async () => {
-    if (!phone || phone.length < 8) { setError('Please enter a valid phone number'); return; }
-    setError('');
-    setLoading(true);
-    try {
-      await authApi.sendPhoneOtp(phone);
-      setStep('otp');
-    } catch (err) {
-      // If phone OTP is not configured on the backend, fall through to email registration.
-      if (err instanceof ApiError && (err.status === 501 || err.status === 503)) {
-        await completeSignup();
-        return;
-      }
-      // Still allow signup without phone verification when provider is down
-      await completeSignup();
-      return;
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleOtpSubmit = async () => {
     if (otp.some((d) => !d)) { setError('Please enter all 6 digits'); return; }
     setError('');
     setLoading(true);
     try {
-      // Prefer completing email registration (backend register is the primary path).
-      // Phone verify-otp creates sessions for phone-first users; we still register email account.
+      const code = otp.join('');
+      try {
+        await authApi.verifyEmailOtp(email.trim().toLowerCase(), code);
+      } catch (err) {
+        if (err instanceof ApiError && (err.code === 'otp_invalid' || err.status === 401)) {
+          setError('Invalid or expired code. Try again or resend.');
+          setLoading(false);
+          return;
+        }
+        // If verify endpoint missing (old deploy), continue to register
+      }
       await completeSignup();
     } catch (err) {
       const msg = err instanceof ApiError ? (err.body.message || err.code) : 'Verification failed';
       setError(String(msg));
       setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setError('');
+    try {
+      await authApi.sendEmailOtp(email.trim().toLowerCase());
+      setOtp(['', '', '', '', '', '']);
+    } catch {
+      setError('Could not resend code. Try again.');
     }
   };
 
@@ -229,6 +275,8 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
               mode={mode}
               email={email} setEmail={setEmail}
               username={username} setUsername={setUsername}
+              usernameStatus={usernameStatus}
+              phone={phone} setPhone={setPhone}
               referralCode={referralCode} setReferralCode={setReferralCode}
               password={password} setPassword={setPassword}
               confirmPassword={confirmPassword} setConfirmPassword={setConfirmPassword}
@@ -245,12 +293,8 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
             />
           )}
 
-          {step === 'phone' && (
-            <PhoneStep phone={phone} setPhone={setPhone} error={error} onSubmit={handlePhoneSubmit} />
-          )}
-
           {step === 'otp' && (
-            <OtpStep phone={phone} otp={otp} setOtp={setOtp} loading={loading} error={error} onSubmit={handleOtpSubmit} />
+            <OtpStep email={email} otp={otp} setOtp={setOtp} loading={loading} error={error} onSubmit={handleOtpSubmit} onResend={handleResendOtp} />
           )}
         </AnimatePresence>
       </div>
