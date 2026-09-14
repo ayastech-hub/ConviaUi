@@ -1,3 +1,4 @@
+import { PhoneCountryField } from './PhoneCountryField';
 import { motion } from 'motion/react';
 import {  Mail, Lock, Eye, EyeOff, Check, ArrowRight, Loader, AlertCircle, Gift, User , Phone } from 'lucide-react';
 import type { PasswordStrength } from './passwordStrength';
@@ -9,8 +10,12 @@ interface CredentialsStepProps {
   username?: string;
   setUsername?: (v: string) => void;
   usernameStatus?: 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
-  phone?: string;
-  setPhone?: (v: string) => void;
+  phoneNational?: string;
+  setPhoneNational?: (v: string) => void;
+  phoneCountry?: import('./phoneCountries').PhoneCountry;
+  setPhoneCountry?: (c: import('./phoneCountries').PhoneCountry) => void;
+  onPhoneE164?: (e164: string) => void;
+  emailStatus?: 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
   referralCode?: string;
   setReferralCode?: (v: string) => void;
   password: string;
@@ -39,8 +44,12 @@ export function CredentialsStep({
   username = '',
   setUsername,
   usernameStatus = 'idle',
-  phone = '',
-  setPhone,
+  phoneNational = '',
+  setPhoneNational,
+  phoneCountry,
+  setPhoneCountry,
+  onPhoneE164,
+  emailStatus = 'idle',
   referralCode = '',
   setReferralCode,
   password,
@@ -97,6 +106,19 @@ export function CredentialsStep({
           autoComplete="email"
         />
 
+        {isSignup && emailStatus !== 'idle' && (
+          <p className="px-1 -mt-2" style={{ fontSize: 12, fontWeight: 600, color:
+            emailStatus === 'available' ? 'var(--positive)' :
+            emailStatus === 'checking' ? 'var(--muted-foreground)' :
+            'var(--destructive)'
+          }}>
+            {emailStatus === 'checking' && 'Checking email…'}
+            {emailStatus === 'available' && 'Email is available'}
+            {emailStatus === 'taken' && 'Email is already registered — sign in'}
+            {emailStatus === 'invalid' && 'Enter a valid email'}
+          </p>
+        )}
+
         {isSignup && setUsername && (
           <Field
             icon={<User size={17} style={{ color: 'var(--muted-foreground)' }} />}
@@ -141,14 +163,13 @@ export function CredentialsStep({
           />
         )}
 
-        {isSignup && setPhone && (
-          <Field
-            icon={<Phone size={17} style={{ color: 'var(--muted-foreground)' }} />}
-            type="tel"
-            placeholder="Phone number"
-            value={phone}
-            onChange={setPhone}
-            autoComplete="tel"
+        {isSignup && setPhoneNational && phoneCountry && setPhoneCountry && (
+          <PhoneCountryField
+            national={phoneNational}
+            onNationalChange={setPhoneNational}
+            country={phoneCountry}
+            onCountryChange={setPhoneCountry}
+            onE164Change={onPhoneE164}
           />
         )}
 

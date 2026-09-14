@@ -11,6 +11,7 @@ import { useAuth } from '../../../shared/context/AuthContext';
 import { ApiError } from '../../../shared/api/types';
 import * as authApi from '../../../shared/api/auth';
 import { PageTop } from '../../../shared/components/PageTop';
+import { countryFromIso, type PhoneCountry } from '../components/phoneCountries';
 
 // Native biometric login (`BiometricStep`) intentionally not imported here —
 // see the comment at the top of `../components/BiometricStep.tsx` for why.
@@ -42,7 +43,10 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
   });
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phoneNational, setPhoneNational] = useState('');
+  const [phoneCountry, setPhoneCountry] = useState<PhoneCountry>(() => countryFromIso('NG'));
+  const [phoneE164, setPhoneE164] = useState('');
+  const [emailStatus, setEmailStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -52,6 +56,22 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
   const [agreeTerms, setAgreeTerms] = useState(false);
 
   const strength = useMemo(() => passwordStrength(password), [password]);
+
+
+  useEffect(() => {
+    if (mode !== 'signup') return;
+    const e = email.trim().toLowerCase();
+    if (!e) { setEmailStatus('idle'); return; }
+    if (!e.includes('@') || e.length < 5) { setEmailStatus(e.includes('@') ? 'invalid' : 'idle'); return; }
+    setEmailStatus('checking');
+    const tmr = setTimeout(() => {
+      void authApi
+        .checkEmailAvailable(e)
+        .then((r) => setEmailStatus(r.available ? 'available' : 'taken'))
+        .catch(() => setEmailStatus('idle'));
+    }, 450);
+    return () => clearTimeout(tmr);
+  }, [email, mode]);
 
   // Live username availability
   useEffect(() => {
@@ -94,6 +114,7 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
       if (password !== confirmPassword) { setError('Passwords do not match'); return; }
       if (strength.score < 3) { setError('Password is too weak. Use 8+ chars with upper/lower/numbers/symbols'); return; }
       if (!agreeTerms) { setError('Please accept the Terms of Service to continue'); return; }
+      if (emailStatus === 'taken') { setError('This email is already registered. Sign in instead.'); return; }
       if (username.trim() && usernameStatus === 'taken') { setError('That username is taken — pick another'); return; }
       if (username.trim() && usernameStatus === 'invalid') { setError('Username must be 3–24 letters, numbers, or _'); return; }
       setLoading(true);
@@ -179,6 +200,7 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
       if (referralCode.trim()) {
         try { localStorage.setItem('convia_ref', referralCode.trim()); } catch { /* ignore */ }
       }
+      void phoneE164; // stored for profile phone update after register when API supports it
       await register(email, password, username.trim() || undefined, referralCode.trim() || undefined);
       setSuccess(true);
       setTimeout(() => switchTab('home'), 800);
@@ -276,7 +298,12 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
               email={email} setEmail={setEmail}
               username={username} setUsername={setUsername}
               usernameStatus={usernameStatus}
-              phone={phone} setPhone={setPhone}
+              emailStatus={emailStatus}
+              phoneNational={phoneNational}
+              setPhoneNational={setPhoneNational}
+              phoneCountry={phoneCountry}
+              setPhoneCountry={setPhoneCountry}
+              onPhoneE164={setPhoneE164}
               referralCode={referralCode} setReferralCode={setReferralCode}
               password={password} setPassword={setPassword}
               confirmPassword={confirmPassword} setConfirmPassword={setConfirmPassword}

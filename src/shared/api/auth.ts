@@ -62,3 +62,11 @@ export function sendEmailOtp(email: string) {
 export function verifyEmailOtp(email: string, code: string) {
   return api.post<{ verified: boolean }>('/auth/email/verify-otp', { email, code }, { auth: false });
 }
+
+
+export function checkEmailAvailable(email: string) {
+  return api.get<{ email: string; available: boolean }>(
+    `/auth/email-available?email=${encodeURIComponent(email)}`,
+    { auth: false },
+  );
+}
