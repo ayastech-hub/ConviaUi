@@ -55,8 +55,12 @@ export function checkUsernameAvailable(username: string) {
   );
 }
 
-export function sendEmailOtp(email: string) {
-  return api.post<{ status: string; devCode?: string }>('/auth/email/send-otp', { email }, { auth: false });
+export function sendEmailOtp(email: string, purpose: 'signup' | 'login' | 'reset' = 'signup') {
+  return api.post<{ status: string; provider?: string }>(
+    '/auth/email/send-otp',
+    { email, purpose },
+    { auth: false },
+  );
 }
 
 export function verifyEmailOtp(email: string, code: string) {
