@@ -1,6 +1,6 @@
-import { motion } from 'motion/react';
-import { Loader, CheckCircle2, Copy, Check, Building2 } from 'lucide-react';
-import { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Loader, CheckCircle2, Copy, Check, Clock } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import type { Currency } from '../../../../shared/context/CurrencyContext';
 
 interface OnRampProcessingStepProps {
@@ -14,13 +14,76 @@ interface OnRampProcessingStepProps {
   reference?: string;
   expiresAt?: string | null;
   checking?: boolean;
+  toast?: string | null;
+  onDismissToast?: () => void;
   onConfirmPaid?: () => void;
 }
 
-/**
- * After order create: show real transfer details + expiry + "I've paid".
- * Never a bare infinite spinner when we have a VA.
- */
+function CopyRow({
+  label,
+  value,
+  emphasize,
+}: {
+  label: string;
+  value: string;
+  emphasize?: boolean;
+}) {
+  const [copied, setCopied] = useState(false);
+  if (!value || value === '—') {
+    return (
+      <div className="py-3" style={{ borderTop: '1px solid var(--border)' }}>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 600 }}>{label}</p>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 14 }}>—</p>
+      </div>
+    );
+  }
+  return (
+    <div
+      className="flex items-center justify-between gap-3 py-3"
+      style={{ borderTop: '1px solid var(--border)' }}
+    >
+      <div className="min-w-0">
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 600 }}>{label}</p>
+        <p
+          className="tabular-nums break-all"
+          style={{
+            color: 'var(--foreground)',
+            fontWeight: emphasize ? 800 : 650,
+            fontSize: emphasize ? 20 : 15,
+            letterSpacing: emphasize ? -0.3 : 0,
+          }}
+        >
+          {value}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={async () => {
+          try {
+            await navigator.clipboard.writeText(value);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1400);
+          } catch {
+            /* ignore */
+          }
+        }}
+        className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+        style={{
+          background: 'var(--liquid-chip-off-bg, var(--muted))',
+          border: '1px solid var(--border)',
+        }}
+        aria-label={`Copy ${label}`}
+      >
+        {copied ? (
+          <Check size={15} style={{ color: 'var(--primary)' }} />
+        ) : (
+          <Copy size={15} style={{ color: 'var(--muted-foreground)' }} />
+        )}
+      </button>
+    </div>
+  );
+}
+
 export function OnRampProcessingStep({
   currency,
   amount,
@@ -32,165 +95,149 @@ export function OnRampProcessingStep({
   reference,
   expiresAt,
   checking,
+  toast,
+  onDismissToast,
   onConfirmPaid,
 }: OnRampProcessingStepProps) {
-  const [copied, setCopied] = useState<string | null>(null);
   const hasVa = Boolean(accountNumber);
 
-  const copy = async (key: string, value: string) => {
-    if (!value) return;
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(key);
-      setTimeout(() => setCopied(null), 1500);
-    } catch {
-      /* ignore */
-    }
-  };
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => onDismissToast?.(), 4000);
+    return () => clearTimeout(t);
+  }, [toast, onDismissToast]);
 
   const expiryLabel = (() => {
     if (!expiresAt) return null;
     const d = new Date(expiresAt);
     if (Number.isNaN(d.getTime())) return String(expiresAt);
-    return d.toLocaleString(undefined, {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    });
+    return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
   })();
 
-  // Creating order / waiting for provider — short spinner only until VA arrives
   if (!hasVa) {
     return (
       <motion.div
-        key="processing-wait"
+        key="wait"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="flex flex-col items-center justify-center py-20 px-5"
+        className="flex flex-col items-center justify-center py-24"
       >
         <div
           className="w-14 h-14 rounded-full flex items-center justify-center"
           style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
         >
-          <Loader size={24} className="animate-spin" style={{ color: 'var(--foreground)' }} />
+          <Loader size={22} className="animate-spin" style={{ color: 'var(--foreground)' }} />
         </div>
-        <p style={{ color: 'var(--foreground)', fontWeight: 700, marginTop: 16, fontSize: 16 }}>
-          Creating payment account…
-        </p>
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginTop: 6, textAlign: 'center' }}>
-          This only takes a moment
-        </p>
+        <p style={{ color: 'var(--foreground)', fontWeight: 700, marginTop: 16 }}>Creating account…</p>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginTop: 6 }}>Usually a few seconds</p>
       </motion.div>
     );
   }
 
-  const rows: Array<{ key: string; label: string; value: string; large?: boolean }> = [
-    { key: 'bank', label: 'Bank', value: bankName || '—' },
-    { key: 'acct', label: 'Account number', value: accountNumber || '—', large: true },
-    { key: 'name', label: 'Account name', value: accountName || '—' },
-    { key: 'ref', label: 'Reference', value: reference || '—' },
-    {
-      key: 'amt',
-      label: 'Amount to transfer',
-      value: `${Number(amount).toLocaleString(undefined, { maximumFractionDigits: 2 })} ${currency.code}`,
-      large: true,
-    },
-  ];
+  const amt = `${Number(amount).toLocaleString(undefined, { maximumFractionDigits: 2 })} ${currency.code}`;
 
   return (
-    <motion.div
-      key="processing-va"
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col pb-8"
-    >
-      <div className="flex items-center gap-2 mb-2">
-        <Building2 size={18} style={{ color: 'var(--foreground)' }} />
-        <h3 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 18 }}>Transfer details</h3>
-      </div>
-      <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginBottom: 14, lineHeight: 1.45 }}>
-        Send exactly this amount. You receive about{' '}
-        <span className="tabular-nums" style={{ color: 'var(--foreground)', fontWeight: 600 }}>
+    <motion.div key="va" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="pb-10 relative">
+      {/* Bottom toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            className="fixed left-4 right-4 z-50 mx-auto"
+            style={{ bottom: 'max(24px, env(safe-area-inset-bottom))', maxWidth: 420 }}
+          >
+            <div
+              className="rounded-2xl px-4 py-3.5 flex items-start gap-3"
+              style={{
+                background: 'var(--card)',
+                border: '1px solid var(--border)',
+                boxShadow: '0 12px 40px rgba(0,0,0,0.35)',
+              }}
+            >
+              <Clock size={18} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--warning, #f59e0b)' }} />
+              <div className="min-w-0 flex-1">
+                <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 13 }}>Not confirmed yet</p>
+                <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 2, lineHeight: 1.4 }}>
+                  {toast}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onDismissToast}
+                style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }}
+              >
+                OK
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <p style={{ color: 'var(--muted-foreground)', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+        Bank transfer
+      </p>
+      <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22, letterSpacing: -0.4, marginBottom: 6 }}>
+        Pay {amt}
+      </h2>
+      <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginBottom: 18, lineHeight: 1.45 }}>
+        Transfer the exact amount. You receive about{' '}
+        <span className="tabular-nums" style={{ color: 'var(--foreground)', fontWeight: 700 }}>
           {youGet.toLocaleString(undefined, { maximumFractionDigits: 6 })} {symbol}
-        </span>{' '}
-        when payment confirms.
+        </span>
+        .
       </p>
 
       {expiryLabel && (
         <div
-          className="rounded-xl px-3 py-2.5 mb-3"
-          style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+          className="flex items-center gap-2.5 rounded-2xl px-3.5 py-3 mb-4"
+          style={{
+            background: 'color-mix(in oklab, var(--warning, #f59e0b) 10%, var(--card))',
+            border: '1px solid color-mix(in oklab, var(--warning, #f59e0b) 28%, var(--border))',
+          }}
         >
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 600 }}>Expires</p>
-          <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14 }}>{expiryLabel}</p>
+          <Clock size={16} style={{ color: 'var(--warning, #f59e0b)' }} />
+          <div>
+            <p style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 600 }}>Account expires</p>
+            <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 13 }}>{expiryLabel}</p>
+          </div>
         </div>
       )}
 
       <div
-        className="rounded-[20px] p-4 mb-4"
+        className="rounded-[22px] px-4 mb-5"
         style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
       >
-        {rows.map((r) => (
-          <div
-            key={r.key}
-            className="flex items-center justify-between py-2.5 gap-3"
-            style={{ borderTop: r.key === 'bank' ? undefined : '1px solid var(--border)' }}
-          >
-            <div className="min-w-0">
-              <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>{r.label}</p>
-              <p
-                className="tabular-nums break-all"
-                style={{
-                  color: 'var(--foreground)',
-                  fontWeight: r.large ? 800 : 600,
-                  fontSize: r.large ? 18 : 14,
-                }}
-              >
-                {r.value}
-              </p>
-            </div>
-            {r.value && r.value !== '—' && (
-              <button
-                type="button"
-                onClick={() => void copy(r.key, r.value)}
-                className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: 'var(--muted)' }}
-                aria-label={`Copy ${r.label}`}
-              >
-                {copied === r.key ? (
-                  <Check size={14} style={{ color: 'var(--primary)' }} />
-                ) : (
-                  <Copy size={14} style={{ color: 'var(--muted-foreground)' }} />
-                )}
-              </button>
-            )}
-          </div>
-        ))}
+        <CopyRow label="Bank" value={bankName || '—'} />
+        <CopyRow label="Account number" value={accountNumber || '—'} emphasize />
+        <CopyRow label="Account name" value={accountName || '—'} />
+        <CopyRow label="Reference" value={reference || '—'} />
+        <CopyRow label="Amount" value={amt} emphasize />
       </div>
 
-      {onConfirmPaid && (
-        <button
-          type="button"
-          disabled={!!checking}
-          onClick={onConfirmPaid}
-          className="w-full py-4 rounded-full font-bold text-[15px]"
-          style={{
-            background: 'var(--primary)',
-            color: 'var(--primary-foreground, #fff)',
-            opacity: checking ? 0.75 : 1,
-          }}
-        >
-          {checking ? (
-            <span className="inline-flex items-center justify-center gap-2">
-              <Loader size={16} className="animate-spin" />
-              Checking payment…
-            </span>
-          ) : (
-            "I've paid"
-          )}
-        </button>
-      )}
-      <p style={{ color: 'var(--muted-foreground)', fontSize: 12, textAlign: 'center', marginTop: 12 }}>
-        After you transfer, tap I&apos;ve paid. Credit appears when the bank confirms.
+      <button
+        type="button"
+        disabled={!!checking}
+        onClick={onConfirmPaid}
+        className="w-full py-4 rounded-full font-bold text-[15px] flex items-center justify-center gap-2"
+        style={{
+          background: 'var(--primary)',
+          color: 'var(--primary-foreground, #fff)',
+          opacity: checking ? 0.8 : 1,
+        }}
+      >
+        {checking ? (
+          <>
+            <Loader size={16} className="animate-spin" />
+            Checking payment…
+          </>
+        ) : (
+          "I've paid"
+        )}
+      </button>
+      <p style={{ color: 'var(--muted-foreground)', fontSize: 12, textAlign: 'center', marginTop: 12, lineHeight: 1.4 }}>
+        After your bank transfer, tap I&apos;ve paid. We credit when the payment is confirmed.
       </p>
     </motion.div>
   );
@@ -208,21 +255,24 @@ export function OnRampDoneStep({ youGet, symbol, onDone }: OnRampDoneStepProps) 
       key="done"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col items-center py-16 px-5 text-center"
+      className="flex flex-col items-center py-16 px-1 text-center"
     >
       <div
         className="w-16 h-16 rounded-full flex items-center justify-center mb-5"
-        style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+        style={{
+          background: 'color-mix(in oklab, var(--primary) 14%, var(--card))',
+          border: '1px solid color-mix(in oklab, var(--primary) 30%, var(--border))',
+        }}
       >
         <CheckCircle2 size={32} style={{ color: 'var(--primary)' }} />
       </div>
-      <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20, marginBottom: 8 }}>
-        Deposit received
+      <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22, marginBottom: 8 }}>
+        Payment confirmed
       </h2>
-      <p className="tabular-nums" style={{ color: 'var(--foreground)', fontSize: 24, fontWeight: 700 }}>
-        {youGet.toLocaleString(undefined, { maximumFractionDigits: 6 })} {symbol}
+      <p className="tabular-nums" style={{ color: 'var(--foreground)', fontSize: 26, fontWeight: 800, letterSpacing: -0.5 }}>
+        +{youGet.toLocaleString(undefined, { maximumFractionDigits: 6 })} {symbol}
       </p>
-      <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginTop: 6, marginBottom: 28 }}>
+      <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginTop: 8, marginBottom: 28 }}>
         Your balance has been updated
       </p>
       <motion.button

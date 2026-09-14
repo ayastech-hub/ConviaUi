@@ -13,7 +13,7 @@ import { useAuth } from '../../../shared/context/AuthContext';
 import { useAccountGates } from '../../../shared/hooks/useAccountGates';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import * as fiatApi from '../../../shared/api/fiat';
-import { createCardPayment, refreshPayment } from '../../../shared/api/fiat';
+import { createCardPayment, refreshPayment, getLocalOnrampOrder } from '../../../shared/api/fiat';
 import type { LocalOnrampOrder, LocalOnrampQuote } from '../../../shared/api/fiat';
 import { ApiError } from '../../../shared/api/types';
 import { queryClient, queryKeys } from '../../../shared/query/queryClient';
@@ -23,6 +23,7 @@ import { BackButton } from '../../../shared/components/BackButton';
 import { localFiatForCountry } from '../../../shared/lib/countryFiat';
 import { useMyProfile } from '../../../shared/hooks/useMyProfile';
 import { getRate } from '../../../shared/rates/fx';
+import { fetchTransactions } from '../../../shared/api/transactions';
 
 interface OnRampScreenProps {
   goBack: () => void;
@@ -70,6 +71,7 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
   const [quoting, setQuoting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [checkingPaid, setCheckingPaid] = useState(false);
+  const [paidToast, setPaidToast] = useState<string | null>(null);
 
   useEffect(() => {
     if (!presetSymbol || !cryptoAssets.length) return;
@@ -258,34 +260,58 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
   const checkPaid = async () => {
     if (!userId || checkingPaid) return;
     setCheckingPaid(true);
+    setPaidToast(null);
     setApiError(null);
     try {
-      // Prefer live history — webhook credits as fiat_onramp when Monnify confirms
+      // Primary: order status by depositRequest id
+      if (order?.orderId) {
+        const st = await getLocalOnrampOrder(order.orderId);
+        if (st.credited) {
+          void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.transactions(userId, 50) });
+          setStep('done');
+          return;
+        }
+        setPaidToast(
+          'We have not received this transfer yet. Complete the bank payment, wait a minute, then try again.',
+        );
+        return;
+      }
+      // Fallback: recent history
       const hist = await fetchTransactions(userId, { limit: 20 });
       const items = hist.transactions || [];
       const expected = Number(order?.quote?.netCrypto || youGet) || 0;
       const hit = items.find((it) => {
-        const type = String(it.type || '').toLowerCase();
+        const type = String((it as { type?: string }).type || '').toLowerCase();
         const okType = type.includes('onramp') || type.includes('deposit') || type.includes('fiat');
-        const amt = Number(it.amount) || 0;
-        const assetOk = !it.asset || it.asset.toUpperCase() === selectedAsset.symbol.toUpperCase();
-        return okType && assetOk && (expected <= 0 || Math.abs(amt - expected) < expected * 0.05 + 0.001);
+        const amt = Number((it as { amount?: string }).amount) || 0;
+        const assetOk =
+          !(it as { asset?: string }).asset ||
+          String((it as { asset?: string }).asset).toUpperCase() === selectedAsset.symbol.toUpperCase();
+        const status = String((it as { status?: string }).status || '').toLowerCase();
+        return (
+          okType &&
+          assetOk &&
+          status !== 'failed' &&
+          (expected <= 0 || Math.abs(amt - expected) < expected * 0.05 + 0.001)
+        );
       });
-      if (hit && String(hit.status || '').toLowerCase() !== 'failed') {
+      if (hit) {
         void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
         void queryClient.invalidateQueries({ queryKey: queryKeys.transactions(userId, 50) });
         setStep('done');
         return;
       }
-      setApiError({
-        message: 'Payment not confirmed yet. Transfer the exact amount, wait a minute, then try again.',
-      });
+      setPaidToast(
+        'Payment not confirmed yet. Transfer the exact amount, wait for the bank, then try again.',
+      );
     } catch {
-      setApiError({ message: 'Could not verify payment yet. Try again shortly.' });
+      setPaidToast('Could not verify payment right now. Try again in a moment.');
     } finally {
       setCheckingPaid(false);
     }
   };
+
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
@@ -380,6 +406,8 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
                 || (order as { expiresAt?: string } | null)?.expiresAt
                 || null}
               checking={checkingPaid}
+              toast={paidToast}
+              onDismissToast={() => setPaidToast(null)}
               onConfirmPaid={() => void checkPaid()}
             />
           )}

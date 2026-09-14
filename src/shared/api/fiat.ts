@@ -163,3 +163,20 @@ export function getPayment(id: string) {
 export function refreshPayment(id: string) {
   return api.post<PaymentIntent>(`/payments/${id}/refresh`, {});
 }
+
+export type LocalOnrampOrderStatus = {
+  orderId: string;
+  status: string;
+  credited: boolean;
+  asset: string;
+  amount: string;
+  fiatAmount?: string | null;
+  currency?: string | null;
+  reference?: string | null;
+  updatedAt?: string;
+};
+
+/** Poll depositRequest after user taps I've paid. */
+export function getLocalOnrampOrder(orderId: string) {
+  return api.get<LocalOnrampOrderStatus>(`/fiat/local/onramp/${encodeURIComponent(orderId)}`);
+}
