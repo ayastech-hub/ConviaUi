@@ -6,7 +6,7 @@ Frontend for Convia — Africa's financial universe (crypto wallet, swap, fiat o
 
 Feature/domain layout. See [ARCHITECTURE.md](./ARCHITECTURE.md).
 
-## Live API integration
+## Live API integrationy
 
 Backend: [coviaBackend](https://github.com/ayastech-hub/coviaBackend)
 
