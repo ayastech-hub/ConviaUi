@@ -15,7 +15,7 @@ type AssetIconProps = SvgProps & {
 const IMAGE_URL_OVERRIDES: Record<string, string> = {
   AERO: "https://coin-images.coingecko.com/coins/images/31745/large/token.png",
   JUP: "https://coin-images.coingecko.com/coins/images/34188/large/jup.png",
-  NOT: "https://coin-images.coingecko.com/coins/images/35375/large/notcoin.jpg",
+  NOT: "https://s2.coinmarketcap.com/static/img/coins/64x64/28850.png", // Updated to CoinMarketCap to fix CORS block
   TON: "https://coin-images.coingecko.com/coins/images/17980/large/ton_symbol.png",
   GRAM: "https://coin-images.coingecko.com/coins/images/33784/large/gram.png",
   POL: "https://coin-images.coingecko.com/coins/images/32440/large/polygon.png",
