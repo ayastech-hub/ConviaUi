@@ -217,6 +217,15 @@ export function OnRampFormStep({
         )}
         {!quoting && (
           <>
+            {quote?.fiatAmount != null && (
+              <div className="flex justify-between">
+                <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>You pay</span>
+                <span className="tabular-nums" style={{ color: 'var(--foreground)', fontSize: 15, fontWeight: 800 }}>
+                  {Number(quote.fiatAmount).toLocaleString(undefined, { maximumFractionDigits: 2 })}{' '}
+                  {quote.fiatCurrency || currency.code}
+                </span>
+              </div>
+            )}
             {quote?.rate != null && (
               <div className="flex justify-between">
                 <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Rate</span>
@@ -229,7 +238,9 @@ export function OnRampFormStep({
             <div className="flex justify-between">
               <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Fee</span>
               <span className="tabular-nums" style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: 600 }}>
-                {fee > 0 ? format(fee) : '—'}
+                {fee > 0
+                  ? `${Number(fee).toLocaleString(undefined, { maximumFractionDigits: 6 })} ${selectedAsset.symbol}`
+                  : '—'}
               </span>
             </div>
             <div className="flex justify-between pt-2" style={{ borderTop: '1px solid var(--border)' }}>
@@ -237,13 +248,11 @@ export function OnRampFormStep({
               <span className="tabular-nums" style={{ color: 'var(--primary)', fontSize: 15, fontWeight: 800 }}>
                 {youGet > 0
                   ? `${youGet.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${selectedAsset.symbol}`
-                  : `0 ${selectedAsset.symbol}`}
+                  : '—'}
               </span>
             </div>
           </>
         )}
-      </div>
-
       <PaymentMethodSelector method={paymentMethod} setMethod={setPaymentMethod} />
 
       <div

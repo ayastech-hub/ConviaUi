@@ -82,8 +82,7 @@ export function OnRampReviewStep({
           You pay
         </p>
         <p className="tabular-nums" style={{ color: 'var(--foreground)', fontSize: 28, fontWeight: 800 }}>
-          {currency.symbol}
-          {Number(amount).toLocaleString()}
+          {Number(amount).toLocaleString()} {currency.code}
         </p>
         <div className="flex justify-between mt-4 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
           <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>You receive</span>
@@ -94,7 +93,7 @@ export function OnRampReviewStep({
         <div className="flex justify-between mt-2">
           <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Fee</span>
           <span className="tabular-nums" style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13 }}>
-            {fee > 0 ? format(fee) : '—'}
+            {fee > 0 ? `${Number(fee).toLocaleString(undefined, { maximumFractionDigits: 6 })} ${selectedAsset.symbol}` : '—'}
           </span>
         </div>
       </div>

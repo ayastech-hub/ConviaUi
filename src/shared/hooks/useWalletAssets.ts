@@ -123,10 +123,15 @@ export function useWalletAssets() {
       const price = (mkt?.price && mkt.price > 0 ? mkt.price : 0) || b?.price || a.price || 0;
       const change24h = mkt?.change24h ?? a.change24h ?? 0;
       const qty = b?.qty ?? 0;
+      const ledgerVal = b?.valueUsd;
+      const computed = qty > 0 && price > 0 ? qty * price : 0;
+      // Prefer non-zero: live compute if ledger value missing or zero while we have price
+      const valueUSD =
+        ledgerVal != null && ledgerVal > 0 ? ledgerVal : computed > 0 ? computed : ledgerVal ?? 0;
       return {
         ...a,
         balance: qty,
-        valueUSD: b?.valueUsd ?? (qty > 0 ? qty * price : 0),
+        valueUSD,
         price,
         change24h,
       };
@@ -136,6 +141,7 @@ export function useWalletAssets() {
       if (merged.some((a) => a.symbol === sym)) continue;
       const mkt = marketBySymbol.get(sym);
       const price = (mkt?.price && mkt.price > 0 ? mkt.price : 0) || b.price || 0;
+      const computed = b.qty > 0 && price > 0 ? b.qty * price : 0;
       merged.push({
         id: sym.toLowerCase(),
         symbol: sym,
@@ -143,7 +149,7 @@ export function useWalletAssets() {
         price,
         change24h: mkt?.change24h ?? 0,
         balance: b.qty,
-        valueUSD: b.valueUsd || b.qty * price,
+        valueUSD: (b.valueUsd && b.valueUsd > 0) ? b.valueUsd : computed,
         color: 'var(--foreground)',
         bgColor: 'var(--muted)',
         chains: [],
