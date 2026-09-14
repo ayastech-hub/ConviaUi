@@ -2,7 +2,7 @@
 
 Frontend for Convia — Africa's financial universe (crypto wallet, swap, fiat on/off-ramp, bills, rewards).
 
-## Architectureh
+## Architecture
 
 Feature/domain layout. See [ARCHITECTURE.md](./ARCHITECTURE.md).
 
