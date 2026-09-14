@@ -32,7 +32,14 @@ export function getSwapQuote(params: {
 export function executeSwap(body: {
   userId: string;
   quoteId: string;
+  /** Optional — only needed while production still runs an older PIN-gated build */
+  pin?: string;
 }) {
+  const payload: Record<string, string> = {
+    userId: body.userId,
+    quoteId: body.quoteId,
+  };
+  if (body.pin) payload.pin = body.pin;
   return api.post<{
     transactionId: string;
     quoteId: string;
@@ -44,5 +51,5 @@ export function executeSwap(body: {
     feeBps: number;
     rate: string;
     status: string;
-  }>('/swap/execute', body, { idempotent: true });
+  }>('/swap/execute', payload, { idempotent: true });
 }
