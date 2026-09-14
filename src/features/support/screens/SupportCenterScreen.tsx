@@ -158,19 +158,17 @@ export function SupportCenterScreen({ goBack }: SupportCenterScreenProps) {
       {view === 'agent' && <SupportAgentChat onBack={() => setView('list')} />}
 
       {view === 'list' && (
-        <div className="px-5 mb-3">
-          <button
-            type="button"
-            onClick={() => setView('agent')}
-            className="w-full h-12 rounded-2xl font-bold text-[14px] flex items-center justify-center gap-2"
-            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
-          >
-            Chat with Support Agent
-          </button>
-        </div>
-
-
         <>
+          <div className="px-5 mb-3">
+            <button
+              type="button"
+              onClick={() => setView('agent')}
+              className="w-full h-12 rounded-2xl font-bold text-[14px] flex items-center justify-center gap-2"
+              style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+            >
+              Chat with Support Agent
+            </button>
+          </div>
           <Header
             title="Support Centre"
             onBack={goBack}
