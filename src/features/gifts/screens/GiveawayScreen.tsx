@@ -1,4 +1,5 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import {  useMemo, useState, type ReactNode , useEffect } from 'react';
+// useEffect via hooks
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Gift,
@@ -51,7 +52,11 @@ export function GiveawayScreen({ goBack }: Props) {
   const [detailId, setDetailId] = useState('');
   const [hubKey, setHubKey] = useState(0);
   const [cardTheme, setCardTheme] = useState<CardTheme>('gift');
-  const detail = detailId ? getGift(detailId) : null;
+  const [detail, setDetail] = useState<import('../types').Gift | null>(null);
+  useEffect(() => {
+    if (!detailId) { setDetail(null); return; }
+    void getGift(detailId).then(setDetail);
+  }, [detailId]);
 
   const back = () => {
     if (mode === 'hub') goBack();
@@ -183,7 +188,8 @@ function Hub({
   onJoin: () => void;
   onOpen: (id: string) => void;
 }) {
-  const mine = useMemo(() => listGifts('giveaway').slice(0, 8), []);
+  const [mine, setMine] = useState<import('../types').Gift[]>([]);
+  useEffect(() => { void listGifts('giveaway').then((g) => setMine(g.slice(0, 8))); }, []);
 
   return (
     <div className="px-5 pb-14">
@@ -369,7 +375,8 @@ function CreateForm({ onDone, cardTheme, onOpenTheme }: { onDone: (id: string) =
   const nTotal = Number(total) || 0;
   const per = nSlots > 0 && nTotal > 0 ? nTotal / nSlots : 0;
 
-  const submit = () => {
+  const [submitting, setSubmitting] = useState(false);
+  const submit = async () => {
     if (!(nTotal > 0)) return setError('Enter total amount');
     if (nSlots < 2) return setError('At least 2 participants');
     if (selected && selected.balance > 0 && nTotal > selected.balance) {
@@ -383,18 +390,32 @@ function CreateForm({ onDone, cardTheme, onOpenTheme }: { onDone: (id: string) =
       const opt = EXPIRY.find((e) => e.id === expiry) || EXPIRY[0];
       expiresAt = new Date(Date.now() + opt.ms).toISOString();
     }
-    const gift = createGift({
-      kind: 'giveaway',
-      asset,
-      totalAmount: nTotal,
-      slots: nSlots,
-      note,
-      expiresAt,
-      creatorId: userId || 'local',
-      splitMode: split,
-      cardTheme,
-    });
-    onDone(gift.id);
+    setSubmitting(true);
+    setError('');
+    try {
+      const gift = await createGift({
+        kind: 'giveaway',
+        asset,
+        totalAmount: nTotal,
+        slots: nSlots,
+        note,
+        expiresAt,
+        creatorId: userId || 'local',
+        splitMode: split,
+        cardTheme,
+      });
+      onDone(gift.id);
+    } catch (e: unknown) {
+      const msg =
+        e && typeof e === 'object' && 'body' in e
+          ? String((e as { body?: { message?: string; code?: string } }).body?.message ||
+              (e as { body?: { code?: string } }).body?.code ||
+              'Could not create giveaway')
+          : 'Could not create giveaway';
+      setError(msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -578,7 +599,8 @@ function JoinForm() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState<{ amount: number; asset: string } | null>(null);
   const [scanning, setScanning] = useState(false);
-  const recent = useMemo(() => listRecentClaims(6), [success]);
+  const [recent, setRecent] = useState<Awaited<ReturnType<typeof listRecentClaims>>>([]);
+  useEffect(() => { void listRecentClaims(6).then(setRecent); }, [success]);
 
   const paste = async () => {
     try {
@@ -591,16 +613,22 @@ function JoinForm() {
     }
   };
 
-  const confirm = () => {
+  const [claiming, setClaiming] = useState(false);
+  const confirm = async () => {
     setError('');
     setSuccess(null);
     if (!code.trim()) return setError('Enter a passcode');
-    const res = claimGift(code, userId || 'claimer_local');
-    if (!res.ok) {
-      setError(res.error);
-      return;
+    setClaiming(true);
+    try {
+      const res = await claimGift(code, userId || 'claimer_local');
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      setSuccess({ amount: res.amount, asset: res.gift.asset });
+    } finally {
+      setClaiming(false);
     }
-    setSuccess({ amount: res.amount, asset: res.gift.asset });
   };
 
   return (
@@ -769,8 +797,8 @@ function Detail({ gift: initial, onRefresh }: { gift: Gift; onRefresh: (g: Gift)
     }
   };
 
-  const doCancel = () => {
-    const u = cancelGift(gift.id);
+  const doCancel = async () => {
+    const u = await cancelGift(gift.id);
     if (u) {
       setGift(u);
       onRefresh(u);

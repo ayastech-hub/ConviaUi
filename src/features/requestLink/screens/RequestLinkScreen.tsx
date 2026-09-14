@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import {  useMemo, useState, type ReactNode , useEffect };
 import { motion, AnimatePresence } from 'motion/react';
 import { Link2, Copy, Check, Share2, ChevronDown, ChevronRight } from 'lucide-react';
 import { PageTop } from '../../../shared/components/PageTop';
@@ -28,7 +28,11 @@ export function RequestLinkScreen({ goBack }: Props) {
   const [mode, setMode] = useState<Mode>('hub');
   const [detailId, setDetailId] = useState('');
   const [hubKey, setHubKey] = useState(0);
-  const detail = detailId ? getRequest(detailId) : null;
+  const [detail, setDetail] = useState<PaymentRequest | null>(null);
+  useEffect(() => {
+    if (!detailId) { setDetail(null); return; }
+    void getRequest(detailId).then(setDetail);
+  }, [detailId, mode]);
 
   const back = () => {
     if (mode === 'hub') goBack();
@@ -128,7 +132,8 @@ function Hero({ onCreate }: { onCreate: () => void }) {
 
 function Mine({ onOpen }: { onOpen: (id: string) => void }) {
   const { userId } = useAuth();
-  const list = useMemo(() => listRequests(userId || undefined).slice(0, 12), [userId]);
+  const [list, setList] = useState<PaymentRequest[]>([]);
+  useEffect(() => { void listRequests(userId || undefined).then((r) => setList(r.slice(0, 12))); }, [userId, hubKey]);
   if (!list.length) return null;
   return (
     <div>
@@ -184,7 +189,7 @@ function CreateForm({ onDone }: { onDone: (id: string) => void }) {
   const [error, setError] = useState('');
   const n = Number(amount) || 0;
 
-  const submit = () => {
+  const submit = async () => {
     if (!(n > 0)) return setError('Enter an amount');
     let expiresAt: string;
     if (customDate) {
@@ -193,15 +198,25 @@ function CreateForm({ onDone }: { onDone: (id: string) => void }) {
       const opt = EXPIRY.find((e) => e.id === expiry) || EXPIRY[1];
       expiresAt = new Date(Date.now() + opt.ms).toISOString();
     }
-    const req = createRequest({
-      asset,
-      amount: n,
-      note,
-      expiresAt,
-      creatorId: userId || 'local',
-      creatorLabel: userId ? `user ${userId.slice(0, 6)}` : 'Convia user',
-    });
-    onDone(req.id);
+    setError('');
+    try {
+      const req = await createRequest({
+        asset,
+        amount: n,
+        note,
+        expiresAt,
+        creatorId: userId || 'local',
+      });
+      onDone(req.id);
+    } catch (e: unknown) {
+      const msg =
+        e && typeof e === 'object' && 'body' in e
+          ? String((e as { body?: { message?: string; code?: string } }).body?.message ||
+              (e as { body?: { code?: string } }).body?.code ||
+              'Could not create request')
+          : 'Could not create request';
+      setError(msg);
+    }
   };
 
   return (
@@ -326,7 +341,7 @@ function Detail({ req: initial, onUpdate }: { req: PaymentRequest; onUpdate: (r:
   };
 
   const doCancel = () => {
-    const u = cancelRequest(req.id);
+    const u = await cancelRequest(req.id);
     if (u) {
       setReq(u);
       onUpdate(u);

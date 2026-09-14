@@ -1,40 +1,14 @@
+import * as giveawaysApi from '../../shared/api/giveaways';
+import type { ApiGiveaway } from '../../shared/api/giveaways';
 import type { CardTheme, Gift, GiftKind, SplitMode } from './types';
-import { refreshStatus, remainingAmount, remainingSlots } from './types';
+import { refreshStatus } from './types';
 
-const KEY = 'convia.gifts.v1';
-
-function read(): Gift[] {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return [];
-    const list = JSON.parse(raw) as Gift[];
-    return (Array.isArray(list) ? list : []).map((g) =>
-      refreshStatus({
-        ...g,
-        claims: g.claims || [],
-        splitMode: g.splitMode || 'equal',
-        cardTheme: g.cardTheme || 'classic',
-        creatorMask: g.creatorMask || maskId(g.creatorId || 'user'),
-      }),
-    );
-  } catch {
-    return [];
-  }
-}
-
-function write(list: Gift[]) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(list));
-  } catch {
-    /* ignore */
-  }
-}
-
-function codeGen(): string {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let s = '';
-  for (let i = 0; i < 8; i++) s += alphabet[Math.floor(Math.random() * alphabet.length)];
-  return s;
+function mapStatus(s: string): Gift['status'] {
+  const x = (s || '').toLowerCase();
+  if (x === 'cancelled' || x === 'canceled') return 'cancelled';
+  if (x === 'expired') return 'expired';
+  if (x === 'completed' || x === 'fully_claimed' || x === 'claimed') return 'claimed';
+  return 'open';
 }
 
 function maskId(id: string): string {
@@ -43,35 +17,96 @@ function maskId(id: string): string {
   return `${s.slice(0, 2)}....${s.slice(-3)}`;
 }
 
-export function listGifts(kind?: GiftKind): Gift[] {
-  return read()
-    .filter((g) => (kind ? g.kind === kind : true))
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+/** Map backend giveaway → FE Gift model (giveaway kind only). */
+export function mapApiGiveaway(row: ApiGiveaway): Gift {
+  const total = Number(row.totalAmount) || 0;
+  const remaining = Number(row.remainingAmount) || 0;
+  const claimedCount = row.claimCount || 0;
+  const slots = row.maxClaims || 1;
+  const taken = Math.max(0, total - remaining);
+  return refreshStatus({
+    id: row.id,
+    kind: 'giveaway',
+    code: row.code,
+    asset: row.asset,
+    totalAmount: total,
+    perClaimAmount: slots > 0 ? total / slots : total,
+    slots,
+    claimedCount,
+    splitMode: (row.splitType === 'random' ? 'random' : 'equal') as SplitMode,
+    note: row.message || '',
+    expiresAt: row.expiresAt,
+    status: mapStatus(row.status),
+    createdAt: row.createdAt,
+    creatorId: row.creatorId,
+    creatorMask: maskId(row.creatorId),
+    cardTheme: (row.theme as CardTheme) || 'classic',
+    claims:
+      claimedCount > 0
+        ? [
+            {
+              amount: taken / Math.max(1, claimedCount),
+              at: row.createdAt,
+              claimerMask: '···',
+            },
+          ]
+        : [],
+  });
 }
 
-export function listRecentClaims(limit = 8): { gift: Gift; amount: number; at: string; claimerMask: string; note: string }[] {
-  const out: { gift: Gift; amount: number; at: string; claimerMask: string; note: string }[] = [];
-  for (const g of read()) {
-    for (const c of g.claims || []) {
-      out.push({
-        gift: g,
-        amount: c.amount,
-        at: c.at,
-        claimerMask: c.claimerMask,
-        note: g.note,
-      });
+export async function listGifts(_kind?: GiftKind): Promise<Gift[]> {
+  try {
+    const res = await giveawaysApi.listMyGiveaways();
+    return (res.items || []).map(mapApiGiveaway).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  } catch {
+    return [];
+  }
+}
+
+export async function listRecentClaims(limit = 8): Promise<
+  { gift: Gift; amount: number; at: string; claimerMask: string; note: string }[]
+> {
+  try {
+    const gifts = await listGifts('giveaway');
+    const out: { gift: Gift; amount: number; at: string; claimerMask: string; note: string }[] = [];
+    for (const g of gifts.slice(0, 5)) {
+      try {
+        const claims = await giveawaysApi.listGiveawayClaims(g.id);
+        for (const c of claims.items || []) {
+          out.push({
+            gift: g,
+            amount: Number(c.amount) || 0,
+            at: c.createdAt,
+            claimerMask: c.claimerMask || maskId(c.claimerId),
+            note: g.note,
+          });
+        }
+      } catch {
+        /* ignore per-gift */
+      }
+    }
+    return out.sort((a, b) => b.at.localeCompare(a.at)).slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+
+export async function getGift(idOrCode: string): Promise<Gift | null> {
+  const q = idOrCode.trim();
+  try {
+    const byCode = await giveawaysApi.getGiveawayByCode(q);
+    return mapApiGiveaway(byCode);
+  } catch {
+    try {
+      const mine = await listGifts();
+      return mine.find((g) => g.id === q || g.code.toUpperCase() === q.toUpperCase()) || null;
+    } catch {
+      return null;
     }
   }
-  return out.sort((a, b) => b.at.localeCompare(a.at)).slice(0, limit);
 }
 
-export function getGift(idOrCode: string): Gift | null {
-  const q = idOrCode.trim().toUpperCase();
-  const hit = read().find((g) => g.id === idOrCode || g.code.toUpperCase() === q);
-  return hit ? refreshStatus(hit) : null;
-}
-
-export function createGift(input: {
+export async function createGift(input: {
   kind: GiftKind;
   asset: string;
   totalAmount: number;
@@ -81,100 +116,67 @@ export function createGift(input: {
   creatorId: string;
   splitMode?: SplitMode;
   cardTheme?: CardTheme;
-}): Gift {
-  const slots = Math.max(1, Math.floor(input.slots));
-  const totalAmount = Number(input.totalAmount);
-  const splitMode = input.splitMode || 'equal';
-  const perClaimAmount = Number((totalAmount / slots).toFixed(8));
-  const gift: Gift = {
-    id: `gift_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    kind: input.kind,
-    code: codeGen(),
-    asset: input.asset.toUpperCase(),
-    totalAmount,
-    perClaimAmount,
-    slots,
-    claimedCount: 0,
-    splitMode,
-    note: input.note || '',
+  pin?: string;
+}): Promise<Gift> {
+  const row = await giveawaysApi.createGiveaway({
+    asset: input.asset,
+    amount: String(input.totalAmount),
+    maxClaims: Math.max(1, Math.floor(input.slots)),
+    splitType: input.splitMode === 'random' ? 'random' : 'equal',
     expiresAt: input.expiresAt,
-    status: 'open',
-    createdAt: new Date().toISOString(),
-    creatorId: input.creatorId || 'local',
-    creatorMask: maskId(input.creatorId || 'local'),
-    cardTheme: input.cardTheme || 'classic',
-    claims: [],
-  };
-  const list = read();
-  list.unshift(gift);
-  write(list);
-  return gift;
+    theme: input.cardTheme,
+    message: input.note || undefined,
+    pin: input.pin,
+  });
+  return mapApiGiveaway(row);
 }
 
-export function cancelGift(id: string): Gift | null {
-  const list = read();
-  const i = list.findIndex((g) => g.id === id);
-  if (i < 0) return null;
-  let g = refreshStatus(list[i]);
-  if (g.status !== 'open') return g;
-  g = { ...g, status: 'cancelled' };
-  list[i] = g;
-  write(list);
-  return g;
-}
-
-export function claimGift(
+export async function claimGift(
   code: string,
-  claimerId: string,
-): { ok: true; gift: Gift; amount: number } | { ok: false; error: string } {
-  const list = read();
-  const i = list.findIndex((g) => g.code.toUpperCase() === code.trim().toUpperCase());
-  if (i < 0) return { ok: false, error: 'Invalid passcode' };
-  let g = refreshStatus(list[i]);
-  if (g.status === 'expired') return { ok: false, error: 'This giveaway has expired' };
-  if (g.status === 'cancelled') return { ok: false, error: 'Cancelled by creator' };
-  if (g.status === 'claimed' || g.claimedCount >= g.slots) {
-    return { ok: false, error: 'Fully claimed' };
+  _claimerId: string,
+  pin?: string,
+): Promise<{ ok: true; amount: number; gift: Gift } | { ok: false; error: string }> {
+  try {
+    const res = await giveawaysApi.claimGiveaway(code.trim(), pin);
+    const gift =
+      (await getGift(code)) ||
+      ({
+        id: res.giveawayId,
+        kind: 'giveaway',
+        code: code.trim().toUpperCase(),
+        asset: res.asset,
+        totalAmount: Number(res.amount) || 0,
+        perClaimAmount: Number(res.amount) || 0,
+        slots: 1,
+        claimedCount: 1,
+        splitMode: 'equal',
+        note: '',
+        expiresAt: new Date(Date.now() + 864e5).toISOString(),
+        status: 'open',
+        createdAt: new Date().toISOString(),
+        creatorId: '',
+        creatorMask: '····',
+        cardTheme: 'classic',
+        claims: [],
+      } as Gift);
+    return { ok: true, amount: Number(res.amount) || 0, gift };
+  } catch (e: unknown) {
+    const msg =
+      e && typeof e === 'object' && 'body' in e
+        ? String((e as { body?: { message?: string; code?: string } }).body?.message ||
+            (e as { body?: { code?: string } }).body?.code ||
+            (e as { message?: string }).message ||
+            'Claim failed')
+        : 'Claim failed';
+    return { ok: false, error: msg };
   }
-  if (g.creatorId && claimerId && g.creatorId === claimerId) {
-    return { ok: false, error: "You can't claim your own" };
-  }
-
-  const leftSlots = remainingSlots(g);
-  const leftAmt = remainingAmount(g);
-  if (leftSlots <= 0 || leftAmt <= 0) return { ok: false, error: 'Fully claimed' };
-
-  let amount: number;
-  if (g.splitMode === 'equal' || leftSlots === 1) {
-    amount = leftSlots === 1 ? leftAmt : Number((g.totalAmount / g.slots).toFixed(8));
-    if (amount > leftAmt) amount = leftAmt;
-  } else {
-    // random: between 30% and 170% of equal share, capped by remaining
-    const base = leftAmt / leftSlots;
-    const factor = 0.3 + Math.random() * 1.4;
-    amount = Number(Math.min(leftAmt * 0.85, Math.max(base * 0.2, base * factor)).toFixed(8));
-    if (leftSlots === 1) amount = leftAmt;
-  }
-
-  g = {
-    ...g,
-    claimedCount: g.claimedCount + 1,
-    claims: [
-      ...(g.claims || []),
-      {
-        amount,
-        at: new Date().toISOString(),
-        claimerMask: maskId(claimerId),
-        note: g.note,
-      },
-    ],
-  };
-  if (g.claimedCount >= g.slots || remainingAmount(g) <= 0) {
-    g = { ...g, status: 'claimed' };
-  }
-  list[i] = g;
-  write(list);
-  return { ok: true, gift: g, amount };
 }
 
-export { remainingAmount, remainingSlots };
+export async function cancelGift(id: string, pin?: string): Promise<Gift | null> {
+  try {
+    const row = await giveawaysApi.cancelGiveaway(id, pin);
+    return mapApiGiveaway(row);
+  } catch {
+    return null;
+  }
+}

@@ -1,105 +1,114 @@
+import * as requestLinksApi from '../../shared/api/requestLinks';
+import type { ApiRequestLink } from '../../shared/api/requestLinks';
 import type { PaymentRequest } from './types';
-import { refreshRequest } from './types';
 
-const KEY = 'convia.payreq.v1';
+function mapStatus(s: string): PaymentRequest['status'] {
+  const x = (s || '').toLowerCase();
+  if (x === 'paid' || x === 'completed') return 'paid';
+  if (x === 'cancelled' || x === 'canceled') return 'cancelled';
+  if (x === 'expired') return 'expired';
+  return 'open';
+}
 
-function read(): PaymentRequest[] {
+export function mapApiLink(row: ApiRequestLink): PaymentRequest {
+  return {
+    id: row.id,
+    code: row.code,
+    asset: row.asset,
+    amount: Number(row.amount) || 0,
+    note: row.note || '',
+    status: mapStatus(row.status),
+    expiresAt: row.expiresAt,
+    createdAt: row.createdAt,
+    creatorId: row.requesterId,
+    creatorLabel: row.requesterUsername || 'User',
+    paidBy: undefined,
+    paidAt: undefined,
+  };
+}
+
+export async function listRequests(_userId?: string): Promise<PaymentRequest[]> {
   try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return [];
-    const list = JSON.parse(raw) as PaymentRequest[];
-    return (Array.isArray(list) ? list : []).map((r) => refreshRequest(r));
+    const res = await requestLinksApi.listMyRequestLinks();
+    return (res.items || [])
+      .map(mapApiLink)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   } catch {
     return [];
   }
 }
 
-function write(list: PaymentRequest[]) {
+export async function getRequest(idOrCode: string): Promise<PaymentRequest | null> {
+  const q = idOrCode.trim();
   try {
-    localStorage.setItem(KEY, JSON.stringify(list));
+    const byCode = await requestLinksApi.getRequestLinkByCode(q);
+    return mapApiLink(byCode);
   } catch {
-    /* ignore */
+    try {
+      const mine = await listRequests();
+      return mine.find((r) => r.id === q || r.code.toUpperCase() === q.toUpperCase()) || null;
+    } catch {
+      return null;
+    }
   }
 }
 
-function codeGen(): string {
-  const a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let s = 'PR';
-  for (let i = 0; i < 8; i++) s += a[Math.floor(Math.random() * a.length)];
-  return s;
-}
-
-export function listRequests(creatorId?: string): PaymentRequest[] {
-  return read()
-    .filter((r) => (creatorId ? r.creatorId === creatorId : true))
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-}
-
-export function getRequest(idOrCode: string): PaymentRequest | null {
-  const q = idOrCode.trim().toUpperCase();
-  const hit = read().find((r) => r.id === idOrCode || r.code.toUpperCase() === q);
-  return hit ? refreshRequest(hit) : null;
-}
-
-export function createRequest(input: {
+export async function createRequest(input: {
   asset: string;
   amount: number;
   note: string;
   expiresAt: string;
   creatorId: string;
-  creatorLabel: string;
-}): PaymentRequest {
-  const item: PaymentRequest = {
-    id: `pr_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-    code: codeGen(),
-    asset: input.asset.toUpperCase(),
-    amount: Number(input.amount),
-    note: input.note || '',
-    status: 'open',
-    createdAt: new Date().toISOString(),
+  pin?: string;
+}): Promise<PaymentRequest> {
+  const row = await requestLinksApi.createRequestLink({
+    asset: input.asset,
+    amount: String(input.amount),
+    note: input.note || undefined,
     expiresAt: input.expiresAt,
-    creatorId: input.creatorId || 'local',
-    creatorLabel: input.creatorLabel || 'Convia user',
-  };
-  const list = read();
-  list.unshift(item);
-  write(list);
-  return item;
+    pin: input.pin,
+  });
+  return mapApiLink(row);
 }
 
-export function cancelRequest(id: string): PaymentRequest | null {
-  const list = read();
-  const i = list.findIndex((r) => r.id === id);
-  if (i < 0) return null;
-  let r = refreshRequest(list[i]);
-  if (r.status !== 'open') return r;
-  r = { ...r, status: 'cancelled' };
-  list[i] = r;
-  write(list);
-  return r;
-}
-
-export function payRequest(
-  code: string,
-  payerId: string,
-): { ok: true; request: PaymentRequest } | { ok: false; error: string } {
-  const list = read();
-  const i = list.findIndex((r) => r.code.toUpperCase() === code.trim().toUpperCase());
-  if (i < 0) return { ok: false, error: 'Payment link not found' };
-  let r = refreshRequest(list[i]);
-  if (r.status === 'expired') return { ok: false, error: 'This request has expired' };
-  if (r.status === 'cancelled') return { ok: false, error: 'Request was cancelled' };
-  if (r.status === 'paid') return { ok: false, error: 'Already paid' };
-  if (r.creatorId && payerId && r.creatorId === payerId) {
-    return { ok: false, error: "You can't pay your own request" };
+export async function cancelRequest(id: string): Promise<PaymentRequest | null> {
+  try {
+    const row = await requestLinksApi.cancelRequestLink(id);
+    return mapApiLink(row);
+  } catch {
+    return null;
   }
-  r = {
-    ...r,
-    status: 'paid',
-    paidBy: payerId,
-    paidAt: new Date().toISOString(),
-  };
-  list[i] = r;
-  write(list);
-  return { ok: true, request: r };
+}
+
+export async function payRequest(
+  code: string,
+  _payerId: string,
+  pin?: string,
+): Promise<{ ok: true; request: PaymentRequest } | { ok: false; error: string }> {
+  try {
+    const res = await requestLinksApi.payRequestLink(code.trim(), pin);
+    const request =
+      (await getRequest(code)) ||
+      ({
+        id: res.id,
+        code: code.trim().toUpperCase(),
+        asset: res.asset,
+        amount: Number(res.amount) || 0,
+        note: '',
+        status: 'paid' as const,
+        expiresAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        creatorId: '',
+        creatorLabel: 'User',
+      } as PaymentRequest);
+    return { ok: true, request: { ...request, status: 'paid' } };
+  } catch (e: unknown) {
+    const msg =
+      e && typeof e === 'object' && 'body' in e
+        ? String((e as { body?: { message?: string; code?: string } }).body?.message ||
+            (e as { body?: { code?: string } }).body?.code ||
+            'Payment failed')
+        : 'Payment failed';
+    return { ok: false, error: msg };
+  }
 }

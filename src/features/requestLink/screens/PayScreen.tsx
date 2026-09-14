@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 import { ShieldCheck, UserPlus, Wallet, Lock } from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
@@ -16,12 +16,35 @@ interface Props {
 
 export function PayScreen({ code, goBack, navigate }: Props) {
   const { status, userId } = useAuth();
-  const req = useMemo(() => getRequest(code), [code]);
+  const [req, setReq] = useState<Awaited<ReturnType<typeof getRequest>>>(null);
+  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
 
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    void getRequest(code).then((r) => {
+      if (!cancelled) {
+        setReq(r);
+        setLoading(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [code]);
+
   const authenticated = status === 'authenticated' && !!userId;
+
+  if (loading) {
+    return (
+      <Shell goBack={goBack} title="Payment">
+        <Empty title="Loading…" body="Fetching payment details" />
+      </Shell>
+    );
+  }
 
   if (!req) {
     return (
@@ -75,17 +98,20 @@ export function PayScreen({ code, goBack, navigate }: Props) {
     );
   }
 
-  const onPay = () => {
+  const onPay = async () => {
     if (!authenticated || !userId) return;
     setBusy(true);
     setError('');
-    const res = payRequest(req.code, userId);
-    setBusy(false);
-    if (!res.ok) {
-      setError(res.error);
-      return;
+    try {
+      const res = await payRequest(req.code, userId);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      setDone(true);
+    } finally {
+      setBusy(false);
     }
-    setDone(true);
   };
 
   const goAuth = (screen: 'signup' | 'login') => {

@@ -17,3 +17,6 @@ export * as billsApi from './bills';
 export * as notificationsApi from './notifications';
 export * as registryApi from './registry';
 export * from './rates';
+
+export * as giveawaysApi from './giveaways';
+export * as requestLinksApi from './requestLinks';
