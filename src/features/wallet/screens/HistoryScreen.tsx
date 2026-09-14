@@ -11,6 +11,7 @@ import {
   TrendingUp,
   TrendingDown,
   Inbox,
+  SlidersHorizontal,
 } from 'lucide-react';
 import type { Transaction } from '../../../shared/data/mockData';
 import { TransactionReceipt } from '../../../shared/components/TransactionReceipt';
@@ -35,7 +36,7 @@ type TypeFilter =
 type StatusFilter = 'all' | 'confirmed' | 'pending' | 'failed';
 
 const TYPE_OPTIONS: { id: TypeFilter; label: string }[] = [
-  { id: 'all', label: 'All types' },
+  { id: 'all', label: 'All' },
   { id: 'receive', label: 'Received' },
   { id: 'send', label: 'Sent' },
   { id: 'swap', label: 'Swap' },
@@ -43,8 +44,8 @@ const TYPE_OPTIONS: { id: TypeFilter; label: string }[] = [
   { id: 'withdraw', label: 'Withdraw' },
   { id: 'buy', label: 'Buy' },
   { id: 'sell', label: 'Sell' },
-  { id: 'onramp', label: 'On-ramp' },
-  { id: 'offramp', label: 'Off-ramp' },
+  { id: 'onramp', label: 'Buy fiat' },
+  { id: 'offramp', label: 'Cash out' },
 ];
 
 const STATUS_OPTIONS: { id: StatusFilter; label: string }[] = [
@@ -56,130 +57,89 @@ const STATUS_OPTIONS: { id: StatusFilter; label: string }[] = [
 
 const TX_META: Record<
   string,
-  { label: string; Icon: typeof ArrowDownLeft; tone: string; sign: string }
+  { label: string; Icon: typeof ArrowDownLeft; tone: string; sign: string; bg: string }
 > = {
-  receive: { label: 'Received', Icon: ArrowDownLeft, tone: 'var(--positive)', sign: '+' },
-  send: { label: 'Sent', Icon: ArrowUpRight, tone: 'var(--foreground)', sign: '−' },
-  swap: { label: 'Swapped', Icon: RefreshCw, tone: 'var(--primary)', sign: '↔' },
-  buy: { label: 'Bought', Icon: Plus, tone: 'var(--positive)', sign: '+' },
-  sell: { label: 'Sold', Icon: Minus, tone: 'var(--foreground)', sign: '−' },
-  offramp: { label: 'Cash out', Icon: TrendingDown, tone: 'var(--foreground)', sign: '−' },
-  onramp: { label: 'Bought', Icon: TrendingUp, tone: 'var(--positive)', sign: '+' },
-  deposit: { label: 'Deposit', Icon: ArrowDownLeft, tone: 'var(--positive)', sign: '+' },
-  withdraw: { label: 'Withdraw', Icon: ArrowUpRight, tone: 'var(--foreground)', sign: '−' },
+  receive: { label: 'Received', Icon: ArrowDownLeft, tone: 'var(--positive)', sign: '+', bg: 'color-mix(in oklab, var(--positive) 14%, transparent)' },
+  send: { label: 'Sent', Icon: ArrowUpRight, tone: 'var(--foreground)', sign: '−', bg: 'var(--muted)' },
+  swap: { label: 'Swapped', Icon: RefreshCw, tone: 'var(--primary)', sign: '', bg: 'color-mix(in oklab, var(--primary) 14%, transparent)' },
+  buy: { label: 'Bought', Icon: Plus, tone: 'var(--positive)', sign: '+', bg: 'color-mix(in oklab, var(--positive) 14%, transparent)' },
+  sell: { label: 'Sold', Icon: Minus, tone: 'var(--foreground)', sign: '−', bg: 'var(--muted)' },
+  offramp: { label: 'Cash out', Icon: TrendingDown, tone: 'var(--foreground)', sign: '−', bg: 'var(--muted)' },
+  onramp: { label: 'Bought', Icon: TrendingUp, tone: 'var(--positive)', sign: '+', bg: 'color-mix(in oklab, var(--positive) 14%, transparent)' },
+  deposit: { label: 'Deposit', Icon: ArrowDownLeft, tone: 'var(--positive)', sign: '+', bg: 'color-mix(in oklab, var(--positive) 14%, transparent)' },
+  withdraw: { label: 'Withdraw', Icon: ArrowUpRight, tone: 'var(--foreground)', sign: '−', bg: 'var(--muted)' },
 };
 
 function meta(type: string) {
-  return TX_META[type] ?? TX_META.receive;
+  return TX_META[type] || TX_META.send;
 }
+
 function statusColor(s: string) {
   if (s === 'confirmed') return 'var(--positive)';
+  if (s === 'pending') return '#F59E0B';
   if (s === 'failed') return 'var(--destructive)';
-  return 'var(--warning, #F59E0B)';
+  return 'var(--muted-foreground)';
 }
-function groupKey(time: string): string {
-  const t = (time || '').toLowerCase();
-  if (t.includes('m ago') || t.includes('h ago') || t.includes('just') || t === 'today') return 'Today';
-  if (t.includes('1d') || t.includes('yesterday')) return 'Yesterday';
-  if (t.includes('d ago') || t.includes('day')) return 'This week';
-  return 'Earlier';
-}
-const GROUP_ORDER = ['Today', 'Yesterday', 'This week', 'Earlier'];
 
-function DropdownFilter<T extends string>({
-  value,
-  onChange,
-  options,
+function groupByDay(txs: Transaction[]): { label: string; items: Transaction[] }[] {
+  const map = new Map<string, Transaction[]>();
+  for (const tx of txs) {
+    const key = tx.time?.split(',')[0]?.trim() || tx.time || 'Recent';
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(tx);
+  }
+  return Array.from(map.entries()).map(([label, items]) => ({ label, items }));
+}
+
+function FilterChip({
+  open,
   label,
+  onToggle,
+  children,
 }: {
-  value: T;
-  onChange: (v: T) => void;
-  options: { id: T; label: string }[];
+  open: boolean;
   label: string;
+  onToggle: () => void;
+  children: React.ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const selected = options.find((o) => o.id === value)?.label ?? label;
-
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (!ref.current?.contains(e.target as Node)) onToggle();
     };
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
-  }, [open]);
+  }, [open, onToggle]);
 
   return (
-    <div className="relative flex-1 min-w-0" ref={ref}>
+    <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between gap-2 h-11 px-3.5 rounded-2xl text-left"
+        onClick={onToggle}
+        className="flex items-center gap-1.5 h-9 px-3.5 rounded-full"
         style={{
-          background: open ? 'var(--muted)' : 'var(--card)',
-          border: `1px solid ${open ? 'var(--primary)' : 'var(--border)'}`,
+          background: open ? 'var(--liquid-chip-on-bg)' : 'var(--muted)',
+          color: open ? 'var(--liquid-chip-on-text)' : 'var(--foreground)',
+          border: open ? '1px solid var(--liquid-pill-border)' : '1px solid var(--border)',
+          fontSize: 12,
+          fontWeight: 650,
         }}
       >
-        <div className="min-w-0">
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 10, fontWeight: 600, letterSpacing: 0.3 }}>
-            {label}
-          </p>
-          <p
-            className="truncate"
-            style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: 600, marginTop: 1 }}
-          >
-            {selected}
-          </p>
-        </div>
-        <ChevronDown
-          size={16}
-          style={{
-            color: 'var(--muted-foreground)',
-            transform: open ? 'rotate(180deg)' : undefined,
-            transition: 'transform 0.15s',
-            flexShrink: 0,
-          }}
-        />
+        {label}
+        <ChevronDown size={14} style={{ opacity: 0.7 }} />
       </button>
-
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
+            initial={{ opacity: 0, y: 6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 4 }}
             transition={{ duration: 0.15 }}
-            className="absolute left-0 right-0 top-[calc(100%+6px)] z-40 rounded-2xl overflow-hidden max-h-56 overflow-y-auto"
-            style={{
-              background: 'var(--card)',
-              border: '1px solid var(--border)',
-              boxShadow: '0 16px 40px rgba(0,0,0,0.35)',
-            }}
+            className="absolute z-40 left-0 mt-2 min-w-[180px] rounded-2xl overflow-hidden shadow-lg"
+            style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
           >
-            {options.map((o) => {
-              const active = o.id === value;
-              return (
-                <button
-                  key={o.id}
-                  type="button"
-                  onClick={() => {
-                    onChange(o.id);
-                    setOpen(false);
-                  }}
-                  className="w-full flex items-center justify-between gap-2 px-3.5 py-2.5 text-left"
-                  style={{
-                    background: active ? 'var(--muted)' : 'transparent',
-                    borderBottom: '1px solid var(--border)',
-                  }}
-                >
-                  <span style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: active ? 700 : 500 }}>
-                    {o.label}
-                  </span>
-                  {active && <Check size={14} style={{ color: 'var(--primary)' }} />}
-                </button>
-              );
-            })}
+            {children}
           </motion.div>
         )}
       </AnimatePresence>
@@ -193,102 +153,160 @@ interface Props {
 
 export function HistoryScreen({ goBack }: Props) {
   const { format } = useCurrency();
-  const { data, loading } = useTransactions(80);
-  const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);
+  const { data: apiTxs, loading, isFetching } = useTransactions(50);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [typeOpen, setTypeOpen] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);
 
-  const all = useMemo(() => filterHistoryForUi(data.map(apiTxToUi)), [data]);
-  const filtered = useMemo(
-    () =>
-      all.filter((tx) => {
-        if (typeFilter !== 'all' && tx.type !== typeFilter) return false;
-        if (statusFilter !== 'all' && tx.status !== statusFilter) return false;
-        return true;
-      }),
-    [all, typeFilter, statusFilter],
-  );
+  const txs = useMemo(() => {
+    const mapped = filterHistoryForUi((apiTxs || []).map(apiTxToUi));
+    return mapped.filter((tx) => {
+      if (typeFilter !== 'all' && tx.type !== typeFilter) return false;
+      if (statusFilter !== 'all' && tx.status !== statusFilter) return false;
+      return true;
+    });
+  }, [apiTxs, typeFilter, statusFilter]);
 
-  const groups = useMemo(() => {
-    const map = new Map<string, Transaction[]>();
-    for (const tx of filtered) {
-      const k = groupKey(tx.time);
-      if (!map.has(k)) map.set(k, []);
-      map.get(k)!.push(tx);
-    }
-    return GROUP_ORDER.filter((g) => map.has(g)).map((g) => ({ title: g, items: map.get(g)! }));
-  }, [filtered]);
-
-  const filtersOn = typeFilter !== 'all' || statusFilter !== 'all';
+  const groups = useMemo(() => groupByDay(txs), [txs]);
+  const typeLabel = TYPE_OPTIONS.find((o) => o.id === typeFilter)?.label || 'All';
+  const statusLabel = STATUS_OPTIONS.find((o) => o.id === statusFilter)?.label || 'Any status';
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
       <PageTop />
 
-      <div className="flex items-center gap-3 px-5 mb-4">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-5 mb-1">
         <BackButton onClick={goBack} />
-        <h1 className="flex-1" style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22 }}>
-          History
-        </h1>
-        {filtersOn && (
-          <button
-            type="button"
-            onClick={() => {
-              setTypeFilter('all');
-              setStatusFilter('all');
-            }}
-            style={{ color: 'var(--primary)', fontSize: 13, fontWeight: 600 }}
-          >
-            Reset
-          </button>
-        )}
-      </div>
-
-      <div className="flex gap-2.5 px-5 mb-4 relative z-30">
-        <DropdownFilter label="Type" value={typeFilter} onChange={setTypeFilter} options={TYPE_OPTIONS} />
-        <DropdownFilter
-          label="Status"
-          value={statusFilter}
-          onChange={setStatusFilter}
-          options={STATUS_OPTIONS}
-        />
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-5 pb-8">
-        {loading && (
-          <p className="py-16 text-center" style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
-            Loading activity…
+        <div className="flex-1 min-w-0">
+          <h1 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 18, letterSpacing: -0.3 }}>
+            Activity
+          </h1>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 1 }}>
+            {loading && !txs.length
+              ? 'Loading…'
+              : isFetching
+                ? 'Updating…'
+                : `${txs.length} transaction${txs.length === 1 ? '' : 's'}`}
           </p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="px-5 py-3 flex items-center gap-2 overflow-x-auto no-scrollbar">
+        <div
+          className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+          style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+        >
+          <SlidersHorizontal size={15} style={{ color: 'var(--muted-foreground)' }} />
+        </div>
+        <FilterChip
+          open={typeOpen}
+          label={typeLabel}
+          onToggle={() => {
+            setTypeOpen((o) => !o);
+            setStatusOpen(false);
+          }}
+        >
+          {TYPE_OPTIONS.map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => {
+                setTypeFilter(o.id);
+                setTypeOpen(false);
+              }}
+              className="flex items-center justify-between w-full px-3.5 py-2.5 text-left"
+              style={{
+                background:
+                  typeFilter === o.id ? 'color-mix(in oklab, var(--primary) 12%, transparent)' : 'transparent',
+                color: 'var(--foreground)',
+                fontSize: 13,
+                fontWeight: typeFilter === o.id ? 700 : 500,
+              }}
+            >
+              {o.label}
+              {typeFilter === o.id && <Check size={14} style={{ color: 'var(--primary)' }} />}
+            </button>
+          ))}
+        </FilterChip>
+        <FilterChip
+          open={statusOpen}
+          label={statusLabel}
+          onToggle={() => {
+            setStatusOpen((o) => !o);
+            setTypeOpen(false);
+          }}
+        >
+          {STATUS_OPTIONS.map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => {
+                setStatusFilter(o.id);
+                setStatusOpen(false);
+              }}
+              className="flex items-center justify-between w-full px-3.5 py-2.5 text-left"
+              style={{
+                background:
+                  statusFilter === o.id ? 'color-mix(in oklab, var(--primary) 12%, transparent)' : 'transparent',
+                color: 'var(--foreground)',
+                fontSize: 13,
+                fontWeight: statusFilter === o.id ? 700 : 500,
+              }}
+            >
+              {o.label}
+              {statusFilter === o.id && <Check size={14} style={{ color: 'var(--primary)' }} />}
+            </button>
+          ))}
+        </FilterChip>
+      </div>
+
+      {/* List */}
+      <div className="flex-1 overflow-y-auto px-5 pb-10">
+        {loading && !txs.length && (
+          <div className="space-y-3 pt-2">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div
+                key={i}
+                className="h-[72px] rounded-2xl animate-pulse"
+                style={{ background: 'var(--muted)' }}
+              />
+            ))}
+          </div>
         )}
 
-        {!loading && filtered.length === 0 && (
-          <div className="py-16 flex flex-col items-center">
+        {!loading && txs.length === 0 && (
+          <div className="flex flex-col items-center justify-center pt-16 px-6 text-center">
             <div
-              className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3"
-              style={{ background: 'var(--muted)' }}
+              className="w-16 h-16 rounded-3xl flex items-center justify-center mb-4"
+              style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
             >
-              <Inbox size={24} style={{ color: 'var(--muted-foreground)' }} />
+              <Inbox size={28} style={{ color: 'var(--muted-foreground)' }} />
             </div>
-            <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 15 }}>No activity</p>
-            <p className="mt-1 text-center px-6" style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
-              {filtersOn ? 'Nothing matches these filters.' : 'Activity will appear here.'}
+            <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 16 }}>No activity yet</p>
+            <p className="mt-1.5" style={{ color: 'var(--muted-foreground)', fontSize: 13, lineHeight: 1.45 }}>
+              Deposits, swaps, and transfers will show up here.
             </p>
           </div>
         )}
 
         {groups.map((group) => (
-          <div key={group.title} className="mb-5">
+          <div key={group.label} className="mb-5">
             <p
-              className="mb-2 px-0.5"
+              className="px-1 mb-2 sticky top-0 z-10 py-1"
               style={{
                 color: 'var(--muted-foreground)',
                 fontSize: 11,
                 fontWeight: 700,
-                letterSpacing: 0.6,
+                letterSpacing: 0.5,
                 textTransform: 'uppercase',
+                background: 'var(--background)',
               }}
             >
-              {group.title}
+              {group.label}
             </p>
             <div
               className="rounded-[20px] overflow-hidden"
@@ -298,47 +316,48 @@ export function HistoryScreen({ goBack }: Props) {
                 const m = meta(tx.type);
                 const Icon = m.Icon;
                 const last = i === group.items.length - 1;
-                const amountLine =
+                const amountPrimary =
                   tx.type === 'swap'
-                    ? `${formatTokenAmount(tx.amount)} ${tx.asset || ''} → ${formatTokenAmount(tx.amountTo)} ${tx.assetTo || ''}`
+                    ? `${formatTokenAmount(tx.amount)} ${tx.asset || ''}`
                     : `${m.sign}${formatTokenAmount(tx.amount)} ${tx.asset || ''}`;
+                const amountSecondary =
+                  tx.type === 'swap'
+                    ? `→ ${formatTokenAmount(tx.amountTo)} ${tx.assetTo || ''}`
+                    : tx.valueUSD > 0
+                      ? format(tx.valueUSD)
+                      : null;
 
                 return (
                   <motion.button
                     key={tx.id}
                     type="button"
-                    whileTap={{ scale: 0.985 }}
+                    whileTap={{ scale: 0.99 }}
                     onClick={() => setReceiptTx(tx)}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
-                    style={{ borderBottom: last ? 'none' : '1px solid var(--border)' }}
+                    className="flex items-center gap-3 w-full px-3.5 py-3.5 text-left"
+                    style={{
+                      borderBottom: last ? 'none' : '1px solid var(--border)',
+                    }}
                   >
                     <div
                       className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
-                      style={{ background: 'var(--muted)' }}
+                      style={{ background: m.bg }}
                     >
-                      <Icon size={18} style={{ color: m.tone }} strokeWidth={2.2} />
+                      <Icon size={18} style={{ color: m.tone }} strokeWidth={2.25} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>
+                      <p
+                        className="truncate"
+                        style={{ color: 'var(--foreground)', fontWeight: 650, fontSize: 14 }}
+                      >
                         {tx.type === 'swap'
                           ? `${tx.asset || '—'} → ${tx.assetTo || '—'}`
-                          : `${m.label}${tx.asset ? ` · ${tx.asset}` : ''}`}
+                          : m.label}
                       </p>
-                      <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 2 }}>{tx.time}</p>
-                    </div>
-                    <div className="text-right flex-shrink-0 pl-2">
-                      <p
-                        className="tabular-nums"
-                        style={{
-                          color: m.sign === '+' ? 'var(--positive)' : 'var(--foreground)',
-                          fontWeight: 600,
-                          fontSize: 13,
-                        }}
-                      >
-                        {amountLine}
-                      </p>
-                      <div className="flex items-center justify-end gap-1.5 mt-1">
-                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: statusColor(tx.status) }} />
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span
+                          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                          style={{ background: statusColor(tx.status) }}
+                        />
                         <span
                           style={{
                             color: 'var(--muted-foreground)',
@@ -348,10 +367,33 @@ export function HistoryScreen({ goBack }: Props) {
                         >
                           {tx.status}
                         </span>
+                        {tx.asset && tx.type !== 'swap' && (
+                          <>
+                            <span style={{ color: 'var(--border)', fontSize: 11 }}>·</span>
+                            <span style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 600 }}>
+                              {tx.asset}
+                            </span>
+                          </>
+                        )}
                       </div>
-                      {tx.valueUSD > 0 && tx.type !== 'swap' && (
-                        <p className="tabular-nums mt-0.5" style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>
-                          {format(tx.valueUSD)}
+                    </div>
+                    <div className="text-right flex-shrink-0 pl-2 max-w-[42%]">
+                      <p
+                        className="tabular-nums truncate"
+                        style={{
+                          color: m.sign === '+' ? 'var(--positive)' : 'var(--foreground)',
+                          fontWeight: 700,
+                          fontSize: 13,
+                        }}
+                      >
+                        {amountPrimary}
+                      </p>
+                      {amountSecondary && (
+                        <p
+                          className="tabular-nums truncate mt-0.5"
+                          style={{ color: 'var(--muted-foreground)', fontSize: 11 }}
+                        >
+                          {amountSecondary}
                         </p>
                       )}
                     </div>

@@ -54,3 +54,20 @@ export function formatSignedToken(
 ): string {
   return `${sign}${formatTokenAmount(amount)} ${asset}`.trim();
 }
+
+
+/** Full precision for receipt / detail views (no K/M compact). */
+export function formatTokenAmountPrecise(
+  value: number | string | null | undefined,
+  maxFrac = 8,
+): string {
+  const n = typeof value === 'string' ? Number(value) : Number(value);
+  if (!Number.isFinite(n)) return '0';
+  // Trim trailing zeros but keep meaningful precision
+  const s = n.toLocaleString('en', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: maxFrac,
+    useGrouping: true,
+  });
+  return s;
+}
