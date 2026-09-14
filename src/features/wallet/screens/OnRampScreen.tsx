@@ -255,7 +255,7 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
               setSelectedCardId={() => {}}
               showNewCard={false}
               setShowNewCard={() => {}}
-              newCard={ number: '', expiry: '', cvc: '', name: '' }
+              newCard={{ number: '', expiry: '', cvc: '', name: '' }}
               setNewCard={() => {}}
               onAddCard={() => {}}
               fee={feeDisplay}
@@ -279,7 +279,7 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
               youGet={youGet}
               fee={feeDisplay}
               paymentMethod={paymentMethod === 'card' ? 'card' : 'bank'}
-              newCard={ number: '', expiry: '', cvc: '', name: '' }
+              newCard={{ number: '', expiry: '', cvc: '', name: '' }}
               setNewCard={() => {}}
               confirming={submitting}
               onConfirm={() => {
