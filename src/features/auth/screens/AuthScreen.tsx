@@ -98,10 +98,27 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
       setSuccess(true);
       setTimeout(() => switchTab('home'), 800);
     } catch (err) {
-      const msg = err instanceof ApiError
-        ? (err.code === 'invalid_credentials' ? 'Invalid email or password' : (err.body.message || err.code))
-        : 'Login failed — is the API running?';
-      setError(String(msg));
+      // Never reveal whether email or password was wrong; never surface infra messages
+      if (err instanceof ApiError) {
+        const code = String(err.code || err.body?.code || '').toLowerCase();
+        const status = err.status;
+        if (
+          status === 401 ||
+          status === 403 ||
+          code.includes('invalid') ||
+          code.includes('credential') ||
+          code.includes('unauthorized') ||
+          code.includes('not_found')
+        ) {
+          setError('Account or password is incorrect');
+        } else if (status >= 500 || code.includes('internal')) {
+          setError('Something went wrong. Please try again in a moment.');
+        } else {
+          setError('Account or password is incorrect');
+        }
+      } else {
+        setError('Unable to sign in right now. Check your connection and try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -118,10 +135,15 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
       setSuccess(true);
       setTimeout(() => switchTab('home'), 800);
     } catch (err) {
-      const msg = err instanceof ApiError
-        ? (err.code === 'username_taken' ? 'That username is taken — pick another' : (err.body.message || err.code))
-        : 'Registration failed — is the API running?';
-      setError(String(msg));
+      if (err instanceof ApiError) {
+        const code = String(err.code || err.body?.code || '').toLowerCase();
+        if (code.includes('username')) setError('That username is taken — pick another');
+        else if (code.includes('email') || code.includes('already')) setError('This email is already registered. Try signing in.');
+        else if (err.status >= 500) setError('Something went wrong. Please try again in a moment.');
+        else setError('Could not create account. Please check your details and try again.');
+      } else {
+        setError('Unable to register right now. Check your connection and try again.');
+      }
       setStep('credentials');
     } finally {
       setLoading(false);

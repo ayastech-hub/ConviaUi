@@ -38,6 +38,7 @@ const TRUSTWALLET_CHAIN_SLUGS: Record<number | string, string> = {
   base: 'base',
   arbitrum: 'arbitrum',
   optimism: 'optimism',
+  ton: 'ton',
 };
 
 // Canonical native asset identifiers mapped to TrustWallet asset directories
@@ -51,6 +52,12 @@ const TRUSTWALLET_NATIVE_MAP: Record<string, string> = {
   TRX: 'tron',
   MATIC: 'polygon',
   POL: 'polygon',
+  TON: 'ton',
+  GRAM: 'ton',
+  NOT: 'ton',
+  AVAX: 'avalanchec',
+  ARB: 'arbitrum',
+  OP: 'optimism',
 };
 
 // Contract address fallbacks for multi-chain tokens when chainId/address aren't provided
@@ -85,7 +92,9 @@ function getAssetUrl(symbol: string, chainId?: number, address?: string): string
     return `https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/${nativeSlug}/info/logo.png`;
   }
 
-  return null;
+  // 3. Generic crypto icon pack (covers JUP, AERO, etc.)
+  const slug = sym.toLowerCase();
+  return `https://cdn.jsdelivr.net/npm/cryptocurrency-icons@0.18.1/128/color/${slug}.png`;
 }
 
 /**

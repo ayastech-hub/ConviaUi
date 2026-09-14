@@ -65,6 +65,7 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
   const [order, setOrder] = useState<LocalOnrampOrder | null>(null);
   const [quoting, setQuoting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [checkingPaid, setCheckingPaid] = useState(false);
 
   useEffect(() => {
     if (!presetSymbol || !cryptoAssets.length) return;
@@ -192,13 +193,7 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
       });
       setOrder(res);
       setStep('processing');
-      setTimeout(() => {
-        if (userId) {
-          void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
-          void queryClient.invalidateQueries({ queryKey: queryKeys.transactions(userId, 50) });
-        }
-        setStep('done');
-      }, 1800);
+      // Stay on processing with VA details until user confirms payment / webhook credits
     } catch (err) {
       if (err instanceof ApiError) {
         setApiError({ code: err.code, message: err.body.message || err.message });
@@ -210,6 +205,39 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
     }
   };
 
+
+
+  const checkPaid = async () => {
+    if (!userId || checkingPaid) return;
+    setCheckingPaid(true);
+    setApiError(null);
+    try {
+      // Prefer live history — webhook credits as fiat_onramp when Monnify confirms
+      const hist = await fetchTransactions(userId, { limit: 20 });
+      const items = hist.transactions || [];
+      const expected = Number(order?.quote?.netCrypto || youGet) || 0;
+      const hit = items.find((it) => {
+        const type = String(it.type || '').toLowerCase();
+        const okType = type.includes('onramp') || type.includes('deposit') || type.includes('fiat');
+        const amt = Number(it.amount) || 0;
+        const assetOk = !it.asset || it.asset.toUpperCase() === selectedAsset.symbol.toUpperCase();
+        return okType && assetOk && (expected <= 0 || Math.abs(amt - expected) < expected * 0.05 + 0.001);
+      });
+      if (hit && String(hit.status || '').toLowerCase() !== 'failed') {
+        void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.transactions(userId, 50) });
+        setStep('done');
+        return;
+      }
+      setApiError({
+        message: 'Payment not confirmed yet. Transfer the exact amount, wait a minute, then try again.',
+      });
+    } catch {
+      setApiError({ message: 'Could not verify payment yet. Try again shortly.' });
+    } finally {
+      setCheckingPaid(false);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
@@ -292,9 +320,14 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
           {step === 'processing' && (
             <OnRampProcessingStep
               currency={currency}
-              amount={amount}
+              amount={fiatAmount || amount}
               youGet={youGet}
               symbol={selectedAsset.symbol}
+              bankName={order?.payment?.bankName}
+              accountNumber={order?.payment?.accountNumber}
+              accountName={order?.payment?.accountName}
+              checking={checkingPaid}
+              onConfirmPaid={() => void checkPaid()}
             />
           )}
 

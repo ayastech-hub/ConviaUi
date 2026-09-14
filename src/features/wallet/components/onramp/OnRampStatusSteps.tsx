@@ -56,13 +56,13 @@ export function OnRampDoneStep({ youGet, symbol, onDone }: OnRampDoneStepProps) 
         <CheckCircle2 size={32} style={{ color: 'var(--primary)' }} />
       </div>
       <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20, marginBottom: 8 }}>
-        Order submitted
+        Deposit received
       </h2>
       <p className="tabular-nums" style={{ color: 'var(--foreground)', fontSize: 24, fontWeight: 700 }}>
         {youGet.toLocaleString(undefined, { maximumFractionDigits: 6 })} {symbol}
       </p>
       <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginTop: 6, marginBottom: 28 }}>
-        Credited when payment confirms
+        Your balance has been updated
       </p>
       <motion.button
         type="button"
