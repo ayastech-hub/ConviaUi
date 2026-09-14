@@ -6,9 +6,10 @@ import { CenteredBalance } from '../components/CenteredBalance';
 import { HubActions } from '../components/HubActions';
 import { PromoBanner } from '../components/PromoBanner';
 import { HubAssetsList } from '../components/HubAssetsList';
+import { prefetchMarketPrices } from '../../../shared/query/prefetchAppData';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useAuth } from '../../../shared/context/AuthContext';
-import * as notifApi from '../../../shared/api/notifications';
+import { useNotifications } from '../../../shared/hooks/useNotifications';
 import { Bell, History, ScanLine } from 'lucide-react';
 import { motion } from 'motion/react';
 import { PageTop } from '../../../shared/components/PageTop';
@@ -27,7 +28,6 @@ interface HomeScreenProps {
  */
 export function HomeScreen({ navigate, notificationCount: notificationCountProp }: HomeScreenProps) {
   const { userId, status } = useAuth();
-  const [unread, setUnread] = useState(0);
   const [balanceVisible, setBalanceVisible] = useState(() => {
     try {
       return localStorage.getItem('convia.hideBalance') !== '1';
@@ -51,19 +51,13 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
   const [hideSmall, setHideSmall] = useState(false);
     const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);
   const { assets, loading } = useWalletAssets();
-
   useEffect(() => {
-    if (status !== 'authenticated' || !userId) {
-      setUnread(0);
-      return;
-    }
-    notifApi
-      .listNotifications(userId, 30)
-      .then((list) => {
-        setUnread((Array.isArray(list) ? list : []).filter((n: { readAt?: string }) => !n.readAt).length);
-      })
-      .catch(() => setUnread(0));
-  }, [userId, status]);
+    const syms = assets.map((a) => a.symbol).filter(Boolean);
+    if (syms.length) prefetchMarketPrices(syms);
+  }, [assets]);
+
+  const { unread } = useNotifications(30);
+
 
   const notificationCount = unread || notificationCountProp || 0;
 

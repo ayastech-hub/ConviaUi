@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
 import type { Screen } from '../shared/data/mockData';
@@ -6,6 +6,8 @@ import { BottomNav } from '../shared/components/BottomNav';
 import { LAYOUT } from '../shared/layout/spacing';
 import { useNavigation } from './navigation';
 import { hasSeenOnboarding, markOnboardingSeen } from '../shared/utils/firstVisit';
+import { usePrefetchAppData } from '../shared/hooks/usePrefetchAppData';
+import { prefetchForScreen } from '../shared/query/prefetchAppData';
 import { useAuth } from '../shared/context/AuthContext';
 
 import { OnboardingScreen } from '../features/onboarding/screens/OnboardingScreen';
@@ -122,7 +124,24 @@ function initialScreen(): import('../shared/data/mockData').Screen {
 }
 
 export default function App() {
-  const { current, navigate, goBack, switchTab, navParam } = useNavigation(initialScreen());
+  const { current, navigate: navigateRaw, goBack, switchTab: switchTabRaw, navParam } = useNavigation(initialScreen());
+  const { status, userId } = useAuth();
+  usePrefetchAppData();
+
+  const navigate = useCallback(
+    (s: Screen, param?: string) => {
+      prefetchForScreen(s, userId);
+      navigateRaw(s, param);
+    },
+    [navigateRaw, userId],
+  );
+  const switchTab = useCallback(
+    (s: Screen) => {
+      prefetchForScreen(s, userId);
+      switchTabRaw(s);
+    },
+    [switchTabRaw, userId],
+  );
 
   // Deep link: ?pay=CODE → payment page (persist for post-auth return)
   useEffect(() => {
@@ -170,8 +189,6 @@ export default function App() {
 
   const setTheme = (pref: 'system' | 'light' | 'dark') => setThemePref(pref);
   const toggleDark = () => setThemePref((p) => (darkMode ? 'light' : 'dark'));
-  const { status } = useAuth();
-
   // When auth finishes loading, bounce authenticated users off login/signup
   // and anonymous users off main tabs if they hit a deep link without a session.
   useEffect(() => {

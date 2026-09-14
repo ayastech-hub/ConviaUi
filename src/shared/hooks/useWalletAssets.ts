@@ -70,7 +70,7 @@ export function useWalletAssets() {
   );
 
   const pricesQ = useQuery({
-    queryKey: [...queryKeys.tokens(), 'market', symbols.join(',')],
+    queryKey: queryKeys.tokenMarket(symbols.join(',')),
     queryFn: async () => {
       if (!symbols.length) return { tokens: [] as TokenMarketInfo[] };
       const res = await fetchTokensInfo(symbols);

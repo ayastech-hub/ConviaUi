@@ -16,6 +16,8 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '../../../shared/context/AuthContext';
+import { useNotifications } from '../../../shared/hooks/useNotifications';
+import { queryClient, queryKeys } from '../../../shared/query/queryClient';
 import * as notifApi from '../../../shared/api/notifications';
 import type { NotificationRow } from '../../../shared/api/notifications';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
@@ -130,35 +132,21 @@ function bodyOf(n: NotificationRow) {
 
 export function NotificationsScreen({ goBack, navigate }: NotificationsScreenProps) {
   const { userId, status } = useAuth();
-  const [notifs, setNotifs] = useState<NotificationRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: notifs, loading, refresh, invalidate } = useNotifications(30);
   const [error, setError] = useState<{ code?: string; message?: string } | null>(null);
   const [selected, setSelected] = useState<NotificationRow | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
   const [justMarkedAll, setJustMarkedAll] = useState(false);
 
   const load = useCallback(async () => {
-    if (!userId) {
-      setNotifs([]);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
     setError(null);
     try {
-      const rows = await notifApi.fetchNotifications(userId);
-      setNotifs(Array.isArray(rows) ? rows : []);
+      await refresh();
     } catch (e) {
       if (e instanceof ApiError) setError({ code: e.code, message: e.message });
       else setError({ message: 'Failed to load notifications' });
-    } finally {
-      setLoading(false);
     }
-  }, [userId]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  }, [refresh]);
 
   const unreadCount = notifs.filter((n) => !n.readAt).length;
 
@@ -178,9 +166,11 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
     if (!notif.readAt && notif.id) {
       try {
         await notifApi.markNotificationRead(notif.id);
-        setNotifs((prev) =>
-          prev.map((n) => (n.id === notif.id ? { ...n, readAt: new Date().toISOString() } : n)),
-        );
+        if (userId) {
+          queryClient.setQueryData(queryKeys.notifications(userId, 30), (prev: NotificationRow[] | undefined) =>
+            (prev || []).map((n) => (n.id === notif.id ? { ...n, readAt: new Date().toISOString() } : n)),
+          );
+        }
       } catch {
         /* ignore */
       }
@@ -191,7 +181,9 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
     if (!userId || unreadCount === 0) return;
     try {
       await notifApi.markAllNotificationsRead(userId);
-      setNotifs((prev) => prev.map((n) => ({ ...n, readAt: n.readAt || new Date().toISOString() })));
+      queryClient.setQueryData(queryKeys.notifications(userId, 30), (prev: NotificationRow[] | undefined) =>
+        (prev || []).map((n) => ({ ...n, readAt: n.readAt || new Date().toISOString() })),
+      );
       setJustMarkedAll(true);
       setTimeout(() => setJustMarkedAll(false), 1800);
     } catch {
