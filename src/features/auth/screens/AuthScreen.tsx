@@ -316,6 +316,8 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
               onForgotPassword={() => navigate('forgot-password')}
               onQuickAccess={() => switchTab('home')}
               onSignup={() => navigate('signup')}
+              onOpenTerms={() => navigate('terms')}
+              onOpenPrivacy={() => navigate('privacy')}
               onLogin={() => navigate('login')}
             />
           )}

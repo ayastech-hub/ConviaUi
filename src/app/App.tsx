@@ -31,6 +31,7 @@ import { SecurityScreen } from '../features/profile/screens/SecurityScreen';
 import { KYCScreen } from '../features/profile/screens/KYCScreen';
 
 import { HelpCenterScreen } from '../features/support/screens/HelpCenterScreen';
+import { LegalDocumentScreen } from '../features/support/screens/LegalDocumentScreen';
 import { AboutScreen } from '../features/support/screens/AboutScreen';
 import { ChatScreen } from '../features/support/screens/ChatScreen';
 import { SupportCenterScreen } from '../features/support/screens/SupportCenterScreen';
@@ -372,6 +373,18 @@ export default function App() {
         return (
           <motion.div key="help-center" {...slideRight} className="absolute inset-0">
             <HelpCenterScreen goBack={goBack} />
+          </motion.div>
+        );
+      case 'privacy':
+        return (
+          <motion.div key="privacy" {...slideRight} className="absolute inset-0">
+            <LegalDocumentScreen doc="privacy" goBack={goBack} />
+          </motion.div>
+        );
+      case 'terms':
+        return (
+          <motion.div key="terms" {...slideRight} className="absolute inset-0">
+            <LegalDocumentScreen doc="terms" goBack={goBack} />
           </motion.div>
         );
       case 'about':

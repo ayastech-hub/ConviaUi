@@ -34,6 +34,8 @@ interface CredentialsStepProps {
   onQuickAccess: () => void;
   onSignup: () => void;
   onLogin: () => void;
+  onOpenTerms?: () => void;
+  onOpenPrivacy?: () => void;
 }
 
 /** Clean enterprise email/password form. */
@@ -68,6 +70,8 @@ export function CredentialsStep({
   onQuickAccess,
   onSignup,
   onLogin,
+  onOpenTerms,
+  onOpenPrivacy,
 }: CredentialsStepProps) {
   const isSignup = mode === 'signup';
   const isForgot = mode === 'forgot-password';
@@ -227,7 +231,24 @@ export function CredentialsStep({
                 {agreeTerms && <Check size={12} style={{ color: 'var(--primary-foreground)' }} strokeWidth={3} />}
               </button>
               <span style={{ color: 'var(--muted-foreground)', fontSize: 12, lineHeight: 1.45 }}>
-                I agree to the Terms of Service and Privacy Policy
+                I agree to the{' '}
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); onOpenTerms?.(); }}
+                  className="font-semibold underline-offset-2"
+                  style={{ color: 'var(--primary)', textDecoration: 'underline' }}
+                >
+                  Terms of Service
+                </button>
+                {' '}and{' '}
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); onOpenPrivacy?.(); }}
+                  className="font-semibold underline-offset-2"
+                  style={{ color: 'var(--primary)', textDecoration: 'underline' }}
+                >
+                  Privacy Policy
+                </button>
               </span>
             </label>
           </>

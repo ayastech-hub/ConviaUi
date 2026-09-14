@@ -69,44 +69,72 @@ export function HelpCenterScreen({ goBack }: HelpCenterScreenProps) {
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
       <PageTop />
 
-      <div className="flex items-center gap-3 px-5 mb-6">
+      <div className="flex items-center gap-3 px-5 mb-3">
         <BackButton onClick={goBack} />
-        <h2 style={{ color: 'var(--foreground)', fontWeight: 800 }}>Help Center</h2>
+        <h1 className="flex-1 text-center pr-10" style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 17 }}>
+          Help Center
+        </h1>
       </div>
 
-      <div className="px-5">
-        <div className="flex items-center gap-2 px-4 py-3 rounded-[14px] mb-6 glass-card" style={{ border: '1px solid var(--border)' }}>
-          <Search size={16} style={{ color: 'var(--muted-foreground)' }} />
-          <input
-            placeholder="Search for help..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setActiveCategory(null); }}
-            className="flex-1 bg-transparent outline-none"
-            style={{ color: 'var(--foreground)', fontSize: 14 }}
-          />
-          {search && (
-            <button onClick={() => setSearch('')}>
-              <X size={16} style={{ color: 'var(--muted-foreground)' }} />
-            </button>
-          )}
+      <div className="px-5 pb-10">
+        <div
+          className="rounded-[22px] px-4 py-4 mb-4"
+          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+        >
+          <p style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 16 }}>How can we help?</p>
+          <p className="mt-1 mb-3" style={{ color: 'var(--muted-foreground)', fontSize: 12, lineHeight: 1.45 }}>
+            Guides for wallet, deposits, swaps, and security — aligned with how Convia works.
+          </p>
+          <div
+            className="flex items-center gap-2 px-3 py-2.5 rounded-[14px]"
+            style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+          >
+            <Search size={16} style={{ color: 'var(--muted-foreground)' }} />
+            <input
+              placeholder="Search articles…"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setActiveCategory(null); }}
+              className="flex-1 bg-transparent outline-none"
+              style={{ color: 'var(--foreground)', fontSize: 14 }}
+            />
+            {search && (
+              <button type="button" onClick={() => setSearch('')}>
+                <X size={16} style={{ color: 'var(--muted-foreground)' }} />
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="rounded-[20px] p-5 mb-6 glass-card glass-refraction" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'var(--border)' }}>
-              <MessageCircle size={20} style={{ color: 'var(--foreground)' }} />
+        <div
+          className="rounded-[20px] p-4 mb-5"
+          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+        >
+          <div className="flex items-center gap-3 mb-3">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{ background: 'color-mix(in oklab, var(--primary) 16%, transparent)' }}
+            >
+              <MessageCircle size={20} style={{ color: 'var(--primary)' }} />
             </div>
-            <div>
-              <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 15 }}>Need help? Chat with us</p>
-              <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>Our support team is available 24/7</p>
+            <div className="min-w-0">
+              <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14 }}>Chat with support</p>
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>Account, payments, and security help</p>
             </div>
           </div>
-          <motion.button whileTap={{ scale: 0.97 }} onClick={() => setChatOpen(true)} className="w-full py-3 rounded-[12px] text-white mt-2" style={{ background: 'var(--primary)', fontWeight: 700, fontSize: 14 }}>
-            Start a Conversation
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.97 }}
+            onClick={() => setChatOpen(true)}
+            className="w-full py-3 rounded-full"
+            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)', fontWeight: 700, fontSize: 14 }}
+          >
+            Start conversation
           </motion.button>
         </div>
 
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginBottom: 12, fontWeight: 600 }}>BROWSE BY TOPIC</p>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 11, marginBottom: 10, fontWeight: 700, letterSpacing: 0.6 }}>
+          BROWSE BY TOPIC
+        </p>
         <CategoryGrid activeCategory={activeCategory} onSelectCategory={setActiveCategory} />
 
         <ArticleList activeCategory={activeCategory} search={search} articles={popularArticles} onSelectArticle={setSelectedArticle} />
