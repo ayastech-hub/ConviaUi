@@ -340,7 +340,7 @@ function Detail({ req: initial, onUpdate }: { req: PaymentRequest; onUpdate: (r:
     }
   };
 
-  const doCancel = () => {
+  const doCancel = async () => {
     const u = await cancelRequest(req.id);
     if (u) {
       setReq(u);
