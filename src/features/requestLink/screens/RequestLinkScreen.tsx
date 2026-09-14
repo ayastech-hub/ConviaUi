@@ -1,4 +1,4 @@
-import {  useMemo, useState, type ReactNode , useEffect };
+import { useMemo, useState, useEffect, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link2, Copy, Check, Share2, ChevronDown, ChevronRight } from 'lucide-react';
 import { PageTop } from '../../../shared/components/PageTop';

@@ -1,5 +1,4 @@
-import {  useMemo, useState, type ReactNode , useEffect } from 'react';
-// useEffect via hooks
+import { useMemo, useState, useEffect, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Gift,
