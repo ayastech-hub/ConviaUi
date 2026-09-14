@@ -88,29 +88,17 @@ export function OnRampFormStep({
       >
         <div className="flex items-center justify-between mb-4">
           <span style={{ color: 'var(--muted-foreground)', fontSize: 13, fontWeight: 600 }}>You pay</span>
-          <div className="flex rounded-full p-0.5" style={{ background: 'var(--muted)' }}>
-            {(['fiat', 'usd'] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => {
-                  setAmountMode(m);
-                  setAmount('');
-                }}
-                className="px-3 py-1 rounded-full"
-                style={{
-                  fontSize: 12,
-                  fontWeight: amountMode === m ? 700 : 550,
-                  background: amountMode === m ? 'var(--liquid-chip-on-bg)' : 'var(--liquid-chip-off-bg)',
-                  color: amountMode === m ? 'var(--liquid-chip-on-text)' : 'var(--liquid-chip-off-text)',
-                  border: amountMode === m ? '1px solid var(--liquid-chip-on-border)' : '1px solid transparent',
-                  boxShadow: amountMode === m ? 'var(--liquid-chip-on-shadow)' : 'none',
-                  backdropFilter: amountMode === m ? 'blur(12px)' : undefined,
-                }}
-              >
-                {m === 'usd' ? 'USD' : currency.code}
-              </button>
-            ))}
+          <div
+            className="px-3 py-1 rounded-full"
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              background: 'var(--liquid-chip-on-bg)',
+              color: 'var(--liquid-chip-on-text)',
+              border: '1px solid var(--liquid-chip-on-border)',
+            }}
+          >
+            {currency.code}
           </div>
         </div>
 

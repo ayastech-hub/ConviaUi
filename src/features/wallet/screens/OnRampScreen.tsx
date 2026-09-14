@@ -20,6 +20,9 @@ import { queryClient, queryKeys } from '../../../shared/query/queryClient';
 import { useLanguage } from '../../../shared/context/LanguageContext';
 import { PageTop } from '../../../shared/components/PageTop';
 import { BackButton } from '../../../shared/components/BackButton';
+import { localFiatForCountry } from '../../../shared/lib/countryFiat';
+import { useMyProfile } from '../../../shared/hooks/useMyProfile';
+import { getRate } from '../../../shared/rates/fx';
 
 interface OnRampScreenProps {
   goBack: () => void;
@@ -34,6 +37,7 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
   const { assets: cryptoAssets } = useWalletAssets();
   const { userId, email: authEmail } = useAuth();
   const gates = useAccountGates();
+  const { profile } = useMyProfile();
   const { currency, format } = useCurrency();
 
   const [selectedAsset, setSelectedAsset] = useState<Asset>(
@@ -55,7 +59,7 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
   const [paymentMethod, setPaymentMethod] = useState<'bank' | 'card'>('bank');
   const [cardPaymentId, setCardPaymentId] = useState<string | null>(null);
   const [amount, setAmount] = useState('');
-  const [amountMode, setAmountMode] = useState<'fiat' | 'usd'>('fiat');
+  const [amountMode] = useState<'fiat' | 'usd'>('fiat'); // local fiat only for payment rails
   const [step, setStep] = useState<'form' | 'review' | 'processing' | 'done'>(
     'form',
   );
@@ -73,19 +77,34 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
     if (hit && selectedAsset.symbol !== hit.symbol) setSelectedAsset(hit);
   }, [presetSymbol, cryptoAssets]);
 
-  const fiatCurrency = (currency.code || 'NGN').toUpperCase();
-  // Quote/order always in local fiat; USD mode converts via currency.rate (local per 1 USD)
+  // Always charge in country local currency (NGN/GHS/…), never display USD as the pay rail
+  const payCurrency = localFiatForCountry(profile?.country || gates.country, 'NGN');
+  const fiatCurrency = payCurrency;
+  const localPerUsd = getRate(payCurrency);
   const effectiveFiatAmount = (() => {
     const n = Number(amount);
     if (!(n > 0)) return '';
     if (amountMode === 'usd') {
-      const rate = Number(currency.rate) || 0;
-      if (rate <= 0) return '';
-      return String(Number((n * rate).toFixed(2)));
+      if (!(localPerUsd > 0)) return '';
+      return String(Number((n * localPerUsd).toFixed(2)));
     }
     return amount.trim();
   })();
   const fiatAmount = effectiveFiatAmount;
+  const FIAT_META: Record<string, { symbol: string; name: string }> = {
+    NGN: { symbol: '₦', name: 'Nigerian Naira' },
+    GHS: { symbol: 'GH₵', name: 'Ghanaian Cedi' },
+    KES: { symbol: 'KSh', name: 'Kenyan Shilling' },
+    ZAR: { symbol: 'R', name: 'South African Rand' },
+    UGX: { symbol: 'USh', name: 'Ugandan Shilling' },
+  };
+  const payCurrencyDisplay = {
+    code: payCurrency,
+    name: FIAT_META[payCurrency]?.name || payCurrency,
+    symbol: FIAT_META[payCurrency]?.symbol || payCurrency,
+    rate: localPerUsd || 1,
+    flag: (profile?.country || gates.country || 'NG').toString().slice(0, 2),
+  };
 
   // Live quote when amount changes
   useEffect(() => {
@@ -264,12 +283,12 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
         <AnimatePresence mode="wait">
           {step === 'form' && (
             <OnRampFormStep
-              currency={currency}
+              currency={payCurrencyDisplay}
               format={format}
               amount={amount}
               setAmount={setAmount}
               amountMode={amountMode}
-              setAmountMode={setAmountMode}
+              setAmountMode={() => {}}
               usdAmount={usdAmount}
               rampAssets={cryptoAssets}
               selectedAsset={selectedAsset}
@@ -291,16 +310,16 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
               quote={quote}
               quoting={quoting}
               onPreview={() => {
-                if (!gates.canOnramp) return;
-                if (!quote || Number(amount) <= 0) return;
-                setStep('review');
+                if (!gates.canOnramp || submitting) return;
+                if (!quote || Number(fiatAmount) <= 0) return;
+                void placeOrder();
               }}
             />
           )}
 
           {step === 'review' && (
             <OnRampReviewStep
-              currency={currency}
+              currency={payCurrencyDisplay}
               format={format}
               amount={amount}
               selectedAsset={selectedAsset}
@@ -319,7 +338,7 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
 
           {step === 'processing' && (
             <OnRampProcessingStep
-              currency={currency}
+              currency={payCurrencyDisplay}
               amount={fiatAmount || amount}
               youGet={youGet}
               symbol={selectedAsset.symbol}
