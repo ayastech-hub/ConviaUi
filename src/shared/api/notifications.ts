@@ -57,3 +57,11 @@ export async function markAllNotificationsRead(userId: string): Promise<void> {
     rows.filter((n) => !n.readAt).map((n) => markNotificationRead(n.id).catch(() => undefined)),
   );
 }
+
+export function deleteNotification(notificationId: string) {
+  return api.delete<void>(`/notifications/${notificationId}`);
+}
+
+export function deleteAllNotifications(userId: string) {
+  return api.delete<{ ok?: boolean; deleted?: number }>(`/notifications/${userId}/all`);
+}

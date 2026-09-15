@@ -37,11 +37,14 @@ export type TransactionsResponse = {
  */
 export async function fetchTransactions(
   userId: string,
-  opts?: { limit?: number; kind?: string },
+  opts?: { limit?: number; kind?: string; since?: string; until?: string; cursor?: string },
 ): Promise<TransactionsResponse> {
   const q = new URLSearchParams();
   if (opts?.limit) q.set('limit', String(opts.limit));
   if (opts?.kind) q.set('kind', opts.kind);
+  if (opts?.since) q.set('since', opts.since);
+  if (opts?.until) q.set('until', opts.until);
+  if (opts?.cursor) q.set('cursor', opts.cursor);
   const qs = q.toString();
   const raw = await api.get<{
     items?: ApiTransaction[];

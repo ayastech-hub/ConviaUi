@@ -4,22 +4,25 @@ import { fetchTransactions, type ApiTransaction } from '../api/transactions';
 import { queryKeys } from '../query/queryClient';
 import { cacheGet, cacheSet } from '../cache/queryCache';
 
-export function useTransactions(limit = 20) {
+export function useTransactions(
+  limit = 200,
+  opts?: { since?: string; until?: string },
+) {
   const { userId, status } = useAuth();
+  const since = opts?.since;
+  const until = opts?.until;
+  const cacheKey = `tx:${userId || '_'}:${limit}:${since || ''}:${until || ''}`;
   const enabled = status === 'authenticated' && !!userId;
-  const cacheKey = `tx:${userId || '_'}:${limit}`;
 
   const q = useQuery({
-    queryKey: queryKeys.transactions(userId || '_', limit),
+    queryKey: [...queryKeys.transactions(userId || '_', limit), since || '', until || ''],
     queryFn: async () => {
-      const res = await fetchTransactions(userId!, { limit });
-      const list = res.transactions || [];
-      cacheSet(cacheKey, list, { persist: 'local' });
-      return list;
+      const res = await fetchTransactions(userId!, { limit, since, until });
+      cacheSet(cacheKey, res.transactions, { persist: 'local' });
+      return res.transactions as ApiTransaction[];
     },
     enabled,
-    staleTime: 30_000,
-    gcTime: 15 * 60_000,
+    staleTime: 15_000,
     placeholderData: () =>
       cacheGet<ApiTransaction[]>(cacheKey, 24 * 60 * 60_000, { allowStale: true, preferLocal: true }) ||
       undefined,
@@ -28,8 +31,6 @@ export function useTransactions(limit = 20) {
   return {
     data: (q.data as ApiTransaction[] | undefined) ?? [],
     loading: enabled && q.isLoading && !q.data,
-    error: q.error ? String((q.error as { code?: string }).code || (q.error as Error).message) : null,
-    source: q.data ? ('live' as const) : ('none' as const),
     isFetching: q.isFetching,
     refresh: () => q.refetch(),
   };

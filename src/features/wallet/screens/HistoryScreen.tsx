@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   ChevronDown,
   Check,
-  Bell,
   ArrowUpRight,
   ArrowDownLeft,
   RefreshCw,
@@ -19,10 +18,7 @@ import { TransactionReceipt } from '../../../shared/components/TransactionReceip
 import { formatTokenAmount } from '../../../shared/utils/formatAmount';
 import { PageTop } from '../../../shared/components/PageTop';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
-import { useAuth } from '../../../shared/context/AuthContext';
 import { useTransactions } from '../../../shared/hooks/useTransactions';
-import { useNotifications } from '../../../shared/hooks/useNotifications';
-import { markNotificationRead, markAllNotificationsRead } from '../../../shared/api/notifications';
 import { apiTxToUi, filterHistoryForUi } from '../../../shared/utils/mapApiToUi';
 import { BackButton } from '../../../shared/components/BackButton';
 
@@ -169,15 +165,22 @@ interface Props {
 
 export function HistoryScreen({ goBack }: Props) {
   const { format } = useCurrency();
-  const { userId } = useAuth();
-  const { data: apiTxs, loading, isFetching } = useTransactions(50);
+  const [range, setRange] = useState<'30d' | '90d' | '1y' | 'all'>('1y');
+  const sinceIso = useMemo(() => {
+    if (range === 'all') return undefined;
+    const d = new Date();
+    if (range === '30d') d.setDate(d.getDate() - 30);
+    else if (range === '90d') d.setDate(d.getDate() - 90);
+    else d.setFullYear(d.getFullYear() - 1);
+    return d.toISOString();
+  }, [range]);
+  const { data: apiTxs, loading, isFetching } = useTransactions(500, { since: sinceIso });
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [typeOpen, setTypeOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
   const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);
-  const [tab, setTab] = useState<'tx' | 'notif'>('tx');
-  const { data: notifs, unread, loading: notifLoading, refresh: refreshNotifs } = useNotifications(40);
+  
 
   const txs = useMemo(() => {
     const mapped = filterHistoryForUi((apiTxs || []).map(apiTxToUi));
@@ -201,44 +204,14 @@ export function HistoryScreen({ goBack }: Props) {
         <BackButton onClick={goBack} />
         <div className="flex-1 min-w-0">
           <h1 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 18, letterSpacing: -0.3 }}>
-            Activity
+            Transactions
           </h1>
           <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 1 }}>
-            {loading && !txs.length
-              ? 'Loading…'
-              : isFetching
-                ? 'Updating…'
-                : `${txs.length} transaction${txs.length === 1 ? '' : 's'}`}
+            {loading && !txs.length ? 'Loading…' : isFetching ? 'Updating…' : 'Your wallet history'}
           </p>
         </div>
       </div>
-
-      {/* Tabs */}
-      <div className="px-5 pt-2 pb-1 flex gap-2">
-        {([
-          { id: 'tx' as const, label: 'Transactions' },
-          { id: 'notif' as const, label: unread > 0 ? `Alerts (${unread})` : 'Alerts' },
-        ]).map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => setTab(item.id)}
-            className="h-9 px-4 rounded-full"
-            style={{
-              background: tab === item.id ? 'var(--liquid-chip-on-bg)' : 'var(--muted)',
-              color: tab === item.id ? 'var(--liquid-chip-on-text)' : 'var(--foreground)',
-              border: tab === item.id ? '1px solid var(--liquid-pill-border)' : '1px solid var(--border)',
-              fontSize: 12,
-              fontWeight: 700,
-            }}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Filters — transactions only */}
-      {tab === 'tx' && (
+      {/* Filters */}
       <div className="px-5 py-3 flex items-center gap-2 overflow-x-auto no-scrollbar relative z-20">
         <div
           className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
@@ -307,10 +280,34 @@ export function HistoryScreen({ goBack }: Props) {
           ))}
         </FilterChip>
       </div>
-      )}
+
+      {/* Date range */}
+      <div className="px-5 pb-2 flex items-center gap-2 overflow-x-auto no-scrollbar">
+        {([
+          { id: '30d' as const, label: '30 days' },
+          { id: '90d' as const, label: '90 days' },
+          { id: '1y' as const, label: '1 year' },
+          { id: 'all' as const, label: 'All time' },
+        ]).map((r) => (
+          <button
+            key={r.id}
+            type="button"
+            onClick={() => setRange(r.id)}
+            className="h-8 px-3 rounded-full"
+            style={{
+              background: range === r.id ? 'var(--liquid-chip-on-bg)' : 'var(--muted)',
+              color: range === r.id ? 'var(--liquid-chip-on-text)' : 'var(--foreground)',
+              border: range === r.id ? '1px solid var(--liquid-pill-border)' : '1px solid var(--border)',
+              fontSize: 11,
+              fontWeight: 650,
+            }}
+          >
+            {r.label}
+          </button>
+        ))}
+      </div>
 
       {/* List */}
-      {tab === 'tx' && (
       <div className="flex-1 overflow-y-auto px-5 pb-10">
         {loading && !txs.length && (
           <div className="space-y-3 pt-2">
@@ -450,69 +447,6 @@ export function HistoryScreen({ goBack }: Props) {
           </div>
         ))}
       </div>
-
-      )}
-
-      {tab === 'notif' && (
-        <div className="flex-1 overflow-y-auto px-5 pb-10">
-          <div className="flex items-center justify-between mb-3">
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }}>
-              {notifLoading ? 'Loading…' : `${notifs.length} alert${notifs.length === 1 ? '' : 's'}`}
-            </p>
-            {unread > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (userId) void markAllNotificationsRead(userId).then(() => refreshNotifs());
-                }}
-                style={{ color: 'var(--primary)', fontSize: 12, fontWeight: 700 }}
-              >
-                Mark all read
-              </button>
-            )}
-          </div>
-          {!notifLoading && notifs.length === 0 && (
-            <div className="flex flex-col items-center pt-16 text-center">
-              <Bell size={28} style={{ color: 'var(--muted-foreground)' }} />
-              <p className="mt-3" style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 15 }}>No alerts yet</p>
-              <p className="mt-1" style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Deposits, security, and rewards will show here.</p>
-            </div>
-          )}
-          <div className="rounded-[20px] overflow-hidden" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-            {notifs.map((n, i) => {
-              const unreadItem = !n.readAt && !(n as { read?: boolean }).read;
-              return (
-                <button
-                  key={n.id}
-                  type="button"
-                  onClick={() => {
-                    if (unreadItem) void markNotificationRead(n.id).then(() => refreshNotifs());
-                  }}
-                  className="w-full text-left px-3.5 py-3.5"
-                  style={{ borderBottom: i === notifs.length - 1 ? 'none' : '1px solid var(--border)' }}
-                >
-                  <div className="flex items-start gap-2">
-                    {unreadItem && <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: 'var(--primary)' }} />}
-                    <div className="min-w-0 flex-1">
-                      <p style={{ color: 'var(--foreground)', fontWeight: unreadItem ? 700 : 600, fontSize: 13 }}>
-                        {n.title || n.type || 'Notification'}
-                      </p>
-                      {(n.body || n.message) && (
-                        <p className="mt-0.5" style={{ color: 'var(--muted-foreground)', fontSize: 12, lineHeight: 1.4 }}>
-                          {String(n.body || n.message)}
-                        </p>
-                      )}
-                      <p className="mt-1" style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>
-                        {n.createdAt ? new Date(n.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
-                      </p>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       <TransactionReceipt tx={receiptTx} open={!!receiptTx} onClose={() => setReceiptTx(null)} />
     </div>

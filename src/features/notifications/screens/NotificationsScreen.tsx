@@ -13,12 +13,14 @@ import {
   X,
   BellOff,
   CheckCheck,
+  Trash2,
   ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { useNotifications } from '../../../shared/hooks/useNotifications';
 import { queryClient, queryKeys } from '../../../shared/query/queryClient';
 import * as notifApi from '../../../shared/api/notifications';
+import { deleteNotification, deleteAllNotifications } from '../../../shared/api/notifications';
 import type { NotificationRow } from '../../../shared/api/notifications';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { ApiError } from '../../../shared/api/types';
@@ -150,6 +152,29 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
 
   const unreadCount = notifs.filter((n) => !n.readAt).length;
 
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteNotification(id);
+      queryClient.setQueryData(queryKeys.notifications(userId || '_', 40), (prev: NotificationRow[] | undefined) =>
+        (prev || []).filter((n) => n.id !== id),
+      );
+      // also clear other limit keys
+      void queryClient.invalidateQueries({ queryKey: queryKeys.notifications(userId || '_') });
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    if (!userId) return;
+    try {
+      await deleteAllNotifications(userId);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.notifications(userId) });
+    } catch {
+      /* ignore */
+    }
+  };
+
   const visible = useMemo(() => {
     return notifs.filter((n) => {
       if (filter === 'unread') return !n.readAt;
@@ -207,26 +232,42 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
           <BackButton onClick={goBack} />
           <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22 }}>Notifications</h2>
         </div>
-        <button
-          type="button"
-          onClick={() => void markAllRead()}
-          disabled={unreadCount === 0}
-          className="flex items-center gap-1.5"
-          style={{
-            color: unreadCount > 0 ? 'var(--primary)' : 'var(--muted-foreground)',
-            fontSize: 13,
-            fontWeight: 600,
-            opacity: unreadCount > 0 ? 1 : 0.45,
-          }}
-        >
-          {justMarkedAll ? (
-            <>
-              <CheckCheck size={14} /> Done
-            </>
-          ) : (
-            'Mark all read'
-          )}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => void handleDeleteAll()}
+            disabled={notifs.length === 0}
+            className="flex items-center gap-1"
+            style={{
+              color: notifs.length ? 'var(--destructive)' : 'var(--muted-foreground)',
+              fontSize: 13,
+              fontWeight: 600,
+              opacity: notifs.length ? 1 : 0.45,
+            }}
+          >
+            <Trash2 size={14} /> Clear
+          </button>
+          <button
+            type="button"
+            onClick={() => void markAllRead()}
+            disabled={unreadCount === 0}
+            className="flex items-center gap-1.5"
+            style={{
+              color: unreadCount > 0 ? 'var(--primary)' : 'var(--muted-foreground)',
+              fontSize: 13,
+              fontWeight: 600,
+              opacity: unreadCount > 0 ? 1 : 0.45,
+            }}
+          >
+            {justMarkedAll ? (
+              <>
+                <CheckCheck size={14} /> Done
+              </>
+            ) : (
+              'Mark all read'
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Category chips — scrollable */}
@@ -486,6 +527,25 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
                         </span>
                       </div>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (selected?.id) {
+                          void handleDelete(selected.id).then(() => setSelected(null));
+                        }
+                      }}
+                      className="w-full py-3.5 rounded-full flex items-center justify-center gap-2 mb-3"
+                      style={{
+                        background: 'color-mix(in srgb, var(--destructive) 12%, transparent)',
+                        color: 'var(--destructive)',
+                        fontWeight: 700,
+                        fontSize: 14,
+                      }}
+                    >
+                      <Trash2 size={16} />
+                      Delete notification
+                    </button>
 
                     {link && navigate && (
                       <button
