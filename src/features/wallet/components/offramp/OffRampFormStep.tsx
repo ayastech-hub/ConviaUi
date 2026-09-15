@@ -57,7 +57,7 @@ export function OffRampFormStep({
 
   const bankLine = selectedAccount
     ? `${selectedAccount.bankName || 'Bank'} · ${(selectedAccount.accountNumber || selectedAccount.last4 || '').toString().slice(-4)}`
-    : 'Select bank account';
+    : 'Select a saved bank account';
 
   return (
     <motion.div
@@ -246,7 +246,7 @@ export function OffRampFormStep({
               className="w-full px-2 py-3 text-left"
               style={{ color: 'var(--primary)', fontWeight: 600, fontSize: 13 }}
             >
-              Add bank account
+              Add bank in Payment Methods
             </button>
           </div>
         </div>
@@ -298,7 +298,7 @@ export function OffRampFormStep({
             : over
               ? 'Insufficient balance'
               : !selectedAccountId
-                ? 'Select bank account'
+                ? 'Select a saved bank account'
                 : 'Continue'}
         </motion.button>
       </div>
