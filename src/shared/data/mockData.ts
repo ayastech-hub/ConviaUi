@@ -33,8 +33,21 @@ export interface Transaction {
   address?: string;
   username?: string;
   time: string;
+  /** ISO createdAt when available */
+  createdAt?: string;
   status: 'confirmed' | 'pending' | 'failed';
   hash?: string;
+  network?: string;
+  chainKey?: string;
+  /** Provider / payment / withdrawal reference */
+  reference?: string;
+  orderId?: string;
+  feeAmount?: string;
+  feeAsset?: string;
+  fiatAmount?: string;
+  fiatCurrency?: string;
+  counterparty?: string;
+  rawType?: string;
 }
 
 export interface ChatContact {

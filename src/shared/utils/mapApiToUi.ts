@@ -99,6 +99,11 @@ export function apiTxToUi(t: ApiTransaction): Transaction {
     ? ''
     : created.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   const mapped = mapType(t);
+  const meta = (t.metadata || {}) as Record<string, unknown>;
+  const str = (k: string) => {
+    const v = meta[k];
+    return v != null && String(v).trim() ? String(v) : undefined;
+  };
   return {
     id: t.id,
     type: mapped,
@@ -108,8 +113,20 @@ export function apiTxToUi(t: ApiTransaction): Transaction {
     amountTo: isSwap ? amountTo : amountTo,
     valueUSD: amount,
     time,
+    createdAt: t.createdAt || undefined,
     status: mapStatus(t.status),
-    hash: t.txHash || undefined,
+    hash: t.txHash || str('txHash') || str('hash') || undefined,
+    network: str('network') || str('chain') || str('chainKey') || undefined,
+    chainKey: str('chainKey') || str('chain') || undefined,
+    reference: str('reference') || str('externalPaymentRef') || str('paymentRef') || str('providerRef') || undefined,
+    orderId: str('orderId') || str('depositRequestId') || str('withdrawalId') || str('quoteId') || undefined,
+    feeAmount: str('feeAmount') || str('fee') || undefined,
+    feeAsset: str('feeAsset') || str('feeCurrency') || undefined,
+    fiatAmount: str('fiatAmount') || str('localAmount') || str('fiatOut') || undefined,
+    fiatCurrency: str('fiatCurrency') || str('currency') || undefined,
+    counterparty: str('counterparty') || str('toUser') || str('fromUser') || str('address') || undefined,
+    address: str('address') || str('destination') || undefined,
+    rawType: t.type || undefined,
   };
 }
 

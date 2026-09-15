@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   ChevronDown,
   Check,
+  Bell,
   ArrowUpRight,
   ArrowDownLeft,
   RefreshCw,
@@ -18,7 +19,10 @@ import { TransactionReceipt } from '../../../shared/components/TransactionReceip
 import { formatTokenAmount } from '../../../shared/utils/formatAmount';
 import { PageTop } from '../../../shared/components/PageTop';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
+import { useAuth } from '../../../shared/context/AuthContext';
 import { useTransactions } from '../../../shared/hooks/useTransactions';
+import { useNotifications } from '../../../shared/hooks/useNotifications';
+import { markNotificationRead, markAllNotificationsRead } from '../../../shared/api/notifications';
 import { apiTxToUi, filterHistoryForUi } from '../../../shared/utils/mapApiToUi';
 import { BackButton } from '../../../shared/components/BackButton';
 
@@ -113,7 +117,7 @@ function FilterChip({
   }, [open, onToggle]);
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative z-30">
       <button
         type="button"
         onClick={onToggle}
@@ -131,16 +135,28 @@ function FilterChip({
       </button>
       <AnimatePresence>
         {open && (
-          <motion.div
-            initial={{ opacity: 0, y: 6, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 4 }}
-            transition={{ duration: 0.15 }}
-            className="absolute z-40 left-0 mt-2 min-w-[180px] rounded-2xl overflow-hidden shadow-lg"
-            style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-          >
-            {children}
-          </motion.div>
+          <>
+            <motion.div
+              key="chip-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[45]"
+              style={{ background: 'transparent' }}
+              onClick={onToggle}
+            />
+            <motion.div
+              key="chip-menu"
+              initial={{ opacity: 0, y: 6, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 4 }}
+              transition={{ duration: 0.15 }}
+              className="absolute z-[50] left-0 mt-2 min-w-[200px] max-h-[50vh] overflow-y-auto rounded-2xl shadow-xl"
+              style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+            >
+              {children}
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>
@@ -153,12 +169,15 @@ interface Props {
 
 export function HistoryScreen({ goBack }: Props) {
   const { format } = useCurrency();
+  const { userId } = useAuth();
   const { data: apiTxs, loading, isFetching } = useTransactions(50);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [typeOpen, setTypeOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
   const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);
+  const [tab, setTab] = useState<'tx' | 'notif'>('tx');
+  const { data: notifs, unread, loading: notifLoading, refresh: refreshNotifs } = useNotifications(40);
 
   const txs = useMemo(() => {
     const mapped = filterHistoryForUi((apiTxs || []).map(apiTxToUi));
@@ -194,8 +213,33 @@ export function HistoryScreen({ goBack }: Props) {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="px-5 py-3 flex items-center gap-2 overflow-x-auto no-scrollbar">
+      {/* Tabs */}
+      <div className="px-5 pt-2 pb-1 flex gap-2">
+        {([
+          { id: 'tx' as const, label: 'Transactions' },
+          { id: 'notif' as const, label: unread > 0 ? `Alerts (${unread})` : 'Alerts' },
+        ]).map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setTab(item.id)}
+            className="h-9 px-4 rounded-full"
+            style={{
+              background: tab === item.id ? 'var(--liquid-chip-on-bg)' : 'var(--muted)',
+              color: tab === item.id ? 'var(--liquid-chip-on-text)' : 'var(--foreground)',
+              border: tab === item.id ? '1px solid var(--liquid-pill-border)' : '1px solid var(--border)',
+              fontSize: 12,
+              fontWeight: 700,
+            }}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Filters — transactions only */}
+      {tab === 'tx' && (
+      <div className="px-5 py-3 flex items-center gap-2 overflow-x-auto no-scrollbar relative z-20">
         <div
           className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
           style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
@@ -263,8 +307,10 @@ export function HistoryScreen({ goBack }: Props) {
           ))}
         </FilterChip>
       </div>
+      )}
 
       {/* List */}
+      {tab === 'tx' && (
       <div className="flex-1 overflow-y-auto px-5 pb-10">
         {loading && !txs.length && (
           <div className="space-y-3 pt-2">
@@ -404,6 +450,69 @@ export function HistoryScreen({ goBack }: Props) {
           </div>
         ))}
       </div>
+
+      )}
+
+      {tab === 'notif' && (
+        <div className="flex-1 overflow-y-auto px-5 pb-10">
+          <div className="flex items-center justify-between mb-3">
+            <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }}>
+              {notifLoading ? 'Loading…' : `${notifs.length} alert${notifs.length === 1 ? '' : 's'}`}
+            </p>
+            {unread > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (userId) void markAllNotificationsRead(userId).then(() => refreshNotifs());
+                }}
+                style={{ color: 'var(--primary)', fontSize: 12, fontWeight: 700 }}
+              >
+                Mark all read
+              </button>
+            )}
+          </div>
+          {!notifLoading && notifs.length === 0 && (
+            <div className="flex flex-col items-center pt-16 text-center">
+              <Bell size={28} style={{ color: 'var(--muted-foreground)' }} />
+              <p className="mt-3" style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 15 }}>No alerts yet</p>
+              <p className="mt-1" style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Deposits, security, and rewards will show here.</p>
+            </div>
+          )}
+          <div className="rounded-[20px] overflow-hidden" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+            {notifs.map((n, i) => {
+              const unreadItem = !n.readAt && !(n as { read?: boolean }).read;
+              return (
+                <button
+                  key={n.id}
+                  type="button"
+                  onClick={() => {
+                    if (unreadItem) void markNotificationRead(n.id).then(() => refreshNotifs());
+                  }}
+                  className="w-full text-left px-3.5 py-3.5"
+                  style={{ borderBottom: i === notifs.length - 1 ? 'none' : '1px solid var(--border)' }}
+                >
+                  <div className="flex items-start gap-2">
+                    {unreadItem && <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: 'var(--primary)' }} />}
+                    <div className="min-w-0 flex-1">
+                      <p style={{ color: 'var(--foreground)', fontWeight: unreadItem ? 700 : 600, fontSize: 13 }}>
+                        {n.title || n.type || 'Notification'}
+                      </p>
+                      {(n.body || n.message) && (
+                        <p className="mt-0.5" style={{ color: 'var(--muted-foreground)', fontSize: 12, lineHeight: 1.4 }}>
+                          {String(n.body || n.message)}
+                        </p>
+                      )}
+                      <p className="mt-1" style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>
+                        {n.createdAt ? new Date(n.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <TransactionReceipt tx={receiptTx} open={!!receiptTx} onClose={() => setReceiptTx(null)} />
     </div>
