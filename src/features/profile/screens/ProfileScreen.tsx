@@ -147,7 +147,7 @@ export function ProfileScreen({ navigate }: ProfileScreenProps) {
           />
         </ListSection>
 
-        <ListSection title="Activity">
+        <ListSection title="Inbox">
           <ListRow
             icon={Gift}
             label={t('profile.rewards') || 'Rewards'}
