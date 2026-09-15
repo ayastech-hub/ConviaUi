@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Building2, Trash2, Check, Loader, ChevronDown, Lock } from 'lucide-react';
+import { Plus, Building2, Trash2, Check, Loader, ChevronDown, Lock, Search } from 'lucide-react';
 import { useAuth } from '../../../shared/context/AuthContext';
 import * as banksApi from '../../../shared/api/banks';
 import type { BankAccount } from '../../../shared/api/banks';
@@ -41,6 +41,7 @@ export function PaymentMethodsScreen({ goBack }: PaymentMethodsScreenProps) {
   const [bankCode, setBankCode] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [bankOpen, setBankOpen] = useState(false);
+  const [bankSearch, setBankSearch] = useState('');
   const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
 
@@ -48,10 +49,20 @@ export function PaymentMethodsScreen({ goBack }: PaymentMethodsScreenProps) {
     country || null,
   );
   const selectedBank = banks.find((b) => b.code === bankCode);
+  const filteredBanks = useMemo(() => {
+    const q = bankSearch.trim().toLowerCase();
+    if (!q) return banks;
+    return banks.filter(
+      (b) =>
+        b.name.toLowerCase().includes(q) ||
+        b.code.toLowerCase().includes(q),
+    );
+  }, [banks, bankSearch]);
 
   useEffect(() => {
     setBankCode('');
     setBankOpen(false);
+    setBankSearch('');
   }, [country]);
 
   const load = async () => {
@@ -288,7 +299,7 @@ export function PaymentMethodsScreen({ goBack }: PaymentMethodsScreenProps) {
               <button
                 type="button"
                 disabled={!country || banksLoading}
-                onClick={() => setBankOpen((v) => !v)}
+                onClick={() => { setBankOpen((v) => !v); setBankSearch(''); }}
                 className="w-full flex items-center justify-between px-4 h-12 rounded-2xl mb-2"
                 style={{
                   background: 'var(--muted)',
@@ -305,35 +316,52 @@ export function PaymentMethodsScreen({ goBack }: PaymentMethodsScreenProps) {
 
               {bankOpen && (
                 <div
-                  className="rounded-2xl overflow-hidden mb-4 max-h-40 overflow-y-auto"
-                  style={{ border: '1px solid var(--border)' }}
+                  className="rounded-2xl overflow-hidden mb-4 flex flex-col"
+                  style={{ border: '1px solid var(--border)', maxHeight: 280 }}
                 >
-                  {banks.map((b) => (
-                    <button
-                      key={b.code}
-                      type="button"
-                      onClick={() => {
-                        setBankCode(b.code);
-                        setBankOpen(false);
-                      }}
-                      className="w-full flex items-center justify-between px-4 py-3 text-left"
-                      style={{
-                        background: bankCode === b.code ? 'var(--muted)' : 'var(--card)',
-                        borderBottom: '1px solid var(--border)',
-                        color: 'var(--foreground)',
-                        fontSize: 14,
-                        fontWeight: bankCode === b.code ? 700 : 500,
-                      }}
-                    >
-                      {b.name}
-                      {bankCode === b.code && <Check size={14} style={{ color: 'var(--primary)' }} />}
-                    </button>
-                  ))}
-                  {!banksLoading && banks.length === 0 && (
-                    <p className="px-4 py-3" style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
-                      No banks for this country
-                    </p>
-                  )}
+                  <div
+                    className="flex items-center gap-2 px-3 h-11 flex-shrink-0"
+                    style={{ background: 'var(--muted)', borderBottom: '1px solid var(--border)' }}
+                  >
+                    <Search size={15} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
+                    <input
+                      autoFocus
+                      value={bankSearch}
+                      onChange={(e) => setBankSearch(e.target.value)}
+                      placeholder={banksLoading ? 'Loading…' : `Search ${banks.length} banks…`}
+                      className="flex-1 bg-transparent outline-none min-w-0"
+                      style={{ color: 'var(--foreground)', fontSize: 14 }}
+                    />
+                  </div>
+                  <div className="overflow-y-auto flex-1" style={{ maxHeight: 220 }}>
+                    {filteredBanks.map((b) => (
+                      <button
+                        key={b.code}
+                        type="button"
+                        onClick={() => {
+                          setBankCode(b.code);
+                          setBankOpen(false);
+                          setBankSearch('');
+                        }}
+                        className="w-full flex items-center justify-between px-4 py-3 text-left"
+                        style={{
+                          background: bankCode === b.code ? 'var(--muted)' : 'var(--card)',
+                          borderBottom: '1px solid var(--border)',
+                          color: 'var(--foreground)',
+                          fontSize: 14,
+                          fontWeight: bankCode === b.code ? 700 : 500,
+                        }}
+                      >
+                        <span className="truncate pr-2">{b.name}</span>
+                        {bankCode === b.code && <Check size={14} style={{ color: 'var(--primary)', flexShrink: 0 }} />}
+                      </button>
+                    ))}
+                    {!banksLoading && filteredBanks.length === 0 && (
+                      <p className="px-4 py-3" style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
+                        {banks.length === 0 ? 'No banks for this country' : 'No banks match your search'}
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
 

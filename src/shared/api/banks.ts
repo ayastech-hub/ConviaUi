@@ -75,3 +75,12 @@ export async function listBanks(country: string): Promise<{
     banks: Array.isArray(res.banks) ? res.banks : [],
   };
 }
+
+/** Admin-triggered catalog sync (optional; GET /banks auto-syncs when empty). */
+export function syncBankCatalog(country?: string) {
+  return api.post<{ results?: unknown } | { country?: string; upserted?: number }>(
+    '/admin/banks/sync',
+    country ? { country } : {},
+  );
+}
+
