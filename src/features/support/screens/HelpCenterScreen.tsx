@@ -33,7 +33,7 @@ export function HelpCenterScreen({ goBack }: HelpCenterScreenProps) {
   const popularArticles = activeCategory || search.trim() ? filteredArticles : filteredArticles.slice(0, 8);
 
 
-    if (chatOpen) {
+  if (chatOpen) {
     return <SupportAgentChat onBack={() => setChatOpen(false)} />;
   }
 
