@@ -155,26 +155,42 @@ export function SupportAgentChat({ onBack }: { onBack: () => void }) {
 
   const attach = async (tx: { id: string; type: string; label: string }) => {
     if (!sessionId) return;
-    setPickerOpen(false);
+    setBusy(true);
     try {
       const r = await aiSupport.attachAgentTransaction(sessionId, {
         transactionId: tx.id,
+        type: tx.type,
+        label: tx.label,
       });
-      setAttachedLabel(r.attachedTxLabel || tx.label);
+      const label = r.attachedTxLabel || tx.label;
+      setAttachedLabel(label);
+      setPickerOpen(false);
       setBubbles((b) => [
         ...b,
         {
           id: `sys-${Date.now()}`,
           role: 'system',
-          body: `Attached: ${r.attachedTxLabel || tx.label}`,
+          body: `Attached: ${label}`,
         },
       ]);
       setSuggestAttach(false);
-    } catch {
+    } catch (e) {
+      const msg =
+        e && typeof e === 'object' && 'message' in e
+          ? String((e as { message: string }).message)
+          : 'Could not attach that transaction.';
       setBubbles((b) => [
         ...b,
-        { id: `sys-e-${Date.now()}`, role: 'system', body: 'Could not attach that transaction.' },
+        {
+          id: `sys-e-${Date.now()}`,
+          role: 'system',
+          body: msg.includes('needs_confirmation')
+            ? 'Confirm attach was required — retry after deploy, or pick another item.'
+            : `Could not attach: ${msg}`,
+        },
       ]);
+    } finally {
+      setBusy(false);
     }
   };
 
