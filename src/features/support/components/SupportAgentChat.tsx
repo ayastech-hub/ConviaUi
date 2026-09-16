@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  Loader,
+  Loader2,
   Paperclip,
   Send,
   Sparkles,
@@ -14,29 +14,38 @@ import {
   Shield,
   MessageCircle,
   ChevronRight,
-  Search,
+  ChevronLeft,
   X,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
 } from 'lucide-react';
 import * as aiSupport from '../../../shared/api/aiSupport';
 import type { AgentTurnResult } from '../../../shared/api/aiSupport';
 import { BackButton } from '../../../shared/components/BackButton';
 import { PageTop } from '../../../shared/components/PageTop';
 
-type Bubble = { id: string; role: 'user' | 'assistant' | 'system'; body: string };
+type Role = 'user' | 'assistant' | 'system';
 
-type CategoryId =
-  | 'deposit'
-  | 'withdrawal'
-  | 'swap'
-  | 'balance'
-  | 'transaction'
-  | 'account'
-  | 'other';
+type Bubble = {
+  id: string;
+  role: Role;
+  /** Short text shown in the bubble */
+  body: string;
+  /** Optional structured rows under the text */
+  rows?: Array<{ title: string; meta?: string; tone?: 'ok' | 'pending' | 'bad' | 'neutral' }>;
+  toolsHint?: string;
+};
+
+type CategoryId = 'deposit' | 'withdrawal' | 'swap' | 'balance' | 'transaction' | 'account' | 'other';
 
 type SubProblem = {
   id: string;
   label: string;
-  message: string;
+  /** Short label stored as the user bubble */
+  userLabel: string;
+  /** Full prompt sent to API (never shown as the user bubble) */
+  prompt: string;
   openPicker?: 'deposit' | 'withdrawal' | 'swap' | 'all';
 };
 
@@ -51,193 +60,228 @@ type Category = {
 const CATEGORIES: Category[] = [
   {
     id: 'deposit',
-    label: 'Deposit problem',
-    hint: 'Bank, card, or on-chain',
+    label: 'Deposit',
+    hint: 'Bank, card, on-chain',
     icon: Landmark,
     subs: [
       {
         id: 'missing',
-        label: 'I paid but it’s missing',
-        message:
-          'I made a deposit but it is missing from my balance. Please list my on-ramp deposit requests and ledger deposits with status, amount, and dates.',
+        label: 'Paid but missing',
+        userLabel: 'Deposit missing',
+        prompt:
+          'I made a deposit but it is missing from my balance. List on-ramp deposit requests and ledger deposits with status, amount, and dates.',
         openPicker: 'deposit',
       },
       {
         id: 'pending',
-        label: 'Deposit is still pending',
-        message:
-          'My deposit is still pending. Please list pending deposit requests and explain status for each.',
+        label: 'Still pending',
+        userLabel: 'Deposit still pending',
+        prompt: 'My deposit is still pending. List pending deposit requests and status for each.',
         openPicker: 'deposit',
       },
       {
         id: 'wrong_asset',
-        label: 'I sent the wrong asset',
-        message:
-          'I may have sent the wrong asset to a deposit address. Please list my wallet addresses and recent deposit activity so we can investigate.',
+        label: 'Wrong asset',
+        userLabel: 'Wrong asset deposited',
+        prompt: 'I may have sent the wrong asset. List wallet addresses and recent deposit activity.',
         openPicker: 'deposit',
       },
       {
         id: 'wrong_network',
         label: 'Wrong network',
-        message:
-          'I may have deposited on the wrong network. Please list my deposit addresses and recent on-chain related activity.',
+        userLabel: 'Wrong network deposit',
+        prompt: 'I may have used the wrong network. List deposit addresses and recent deposit activity.',
         openPicker: 'deposit',
       },
       {
         id: 'rejected',
-        label: 'Deposit was rejected',
-        message:
-          'My deposit was rejected or failed. Please list failed or rejected deposit requests and reasons if available.',
-        openPicker: 'deposit',
-      },
-      {
-        id: 'other',
-        label: 'Something else about deposit',
-        message: 'I have a deposit issue. Please list recent deposit requests so I can attach one.',
+        label: 'Rejected / failed',
+        userLabel: 'Deposit rejected',
+        prompt: 'My deposit was rejected or failed. List failed deposit requests if any.',
         openPicker: 'deposit',
       },
     ],
   },
   {
     id: 'withdrawal',
-    label: 'Withdrawal problem',
-    hint: 'Bank payout or on-chain',
+    label: 'Withdrawal',
+    hint: 'Bank or on-chain out',
     icon: ArrowUpFromLine,
     subs: [
       {
         id: 'pending',
-        label: 'Withdrawal pending too long',
-        message:
-          'My withdrawal is pending too long. Please list recent withdrawals with amounts, assets, and status.',
+        label: 'Pending too long',
+        userLabel: 'Withdrawal pending',
+        prompt: 'My withdrawal is pending too long. List recent withdrawals with amounts and status.',
         openPicker: 'withdrawal',
       },
       {
         id: 'failed',
-        label: 'Withdrawal failed',
-        message:
-          'My withdrawal failed. Please list recent failed or incomplete withdrawals with status.',
+        label: 'Failed',
+        userLabel: 'Withdrawal failed',
+        prompt: 'My withdrawal failed. List recent failed or incomplete withdrawals.',
         openPicker: 'withdrawal',
       },
       {
         id: 'not_received',
-        label: 'Not received at bank / wallet',
-        message:
-          'I withdrew but funds were not received at my bank or external wallet. Please list recent withdrawals so I can attach the correct one.',
-        openPicker: 'withdrawal',
-      },
-      {
-        id: 'other',
-        label: 'Something else about withdrawal',
-        message: 'I have a withdrawal issue. Please list recent withdrawals.',
+        label: 'Not received',
+        userLabel: 'Withdrawal not received',
+        prompt:
+          'I withdrew but funds were not received. List recent withdrawals so I can attach the correct one.',
         openPicker: 'withdrawal',
       },
     ],
   },
   {
     id: 'swap',
-    label: 'Swap problem',
-    hint: 'Convert between assets',
+    label: 'Swap',
+    hint: 'Convert assets',
     icon: ArrowLeftRight,
     subs: [
       {
         id: 'failed',
         label: 'Swap failed',
-        message: 'My swap failed or did not complete. Please list recent swaps with amounts and status.',
+        userLabel: 'Swap failed',
+        prompt: 'My swap failed. List recent swaps with amounts and status.',
         openPicker: 'swap',
       },
       {
         id: 'wrong_amount',
-        label: 'Wrong amount received',
-        message:
-          'I swapped but received a different amount than expected. Please list recent swaps with from/to amounts.',
-        openPicker: 'swap',
-      },
-      {
-        id: 'other',
-        label: 'Something else about swap',
-        message: 'I have a swap issue. Please list recent swaps.',
+        label: 'Wrong amount',
+        userLabel: 'Swap amount looks wrong',
+        prompt: 'I swapped but the amount looks wrong. List recent swaps.',
         openPicker: 'swap',
       },
     ],
   },
   {
     id: 'balance',
-    label: 'Balance problem',
-    hint: 'What I hold right now',
+    label: 'Balance',
+    hint: 'What I hold',
     icon: Wallet,
     subs: [
       {
         id: 'show',
-        label: 'Show my balances',
-        message: 'Please show all my wallet balances with assets and amounts.',
+        label: 'Show balances',
+        userLabel: 'Show my balances',
+        prompt: 'Show all my wallet balances with assets and amounts.',
       },
       {
         id: 'trail',
-        label: 'Where did my money go?',
-        message:
-          'Please show my financial timeline and balances so I can see where funds moved.',
+        label: 'Where did money go?',
+        userLabel: 'Where did my money go?',
+        prompt: 'Show my financial timeline and balances.',
       },
     ],
   },
   {
     id: 'transaction',
-    label: 'Transaction issue',
-    hint: 'Find or dispute a movement',
+    label: 'Transaction',
+    hint: 'Find a movement',
     icon: Receipt,
     subs: [
       {
         id: 'find',
-        label: 'Find a transaction',
-        message: 'Please list my recent transactions so I can find and attach one.',
-        openPicker: 'all',
-      },
-      {
-        id: 'dispute',
-        label: 'Problem with a transaction',
-        message:
-          'I have a problem with a specific transaction. Please list recent movements so I can attach it.',
+        label: 'Find transaction',
+        userLabel: 'Find a transaction',
+        prompt: 'List my recent transactions so I can attach one.',
         openPicker: 'all',
       },
     ],
   },
   {
     id: 'account',
-    label: 'Account & security',
-    hint: 'KYC, login, PIN',
+    label: 'Account',
+    hint: 'KYC, login, security',
     icon: Shield,
     subs: [
       {
         id: 'kyc',
-        label: 'KYC / verification',
-        message: 'Please check my KYC status and explain what is blocking full access if anything.',
+        label: 'KYC status',
+        userLabel: 'Check KYC status',
+        prompt: 'Check my KYC status and explain any block on full access.',
       },
       {
         id: 'login',
-        label: 'Login or device issue',
-        message:
-          'I have a login or device access issue. Please check my profile and KYC status, then advise next steps.',
+        label: 'Login / device',
+        userLabel: 'Login or device issue',
+        prompt: 'I have a login or device access issue. Check profile and KYC, then advise next steps.',
       },
       {
         id: 'security',
-        label: 'Security concern',
-        message:
-          'I have a security concern with my account. Please check my profile status and open a human case if needed.',
+        label: 'Security',
+        userLabel: 'Security concern',
+        prompt: 'I have a security concern. Check profile status and advise.',
       },
     ],
   },
   {
     id: 'other',
-    label: 'Something else',
-    hint: 'Describe in your own words',
+    label: 'Other',
+    hint: 'Type freely',
     icon: MessageCircle,
     subs: [],
   },
 ];
 
-/**
- * Structured Support Command + AI chat.
- * Category → sub-problem → tools; free text always available; attach is first-class.
- */
+function toneFromStatus(s?: string): 'ok' | 'pending' | 'bad' | 'neutral' {
+  const v = (s || '').toLowerCase();
+  if (/(complete|success|credited|posted|approved)/.test(v)) return 'ok';
+  if (/(pending|processing|queued|review)/.test(v)) return 'pending';
+  if (/(fail|reject|cancel|error|block)/.test(v)) return 'bad';
+  return 'neutral';
+}
+
+function ToneIcon({ tone }: { tone: 'ok' | 'pending' | 'bad' | 'neutral' }) {
+  if (tone === 'ok') return <CheckCircle2 size={14} style={{ color: 'var(--positive)' }} />;
+  if (tone === 'pending') return <Clock size={14} style={{ color: 'var(--primary)' }} />;
+  if (tone === 'bad') return <AlertCircle size={14} style={{ color: '#f87171' }} />;
+  return <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--muted-foreground)' }} />;
+}
+
+/** Parse agent reply into headline + optional list rows for card UI */
+function structureReply(res: AgentTurnResult): { body: string; rows?: Bubble['rows'] } {
+  const rows: Bubble['rows'] = [];
+
+  for (const t of res.toolsRun || []) {
+    if (!t.ok || !t.data || typeof t.data !== 'object') continue;
+    const data = t.data as Record<string, unknown>;
+    const items = (Array.isArray(data.items)
+      ? data.items
+      : Array.isArray(data.balances)
+        ? data.balances
+        : Array.isArray(data.events)
+          ? data.events
+          : []) as Array<Record<string, unknown>>;
+
+    for (const it of items.slice(0, 8)) {
+      const ref = String(it.publicRef || it.label || it.id || it.asset || '').slice(0, 48);
+      const amount =
+        it.amount != null
+          ? `${it.amount}${it.asset ? ` ${it.asset}` : ''}`
+          : it.available != null
+            ? `${it.available}${it.asset ? ` ${it.asset}` : ''}`
+            : '';
+      const status = it.status != null ? String(it.status) : '';
+      const title = [ref, amount].filter(Boolean).join(' · ') || t.name;
+      const meta = [status, it.createdAt ? String(it.createdAt).slice(0, 10) : '']
+        .filter(Boolean)
+        .join(' · ');
+      rows.push({ title, meta, tone: toneFromStatus(status) });
+    }
+  }
+
+  // Clean prose: drop bullet dumps if we already have rows
+  let body = (res.reply || '').trim();
+  if (rows.length) {
+    // Keep first 1–2 short paragraphs only
+    const parts = body.split(/\n\n+/).filter((p) => !p.trim().startsWith('·') && !p.includes('shown up to'));
+    body = parts.slice(0, 2).join('\n\n').trim() || 'Here’s what I found on your account.';
+  }
+
+  return { body, rows: rows.length ? rows : undefined };
+}
+
 export function SupportAgentChat({ onBack }: { onBack: () => void }) {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
@@ -267,15 +311,13 @@ export function SupportAgentChat({ onBack }: { onBack: () => void }) {
       try {
         const s = await aiSupport.createAgentSession();
         setSessionId(s.id);
-        const live = s.llmEnabled ? ' AI is live.' : '';
         setBubbles([
           {
             id: 'welcome',
             role: 'assistant',
-            body:
-              "Hi — I'm Convia Support." +
-              live +
-              ' Choose a topic below or type what happened. For money issues, pick the exact transaction when asked.',
+            body: s.llmEnabled
+              ? 'How can we help? Pick a topic or describe what happened.'
+              : 'How can we help? Pick a topic below.',
           },
         ]);
       } catch {
@@ -283,7 +325,7 @@ export function SupportAgentChat({ onBack }: { onBack: () => void }) {
           {
             id: 'offline',
             role: 'system',
-            body: 'Support is unavailable right now. Try again shortly or open a manual case.',
+            body: 'Support is temporarily unavailable.',
           },
         ]);
         setStep('chat');
@@ -293,20 +335,25 @@ export function SupportAgentChat({ onBack }: { onBack: () => void }) {
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-  }, [bubbles, busy, step]);
+  }, [bubbles, busy, step, pickerOpen]);
 
   useEffect(() => {
-    if (!pickerOpen || !sessionId) return;
-    void loadTxOptions(pickerTab);
+    if (pickerOpen && sessionId) void loadTx(pickerTab);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pickerTab, pickerOpen, sessionId]);
+  }, [pickerOpen, pickerTab, sessionId]);
 
   const applyTurn = (res: AgentTurnResult, replaceStream = false) => {
+    const structured = structureReply(res);
     setBubbles((b) => {
-      const withoutStream = replaceStream ? b.filter((x) => !x.id.startsWith('stream-')) : b;
+      const base = replaceStream ? b.filter((x) => !x.id.startsWith('stream-')) : b;
       return [
-        ...withoutStream,
-        { id: `a-${Date.now()}`, role: 'assistant', body: res.reply || 'Done.' },
+        ...base,
+        {
+          id: `a-${Date.now()}`,
+          role: 'assistant',
+          body: structured.body,
+          rows: structured.rows,
+        },
       ];
     });
     setSuggestAttach(!!res.suggestAttachTx);
@@ -314,9 +361,8 @@ export function SupportAgentChat({ onBack }: { onBack: () => void }) {
     setSuggestReconcile(!!res.suggestReconcile);
     if (res.attachedTxLabel) setAttachedLabel(res.attachedTxLabel);
 
-    const depTool = res.toolsRun?.find((t) => t.name === 'get_deposit_requests' && t.ok);
-    const items = (depTool?.data as { items?: Array<{ id: string; status?: string }> } | undefined)
-      ?.items;
+    const dep = res.toolsRun?.find((t) => t.name === 'get_deposit_requests' && t.ok);
+    const items = (dep?.data as { items?: Array<{ id: string; status?: string }> } | undefined)?.items;
     const pending = items?.find((x) => String(x.status).toLowerCase() === 'pending');
     if (pending) setPendingDepositId(pending.id);
 
@@ -330,49 +376,30 @@ export function SupportAgentChat({ onBack }: { onBack: () => void }) {
         args: data.args,
         summary: needs.summary,
       });
-    } else {
-      setPendingConfirm(null);
-    }
+    } else setPendingConfirm(null);
   };
 
-  const send = async (text: string, forceEscalate?: boolean) => {
-    if (!sessionId || !text.trim() || busy) return;
-    const msg = text.trim();
+  /** userLabel = what we show; prompt = what API gets */
+  const send = async (userLabel: string, prompt?: string, forceEscalate?: boolean) => {
+    if (!sessionId || busy) return;
+    const apiText = (prompt || userLabel).trim();
+    if (!apiText) return;
+
     setInput('');
     setStep('chat');
-    setBubbles((b) => [...b, { id: `u-${Date.now()}`, role: 'user', body: msg }]);
+    setBubbles((b) => [...b, { id: `u-${Date.now()}`, role: 'user', body: userLabel.trim() }]);
     setBusy(true);
     try {
       if (forceEscalate) {
-        applyTurn(await aiSupport.sendAgentMessage(sessionId, msg, true));
+        applyTurn(await aiSupport.sendAgentMessage(sessionId, apiText, true));
       } else {
-        await aiSupport.streamAgentMessage(sessionId, msg, {
-          onPartial: (partial) => {
-            setBubbles((b) => {
-              const last = b[b.length - 1];
-              if (last?.role === 'assistant' && last.id.startsWith('stream-')) {
-                return [...b.slice(0, -1), { ...last, body: partial }];
-              }
-              return [...b, { id: `stream-${Date.now()}`, role: 'assistant', body: partial }];
-            });
-          },
-          onDone: (res) => applyTurn(res, true),
-          onError: () => {
-            setBubbles((b) => [
-              ...b,
-              { id: `e-${Date.now()}`, role: 'system', body: 'Agent error. Try again.' },
-            ]);
-          },
-        });
+        // Prefer solid POST over stream for cleaner final card UI
+        applyTurn(await aiSupport.sendAgentMessage(sessionId, apiText));
       }
     } catch {
       setBubbles((b) => [
         ...b,
-        {
-          id: `e-${Date.now()}`,
-          role: 'system',
-          body: 'Could not reach support. Try again or open a manual case.',
-        },
+        { id: `e-${Date.now()}`, role: 'system', body: 'Could not reach support. Try again.' },
       ]);
     } finally {
       setBusy(false);
@@ -380,18 +407,10 @@ export function SupportAgentChat({ onBack }: { onBack: () => void }) {
   };
 
   const selectCategory = (c: Category) => {
-    if (c.id === 'other' || c.subs.length === 0) {
+    if (c.id === 'other' || !c.subs.length) {
       setCategory(c);
       setStep('chat');
-      setBubbles((b) => [
-        ...b,
-        {
-          id: `sys-${Date.now()}`,
-          role: 'system',
-          body: 'Describe what happened in your own words.',
-        },
-      ]);
-      setTimeout(() => inputRef.current?.focus(), 80);
+      setTimeout(() => inputRef.current?.focus(), 60);
       return;
     }
     setCategory(c);
@@ -400,22 +419,16 @@ export function SupportAgentChat({ onBack }: { onBack: () => void }) {
 
   const selectSub = (sub: SubProblem) => {
     if (sub.openPicker) setPickerTab(sub.openPicker);
-    void send(sub.message).then(() => {
-      if (sub.openPicker) {
-        // nudge attach after tools return
-        setTimeout(() => setSuggestAttach(true), 400);
-      }
+    void send(sub.userLabel, sub.prompt).then(() => {
+      if (sub.openPicker) setTimeout(() => setSuggestAttach(true), 300);
     });
   };
 
-  const loadTxOptions = async (tab: typeof pickerTab) => {
+  const loadTx = async (tab: typeof pickerTab) => {
     if (!sessionId) return;
     setTxLoading(true);
     try {
-      const res = await aiSupport.listAgentTransactions(
-        sessionId,
-        tab === 'all' ? undefined : tab,
-      );
+      const res = await aiSupport.listAgentTransactions(sessionId, tab === 'all' ? undefined : tab);
       const items = [...(res.items || []), ...(res.depositRequests || [])];
       setTxOptions(
         items.map((t) => ({
@@ -431,12 +444,7 @@ export function SupportAgentChat({ onBack }: { onBack: () => void }) {
     }
   };
 
-  const openPicker = async (tab?: typeof pickerTab) => {
-    if (tab) setPickerTab(tab);
-    setPickerOpen(true);
-  };
-
-  const attach = async (tx: { id: string; type: string; label: string }) => {
+  const attach = async (tx: { id: string; label: string; type: string }) => {
     if (!sessionId) return;
     setBusy(true);
     try {
@@ -449,149 +457,147 @@ export function SupportAgentChat({ onBack }: { onBack: () => void }) {
       setAttachedLabel(label);
       setPickerOpen(false);
       setSuggestAttach(false);
-      setBubbles((b) => [
-        ...b,
-        { id: `sys-${Date.now()}`, role: 'system', body: `Attached: ${label}` },
-      ]);
-      await send(
-        `I attached ${label}. Please inspect this item and explain the current status in detail.`,
-      );
+      setBubbles((b) => [...b, { id: `sys-${Date.now()}`, role: 'system', body: `Selected · ${label}` }]);
+      await send('Check this transaction', `I attached ${label}. Inspect it and explain status in detail.`);
     } catch (e) {
       const msg =
         e && typeof e === 'object' && 'message' in e
           ? String((e as { message: string }).message)
-          : 'Could not attach.';
-      setBubbles((b) => [
-        ...b,
-        { id: `sys-e-${Date.now()}`, role: 'system', body: `Could not attach: ${msg}` },
-      ]);
+          : 'Attach failed';
+      setBubbles((b) => [...b, { id: `e-${Date.now()}`, role: 'system', body: msg }]);
     } finally {
       setBusy(false);
     }
   };
 
-  const goHome = () => {
-    setStep('home');
-    setCategory(null);
-  };
+  const filteredTx = txOptions.filter(
+    (tx) => pickerTab === 'all' || tx.type.toLowerCase().includes(pickerTab),
+  );
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
       <PageTop />
 
-      {/* Header */}
-      <div className="px-5 mb-2 flex items-center gap-3">
+      {/* Compact header */}
+      <div className="px-4 pt-1 pb-2 flex items-center gap-2.5">
         <BackButton
           onClick={() => {
             if (step === 'subs') setStep('home');
-            else if (step === 'chat' && category) setStep(category.subs.length ? 'subs' : 'home');
-            else onBack();
+            else if (step === 'chat') {
+              setStep('home');
+              setCategory(null);
+            } else onBack();
           }}
         />
         <div className="flex-1 min-w-0">
-          <p style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 16 }}>
-            {step === 'home' ? 'Help command' : step === 'subs' ? category?.label : 'Support Agent'}
-          </p>
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }} className="truncate">
-            {attachedLabel
-              ? `Attached · ${attachedLabel}`
-              : step === 'home'
-                ? 'Pick a topic or type below'
-                : 'Investigates your account safely'}
-          </p>
+          <div className="flex items-center gap-1.5">
+            <p style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 15 }}>Help</p>
+            <span
+              className="px-1.5 py-0.5 rounded-md text-[10px] font-bold"
+              style={{
+                background: 'color-mix(in srgb, var(--primary) 18%, transparent)',
+                color: 'var(--primary)',
+              }}
+            >
+              AI
+            </span>
+          </div>
+          {attachedLabel ? (
+            <p className="truncate" style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>
+              {attachedLabel}
+            </p>
+          ) : null}
         </div>
-        <Sparkles size={18} style={{ color: 'var(--primary)' }} />
+        <Sparkles size={16} style={{ color: 'var(--primary)', opacity: 0.85 }} />
       </div>
 
-      {/* Command search strip on home */}
-      {step === 'home' && (
-        <div className="px-5 mb-3">
-          <div
-            className="flex items-center gap-2 h-12 px-3.5 rounded-2xl"
-            style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-          >
-            <Search size={16} style={{ color: 'var(--muted-foreground)' }} />
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && input.trim()) void send(input);
-              }}
-              placeholder="Type a problem or choose below…"
-              className="flex-1 bg-transparent outline-none text-[14px]"
-              style={{ color: 'var(--foreground)' }}
-            />
-            {input.trim() && (
-              <button
-                type="button"
-                onClick={() => void send(input)}
-                className="h-8 px-3 rounded-full text-[12px] font-bold"
-                style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
-              >
-                Ask
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 pb-3">
-        {/* Chat bubbles */}
-        <div className="space-y-3 mb-4">
+      {/* Messages */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 pb-2">
+        <div className="space-y-2.5">
           {bubbles.map((m) => {
             const isUser = m.role === 'user';
             const isSystem = m.role === 'system';
             return (
               <div key={m.id} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
                 <div
-                  className="max-w-[88%] px-3.5 py-2.5 rounded-[18px] whitespace-pre-wrap"
+                  className={`max-w-[92%] ${isUser ? 'rounded-2xl rounded-br-md' : 'rounded-2xl rounded-bl-md'} overflow-hidden`}
                   style={{
                     background: isUser
                       ? 'var(--primary)'
                       : isSystem
-                        ? 'var(--muted)'
+                        ? 'transparent'
                         : 'var(--card)',
-                    color: isUser ? 'var(--primary-foreground)' : 'var(--foreground)',
-                    border: isUser ? 'none' : '1px solid var(--border)',
-                    fontSize: 14,
-                    lineHeight: 1.5,
-                    fontWeight: 500,
+                    border: isUser || isSystem ? 'none' : '1px solid var(--border)',
                   }}
                 >
-                  {m.body}
+                  <div
+                    className="px-3 py-2"
+                    style={{
+                      color: isUser
+                        ? 'var(--primary-foreground)'
+                        : isSystem
+                          ? 'var(--muted-foreground)'
+                          : 'var(--foreground)',
+                      fontSize: isSystem ? 12 : 13.5,
+                      lineHeight: 1.45,
+                      fontWeight: isUser ? 650 : 500,
+                    }}
+                  >
+                    {m.body}
+                  </div>
+                  {m.rows && m.rows.length > 0 && (
+                    <div
+                      className="px-2 pb-2 space-y-1"
+                      style={{ borderTop: '1px solid var(--border)' }}
+                    >
+                      {m.rows.map((row, i) => (
+                        <div
+                          key={i}
+                          className="flex items-start gap-2 px-2 py-1.5 rounded-xl mt-1"
+                          style={{ background: 'var(--muted)' }}
+                        >
+                          <div className="mt-0.5">
+                            <ToneIcon tone={row.tone || 'neutral'} />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p
+                              className="truncate"
+                              style={{ color: 'var(--foreground)', fontSize: 12.5, fontWeight: 650 }}
+                            >
+                              {row.title}
+                            </p>
+                            {row.meta ? (
+                              <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>
+                                {row.meta}
+                              </p>
+                            ) : null}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             );
           })}
           {busy && (
-            <div className="flex items-center gap-2">
-              <Loader size={14} className="animate-spin" style={{ color: 'var(--muted-foreground)' }} />
-              <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>Checking your account…</span>
+            <div className="flex items-center gap-2 pl-1">
+              <Loader2 size={13} className="animate-spin" style={{ color: 'var(--muted-foreground)' }} />
+              <span style={{ color: 'var(--muted-foreground)', fontSize: 11.5 }}>Looking up…</span>
             </div>
           )}
         </div>
 
+        {/* Topic grid — compact */}
         <AnimatePresence mode="wait">
-          {/* HOME — categories */}
           {step === 'home' && sessionId && !busy && (
             <motion.div
               key="home"
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              className="space-y-2 pb-4"
+              exit={{ opacity: 0 }}
+              className="mt-4 grid grid-cols-2 gap-2 pb-3"
             >
-              <p
-                style={{
-                  color: 'var(--muted-foreground)',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  letterSpacing: 0.2,
-                  marginBottom: 8,
-                }}
-              >
-                WHAT CAN WE HELP WITH?
-              </p>
               {CATEGORIES.map((c) => {
                 const Icon = c.icon;
                 return (
@@ -599,258 +605,217 @@ export function SupportAgentChat({ onBack }: { onBack: () => void }) {
                     key={c.id}
                     type="button"
                     onClick={() => selectCategory(c)}
-                    className="w-full flex items-center gap-3 px-3.5 py-3.5 rounded-2xl text-left active:scale-[0.99] transition-transform"
+                    className={`flex items-center gap-2.5 px-3 py-3 rounded-2xl text-left ${
+                      c.id === 'other' ? 'col-span-2' : ''
+                    }`}
                     style={{
                       background: 'var(--card)',
                       border: '1px solid var(--border)',
                     }}
                   >
                     <div
-                      className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                      className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                       style={{
-                        background:
-                          'color-mix(in srgb, var(--primary) 14%, var(--muted))',
+                        background: 'color-mix(in srgb, var(--primary) 12%, var(--muted))',
                       }}
                     >
-                      <Icon size={18} style={{ color: 'var(--primary)' }} />
+                      <Icon size={16} style={{ color: 'var(--primary)' }} />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p style={{ color: 'var(--foreground)', fontWeight: 750, fontSize: 14.5 }}>
+                    <div className="min-w-0">
+                      <p style={{ color: 'var(--foreground)', fontWeight: 750, fontSize: 13 }}>
                         {c.label}
                       </p>
-                      <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>{c.hint}</p>
+                      <p className="truncate" style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>
+                        {c.hint}
+                      </p>
                     </div>
-                    <ChevronRight size={16} style={{ color: 'var(--muted-foreground)' }} />
                   </button>
                 );
               })}
             </motion.div>
           )}
 
-          {/* SUBS — what happened */}
           {step === 'subs' && category && !busy && (
             <motion.div
               key="subs"
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              className="space-y-2 pb-4"
+              exit={{ opacity: 0 }}
+              className="mt-3 space-y-1.5 pb-3"
             >
-              <p
-                style={{
-                  color: 'var(--muted-foreground)',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  marginBottom: 8,
-                }}
+              <button
+                type="button"
+                onClick={() => setStep('home')}
+                className="flex items-center gap-1 mb-2 text-[12px] font-bold"
+                style={{ color: 'var(--muted-foreground)' }}
               >
-                WHAT HAPPENED?
-              </p>
+                <ChevronLeft size={14} /> {category.label}
+              </button>
               {category.subs.map((sub) => (
                 <button
                   key={sub.id}
                   type="button"
                   onClick={() => selectSub(sub)}
-                  className="w-full flex items-center gap-3 px-3.5 py-3.5 rounded-2xl text-left"
-                  style={{
-                    background: 'var(--card)',
-                    border: '1px solid var(--border)',
-                  }}
+                  className="w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-left"
+                  style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
                 >
-                  <div className="flex-1 min-w-0">
-                    <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14 }}>
-                      {sub.label}
-                    </p>
-                  </div>
-                  <ChevronRight size={16} style={{ color: 'var(--muted-foreground)' }} />
+                  <span style={{ color: 'var(--foreground)', fontWeight: 650, fontSize: 13.5 }}>
+                    {sub.label}
+                  </span>
+                  <ChevronRight size={15} style={{ color: 'var(--muted-foreground)' }} />
                 </button>
               ))}
-              <button
-                type="button"
-                onClick={goHome}
-                className="w-full h-11 rounded-2xl text-[13px] font-bold mt-2"
-                style={{ background: 'var(--muted)', color: 'var(--foreground)' }}
-              >
-                ← All topics
-              </button>
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Chat action chips */}
-        {step === 'chat' && !busy && (
-          <div className="flex flex-wrap gap-2 mb-2">
-            <button
-              type="button"
-              onClick={goHome}
-              className="h-8 px-3 rounded-full text-[11px] font-bold"
-              style={{ background: 'var(--muted)', color: 'var(--foreground)' }}
-            >
-              Topics
-            </button>
-            {(suggestAttach || true) && (
-              <button
-                type="button"
-                onClick={() => void openPicker()}
-                className="h-8 px-3 rounded-full text-[11px] font-bold flex items-center gap-1"
-                style={{ background: 'var(--muted)', color: 'var(--foreground)' }}
-              >
-                <Paperclip size={12} /> Select transaction
-              </button>
-            )}
-            {suggestEscalate && (
-              <button
-                type="button"
-                onClick={() => void send('Please escalate this to a human agent', true)}
-                className="h-8 px-3 rounded-full text-[11px] font-bold flex items-center gap-1"
-                style={{ background: 'var(--muted)', color: 'var(--foreground)' }}
-              >
-                <UserRound size={12} /> Human agent
-              </button>
-            )}
-            {suggestReconcile && pendingDepositId && (
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!sessionId || !pendingDepositId) return;
-                  setBusy(true);
-                  try {
-                    const r = await aiSupport.reconcileDeposit(sessionId, pendingDepositId);
-                    setBubbles((b) => [
-                      ...b,
-                      {
-                        id: `rec-${Date.now()}`,
-                        role: 'assistant',
-                        body: r.summary || 'Reconciliation completed.',
-                      },
-                    ]);
-                    setSuggestReconcile(false);
-                  } catch {
-                    setBubbles((b) => [
-                      ...b,
-                      {
-                        id: `rec-e-${Date.now()}`,
-                        role: 'system',
-                        body: 'Reconciliation blocked by safety checks.',
-                      },
-                    ]);
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
-                className="h-8 px-3 rounded-full text-[11px] font-bold"
-                style={{ background: 'var(--positive)', color: '#fff' }}
-              >
-                Credit verified deposit
-              </button>
-            )}
-          </div>
-        )}
       </div>
 
-      {pendingConfirm && (
-        <div
-          className="mx-5 mb-2 rounded-2xl p-3"
-          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-        >
-          <p style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: 650 }}>
-            {pendingConfirm.summary || 'Confirm this action'}
-          </p>
-          <div className="flex gap-2 mt-2">
-            <button
-              type="button"
-              disabled={busy}
+      {/* Slim action row */}
+      {step === 'chat' && !busy && (
+        <div className="px-4 pb-1.5 flex gap-1.5 overflow-x-auto no-scrollbar">
+          <Chip onClick={() => setStep('home')}>Topics</Chip>
+          <Chip onClick={() => setPickerOpen(true)}>
+            <Paperclip size={11} /> Select
+          </Chip>
+          {suggestEscalate && (
+            <Chip onClick={() => void send('Talk to a human', 'Please escalate to a human agent', true)}>
+              <UserRound size={11} /> Human
+            </Chip>
+          )}
+          {suggestReconcile && pendingDepositId && (
+            <Chip
+              strong
               onClick={async () => {
-                if (!sessionId) return;
+                if (!sessionId || !pendingDepositId) return;
                 setBusy(true);
                 try {
-                  const r = await aiSupport.confirmAgentTool(sessionId, {
-                    toolName: pendingConfirm.toolName,
-                    args: pendingConfirm.args,
-                  });
+                  const r = await aiSupport.reconcileDeposit(sessionId, pendingDepositId);
                   setBubbles((b) => [
                     ...b,
                     {
-                      id: `c-${Date.now()}`,
+                      id: `rec-${Date.now()}`,
                       role: 'assistant',
-                      body: r.summary || (r.ok ? 'Action confirmed.' : r.error || 'Done.'),
+                      body: r.summary || 'Deposit credited.',
                     },
                   ]);
-                  setPendingConfirm(null);
+                  setSuggestReconcile(false);
                 } catch {
                   setBubbles((b) => [
                     ...b,
-                    { id: `c-e-${Date.now()}`, role: 'system', body: 'Confirmation failed.' },
+                    { id: `rec-e-${Date.now()}`, role: 'system', body: 'Credit blocked by checks.' },
                   ]);
                 } finally {
                   setBusy(false);
                 }
               }}
-              className="h-9 px-4 rounded-full text-[12px] font-bold"
-              style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
             >
-              Approve
-            </button>
-            <button
-              type="button"
-              onClick={() => setPendingConfirm(null)}
-              className="h-9 px-4 rounded-full text-[12px] font-bold"
-              style={{ background: 'var(--muted)', color: 'var(--foreground)' }}
-            >
-              Dismiss
-            </button>
-          </div>
+              Credit deposit
+            </Chip>
+          )}
         </div>
       )}
 
-      {/* Composer — always on chat / always allow type from home via search */}
-      {step !== 'home' && (
-        <div className="px-5 pb-5 flex items-center gap-2">
+      {pendingConfirm && (
+        <div
+          className="mx-4 mb-2 rounded-2xl px-3 py-2.5 flex items-center gap-2"
+          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+        >
+          <p className="flex-1 text-[12px]" style={{ color: 'var(--foreground)' }}>
+            {pendingConfirm.summary || 'Confirm action?'}
+          </p>
           <button
             type="button"
-            onClick={() => void openPicker()}
-            className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-            aria-label="Select transaction"
+            className="h-8 px-3 rounded-full text-[11px] font-bold"
+            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+            onClick={async () => {
+              if (!sessionId) return;
+              setBusy(true);
+              try {
+                const r = await aiSupport.confirmAgentTool(sessionId, {
+                  toolName: pendingConfirm.toolName,
+                  args: pendingConfirm.args,
+                });
+                setBubbles((b) => [
+                  ...b,
+                  {
+                    id: `c-${Date.now()}`,
+                    role: 'assistant',
+                    body: r.summary || (r.ok ? 'Confirmed.' : r.error || 'Done.'),
+                  },
+                ]);
+                setPendingConfirm(null);
+              } catch {
+                setBubbles((b) => [
+                  ...b,
+                  { id: `c-e-${Date.now()}`, role: 'system', body: 'Confirm failed.' },
+                ]);
+              } finally {
+                setBusy(false);
+              }
+            }}
           >
-            <Paperclip size={18} style={{ color: 'var(--foreground)' }} />
+            Yes
           </button>
+          <button
+            type="button"
+            className="h-8 px-2.5 rounded-full text-[11px] font-bold"
+            style={{ background: 'var(--muted)', color: 'var(--foreground)' }}
+            onClick={() => setPendingConfirm(null)}
+          >
+            No
+          </button>
+        </div>
+      )}
+
+      {/* Composer */}
+      <div
+        className="px-3 pt-1.5 pb-4 flex items-center gap-2"
+        style={{ borderTop: '1px solid var(--border)' }}
+      >
+        <button
+          type="button"
+          onClick={() => setPickerOpen(true)}
+          className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+          style={{ background: 'var(--muted)' }}
+        >
+          <Paperclip size={16} style={{ color: 'var(--foreground)' }} />
+        </button>
+        <div
+          className="flex-1 h-10 rounded-full flex items-center px-3.5 gap-2"
+          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+        >
           <input
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
+              if (e.key === 'Enter' && input.trim()) {
                 e.preventDefault();
-                void send(input);
+                void send(input.trim());
               }
             }}
-            placeholder="Or type what happened…"
+            placeholder={step === 'home' ? 'Or type here…' : 'Message…'}
             disabled={!sessionId || busy}
-            className="flex-1 h-11 rounded-full px-4 text-[14px] outline-none"
-            style={{
-              background: 'var(--card)',
-              border: '1px solid var(--border)',
-              color: 'var(--foreground)',
-            }}
+            className="flex-1 bg-transparent outline-none text-[13.5px]"
+            style={{ color: 'var(--foreground)' }}
           />
-          <button
-            type="button"
-            disabled={busy || !input.trim()}
-            onClick={() => void send(input)}
-            className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{
-              background: 'var(--primary)',
-              color: 'var(--primary-foreground)',
-              opacity: busy || !input.trim() ? 0.55 : 1,
-            }}
-          >
-            <Send size={18} />
-          </button>
         </div>
-      )}
+        <button
+          type="button"
+          disabled={busy || !input.trim()}
+          onClick={() => void send(input.trim())}
+          className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+          style={{
+            background: 'var(--primary)',
+            color: 'var(--primary-foreground)',
+            opacity: busy || !input.trim() ? 0.45 : 1,
+          }}
+        >
+          <Send size={16} />
+        </button>
+      </div>
 
-      {/* Transaction picker sheet — first-class cards */}
+      {/* Transaction sheet */}
       {pickerOpen && (
         <div
           className="fixed inset-0 z-[100] flex items-end justify-center"
@@ -858,35 +823,35 @@ export function SupportAgentChat({ onBack }: { onBack: () => void }) {
           onClick={() => setPickerOpen(false)}
         >
           <motion.div
-            initial={{ y: 40, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
+            initial={{ y: 48 }}
+            animate={{ y: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-[440px] rounded-t-[28px] p-5 max-h-[75vh] overflow-y-auto"
+            className="w-full max-w-[440px] rounded-t-[24px] max-h-[72vh] flex flex-col"
             style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
           >
-            <div className="flex items-center justify-between mb-1">
-              <p style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 17 }}>
-                Select transaction
-              </p>
+            <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+              <div>
+                <p style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 16 }}>
+                  Select transaction
+                </p>
+                <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>Tap one to investigate</p>
+              </div>
               <button
                 type="button"
                 onClick={() => setPickerOpen(false)}
-                className="w-9 h-9 rounded-full flex items-center justify-center"
+                className="w-8 h-8 rounded-full flex items-center justify-center"
                 style={{ background: 'var(--muted)' }}
               >
-                <X size={16} />
+                <X size={14} />
               </button>
             </div>
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginBottom: 14 }}>
-              Choose the exact movement — no need to paste a hash.
-            </p>
-            <div className="flex gap-2 mb-4 flex-wrap">
+            <div className="px-4 flex gap-1.5 mb-2">
               {(['all', 'deposit', 'withdrawal', 'swap'] as const).map((tab) => (
                 <button
                   key={tab}
                   type="button"
                   onClick={() => setPickerTab(tab)}
-                  className="h-8 px-3 rounded-full text-[11px] font-bold capitalize"
+                  className="h-7 px-2.5 rounded-full text-[11px] font-bold capitalize"
                   style={{
                     background: pickerTab === tab ? 'var(--primary)' : 'var(--muted)',
                     color:
@@ -899,50 +864,59 @@ export function SupportAgentChat({ onBack }: { onBack: () => void }) {
                 </button>
               ))}
             </div>
-            {txLoading ? (
-              <div className="flex justify-center py-10">
-                <Loader className="animate-spin" style={{ color: 'var(--muted-foreground)' }} />
-              </div>
-            ) : txOptions.filter(
-                (tx) => pickerTab === 'all' || tx.type.toLowerCase().includes(pickerTab),
-              ).length === 0 ? (
-              <div
-                className="rounded-2xl p-6 text-center"
-                style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
-              >
-                <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14 }}>
-                  No matching transactions
+            <div className="flex-1 overflow-y-auto px-4 pb-6">
+              {txLoading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="animate-spin" style={{ color: 'var(--muted-foreground)' }} />
+                </div>
+              ) : filteredTx.length === 0 ? (
+                <p className="text-center py-10 text-[13px]" style={{ color: 'var(--muted-foreground)' }}>
+                  No items in this tab
                 </p>
-                <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 6 }}>
-                  Try another tab, or type a public reference (e.g. DEP-…) in chat.
-                </p>
-              </div>
-            ) : (
-              txOptions
-                .filter((tx) => pickerTab === 'all' || tx.type.toLowerCase().includes(pickerTab))
-                .map((tx) => (
+              ) : (
+                filteredTx.map((tx) => (
                   <button
                     key={tx.id}
                     type="button"
                     onClick={() => void attach(tx)}
-                    className="w-full text-left px-4 py-3.5 rounded-2xl mb-2"
-                    style={{
-                      background: 'var(--background)',
-                      border: '1px solid var(--border)',
-                    }}
+                    className="w-full text-left px-3 py-3 rounded-xl mb-1.5"
+                    style={{ background: 'var(--muted)' }}
                   >
-                    <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 13.5 }}>
+                    <p style={{ color: 'var(--foreground)', fontWeight: 650, fontSize: 13 }}>
                       {tx.label}
                     </p>
-                    <p style={{ color: 'var(--muted-foreground)', fontSize: 11, marginTop: 3 }}>
-                      {tx.type}
-                    </p>
+                    <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>{tx.type}</p>
                   </button>
                 ))
-            )}
+              )}
+            </div>
           </motion.div>
         </div>
       )}
     </div>
+  );
+}
+
+function Chip({
+  children,
+  onClick,
+  strong,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  strong?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="h-7 px-2.5 rounded-full text-[11px] font-bold flex items-center gap-1 flex-shrink-0"
+      style={{
+        background: strong ? 'var(--positive)' : 'var(--muted)',
+        color: strong ? '#fff' : 'var(--foreground)',
+      }}
+    >
+      {children}
+    </button>
   );
 }
