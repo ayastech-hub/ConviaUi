@@ -58,6 +58,13 @@ export function changeTransactionPin(userId: string, body: { currentPin: string;
   return api.put(`/security/${userId}/transaction-pin`, body);
 }
 
+export function uploadKycMedia(
+  userId: string,
+  body: { kind: 'document' | 'selfie' | 'utility'; dataBase64: string; contentType?: string },
+) {
+  return api.post<{ url: string; path: string; bytes: number }>(`/compliance/${userId}/kyc/upload`, body);
+}
+
 export function submitKyc(
   userId: string,
   body: {

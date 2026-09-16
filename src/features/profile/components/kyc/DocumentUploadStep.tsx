@@ -105,20 +105,37 @@ export function DocumentUploadStep({
 
       <AnimatePresence mode="wait">
         {showCamera ? (
-          <CameraCapture key="camera" onCapture={handleCameraCapture} onClose={() => setShowCamera(false)} title="Capture Document" subtitle="Align your document within the frame" guideShape="rect" />
+          <CameraCapture
+            key="camera"
+            onCapture={handleCameraCapture}
+            onClose={() => setShowCamera(false)}
+            title="Capture document"
+            subtitle="Align the full document in the frame"
+            guideShape="rect"
+            facingMode="environment"
+          />
         ) : uploadedFile ? (
-          <motion.div key="preview" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="rounded-[16px] p-4 mb-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-[12px] flex items-center justify-center flex-shrink-0" style={{ background: 'var(--muted)' }}>
-                {uploadedFile.type.includes('pdf') ? <FileText size={22} style={{ color: 'var(--positive)' }} /> : <CheckCircle2 size={22} style={{ color: 'var(--positive)' }} />}
+          <motion.div key="preview" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="rounded-[16px] overflow-hidden mb-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+            {uploadedFile.dataUrl && !uploadedFile.type.includes('pdf') ? (
+              <div className="relative w-full bg-black" style={{ minHeight: 180 }}>
+                <img src={uploadedFile.dataUrl} alt="Document preview" className="w-full max-h-[280px] object-contain" />
               </div>
-              <div className="flex-1 min-w-0">
-                <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{uploadedFile.name}</p>
-                <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>{formatFileSize(uploadedFile.size)} • {uploadedFile.type.includes('pdf') ? 'PDF' : 'Image'}</p>
+            ) : (
+              <div className="p-4 flex items-center gap-3">
+                <div className="w-12 h-12 rounded-[12px] flex items-center justify-center" style={{ background: 'var(--muted)' }}>
+                  <FileText size={22} style={{ color: 'var(--positive)' }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 13 }}>{uploadedFile.name}</p>
+                  <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>PDF · {formatFileSize(uploadedFile.size)}</p>
+                </div>
               </div>
-              <motion.button whileTap={{ scale: 0.9 }} onClick={() => setUploadedFile(null)} className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'var(--muted)' }}>
+            )}
+            <div className="flex items-center justify-between px-3 py-2.5" style={{ borderTop: '1px solid var(--border)' }}>
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>{uploadedFile.name} · {formatFileSize(uploadedFile.size)}</p>
+              <button type="button" onClick={() => setUploadedFile(null)} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'var(--muted)' }}>
                 <Trash2 size={16} style={{ color: 'var(--destructive)' }} />
-              </motion.button>
+              </button>
             </div>
           </motion.div>
         ) : (

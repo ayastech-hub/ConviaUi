@@ -3,6 +3,7 @@ import { User, Sun, EyeOff, Camera, CheckCircle2, RefreshCw, AlertCircle } from 
 import { StepNavButtons } from './StepNavButtons';
 
 interface SelfieVerificationStepProps {
+  selfieDataUrl?: string | null;
   selfieCaptured: boolean;
   onStartCapture: () => void;
   onRetake: () => void;
@@ -17,14 +18,12 @@ const TIPS = [
   { icon: Sun, text: 'Use even lighting — no backlight' },
 ];
 
-export function SelfieVerificationStep({
-  selfieCaptured,
+export function SelfieVerificationStep({ selfieCaptured,
   onStartCapture,
   onRetake,
   errors,
   onBack,
-  onContinue,
-}: SelfieVerificationStepProps) {
+  onContinue, selfieDataUrl }: SelfieVerificationStepProps) {
   return (
     <div>
       <div className="mb-5">
@@ -82,13 +81,19 @@ export function SelfieVerificationStep({
           </>
         ) : (
           <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="rounded-[12px] p-3 mb-3 flex items-center gap-2.5" style={{ background: 'var(--muted)' }}>
-              <CheckCircle2 size={18} style={{ color: 'var(--positive)' }} />
-              <div>
-                <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13 }}>Selfie captured</p>
-                <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>You can retake if it is unclear</p>
+            {selfieDataUrl ? (
+              <div className="rounded-[16px] overflow-hidden mb-3" style={{ border: '1px solid var(--border)' }}>
+                <img src={selfieDataUrl} alt="Selfie preview" className="w-full max-h-[320px] object-cover" />
               </div>
-            </div>
+            ) : (
+              <div className="rounded-[12px] p-3 mb-3 flex items-center gap-2.5" style={{ background: 'var(--muted)' }}>
+                <CheckCircle2 size={18} style={{ color: 'var(--positive)' }} />
+                <div>
+                  <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13 }}>Selfie captured</p>
+                  <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>You can retake if it is unclear</p>
+                </div>
+              </div>
+            )}
             <motion.button
               type="button"
               whileTap={{ scale: 0.97 }}

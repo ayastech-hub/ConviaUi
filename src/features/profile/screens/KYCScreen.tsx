@@ -172,11 +172,6 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
       setApiError({ message: 'Sign in required to submit KYC' });
       return;
     }
-    const hostedDoc =
-      uploadedFile?.dataUrl && /^https?:\/\//i.test(uploadedFile.dataUrl) ? uploadedFile.dataUrl : null;
-    const hostedSelfie = selfieDataUrl && /^https?:\/\//i.test(selfieDataUrl) ? selfieDataUrl : null;
-    const docUrl = hostedDoc || 'https://example.com/kyc/document-placeholder.jpg';
-    const selfieUrl = hostedSelfie || (isNG && !tier2 ? '' : 'https://example.com/kyc/selfie-placeholder.jpg');
     const mapDoc =
       isNG && !tier2
         ? 'national_id'
@@ -189,6 +184,34 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
     setSubmitting(true);
     setApiError(null);
     try {
+      let docUrl =
+        uploadedFile?.dataUrl && /^https?:\/\//i.test(uploadedFile.dataUrl) ? uploadedFile.dataUrl : null;
+      let selfieUrl =
+        selfieDataUrl && /^https?:\/\//i.test(selfieDataUrl) ? selfieDataUrl : null;
+
+      // Upload local captures to private Supabase bucket via backend (returns signed HTTPS URL)
+      if (!docUrl && uploadedFile?.dataUrl) {
+        const up = await securityApi.uploadKycMedia(userId, {
+          kind: tier2 ? 'utility' : 'document',
+          dataBase64: uploadedFile.dataUrl,
+          contentType: uploadedFile.type || 'image/jpeg',
+        });
+        docUrl = up.url;
+      }
+      if (!selfieUrl && selfieDataUrl) {
+        const up = await securityApi.uploadKycMedia(userId, {
+          kind: 'selfie',
+          dataBase64: selfieDataUrl,
+          contentType: 'image/jpeg',
+        });
+        selfieUrl = up.url;
+      }
+
+      if (!docUrl) throw new Error('Document image required');
+      if (!isNG || tier2) {
+        if (!selfieUrl) throw new Error('Selfie required');
+      }
+
       await securityApi.submitKyc(userId, {
         documentType: mapDoc,
         documentImageUrl: docUrl,
@@ -200,7 +223,7 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
       setSubmitted(true);
     } catch (err) {
       if (err instanceof ApiError) setApiError({ code: err.code, message: err.body?.message || err.message });
-      else setApiError({ message: 'Could not submit KYC' });
+      else setApiError({ message: (err as Error).message || 'Could not submit KYC' });
     } finally {
       setSubmitting(false);
     }
@@ -312,6 +335,7 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
             {currentId === 'selfie' && (
               <SelfieVerificationStep
                 selfieCaptured={selfieCaptured}
+                selfieDataUrl={selfieDataUrl}
                 onStartCapture={() => setShowSelfieCamera(true)}
                 onRetake={() => {
                   setSelfieCaptured(false);
@@ -362,6 +386,7 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
             title="Selfie"
             subtitle="Center your face in the oval"
             guideShape="oval"
+            facingMode="user"
           />
         )}
       </AnimatePresence>
