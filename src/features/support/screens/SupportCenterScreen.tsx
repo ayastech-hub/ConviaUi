@@ -37,7 +37,7 @@ export function SupportCenterScreen({ goBack }: SupportCenterScreenProps) {
   const [cases, setCases] = useState<SupportCase[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [view, setView] = useState<'list' | 'thread' | 'new' | 'agent'>('list');
+  const [view, setView] = useState<'list' | 'thread' | 'new' | 'agent'>('agent');
   const [active, setActive] = useState<SupportCase | null>(null);
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [input, setInput] = useState('');
@@ -186,7 +186,7 @@ export function SupportCenterScreen({ goBack }: SupportCenterScreenProps) {
           <div className="flex-1 overflow-y-auto px-5 pb-8">
             {error && <FeatureAlert reason="generic" message={error} />}
             <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginBottom: 16, lineHeight: 1.45 }}>
-              Message Convia support. Attach images or small files (max 400KB each). Agents can reply and close cases from the admin desk.
+              AI Support Agent investigates balances, deposits, and withdrawals with live tools. Open a human case if you still need the desk.
             </p>
             {loading && (
               <div className="flex justify-center py-10">

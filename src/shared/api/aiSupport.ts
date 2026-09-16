@@ -93,7 +93,7 @@ export async function streamAgentMessage(
 ): Promise<void> {
   const base =
     (import.meta as ImportMeta & { env: Record<string, string> }).env?.VITE_API_BASE_URL ||
-    'http://localhost:4000';
+    'https://coviabackend-production-a2fd.up.railway.app';
   let token = '';
   try {
     const raw = localStorage.getItem('convia.session');

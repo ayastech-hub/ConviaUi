@@ -1,12 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'motion/react';
 import { Search, MessageCircle, X } from 'lucide-react';
 import { allArticles, type HelpArticle } from '../components/helpcenter/articleData';
-import { initialMessages, getBotResponse, type ChatMessage } from '../components/helpcenter/chatData';
 import { CategoryGrid } from '../components/helpcenter/CategoryGrid';
 import { ArticleList } from '../components/helpcenter/ArticleList';
 import { ArticleDetailSheet } from '../components/helpcenter/ArticleDetailSheet';
-import { SupportChatView } from '../components/helpcenter/SupportChatView';
+import { SupportAgentChat } from '../components/SupportAgentChat';
 import { PageTop } from '../../../shared/components/PageTop';
 import { BackButton } from '../../../shared/components/BackButton';
 
@@ -19,10 +18,6 @@ export function HelpCenterScreen({ goBack }: HelpCenterScreenProps) {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<HelpArticle | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
-  const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   const filteredArticles = allArticles.filter((article) => {
     const q = search.trim().toLowerCase();
@@ -37,32 +32,9 @@ export function HelpCenterScreen({ goBack }: HelpCenterScreenProps) {
   });
   const popularArticles = activeCategory || search.trim() ? filteredArticles : filteredArticles.slice(0, 8);
 
-  useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages, isTyping]);
 
-  const sendMessage = (text: string) => {
-    if (!text.trim()) return;
-    const userMsg: ChatMessage = { id: 'u_' + Date.now(), text: text.trim(), sender: 'user', time: 'Just now', status: 'sent' };
-    setMessages((prev) => [...prev, userMsg]);
-    setInput('');
-    setIsTyping(true);
-
-    setTimeout(() => {
-      const botMsg: ChatMessage = { id: 's_' + Date.now(), text: getBotResponse(text), sender: 'support', time: 'Just now', status: 'read' };
-      setMessages((prev) => [...prev.map((m) => (m.sender === 'user' ? { ...m, status: 'read' as const } : m)), botMsg]);
-      setIsTyping(false);
-    }, 1500);
-  };
-
-  if (chatOpen) {
-    return (
-      <SupportChatView
-        messages={messages} isTyping={isTyping} scrollRef={scrollRef}
-        input={input} setInput={setInput} onSend={sendMessage}
-        onBack={() => { setChatOpen(false); setMessages(initialMessages); }}
-      />
-    );
+    if (chatOpen) {
+    return <SupportAgentChat onBack={() => setChatOpen(false)} />;
   }
 
   return (

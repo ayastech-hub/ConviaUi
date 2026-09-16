@@ -39,11 +39,15 @@ export function SupportAgentChat({ onBack }: { onBack: () => void }) {
       try {
         const s = await aiSupport.createAgentSession();
         setSessionId(s.id);
+        const live = s.llmEnabled ? ' AI is live.' : '';
         setBubbles([
           {
             id: 'welcome',
             role: 'assistant',
-            body: "Hi — I'm the Convia Support Agent. I can check your balances, deposits, and history. Attach a transaction when you mean a specific one so I don't guess.",
+            body:
+              "Hi — I'm the Convia Support Agent. I can check your balances, deposits, and history." +
+              live +
+              " Attach a transaction when you mean a specific one so I don't guess.",
           },
         ]);
       } catch {
