@@ -71,6 +71,8 @@ export function submitKyc(
     documentType: 'national_id' | 'passport' | 'drivers_license';
     documentImageUrl: string;
     selfieImageUrl: string;
+    documentStoragePath?: string;
+    selfieStoragePath?: string;
     declaredCountry?: string;
   },
 ) {

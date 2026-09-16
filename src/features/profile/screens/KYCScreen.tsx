@@ -75,6 +75,8 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
 
   const [selfieCaptured, setSelfieCaptured] = useState(false);
   const [selfieDataUrl, setSelfieDataUrl] = useState<string | null>(null);
+  const [documentStoragePath, setDocumentStoragePath] = useState<string | null>(null);
+  const [selfieStoragePath, setSelfieStoragePath] = useState<string | null>(null);
   const [showSelfieCamera, setShowSelfieCamera] = useState(false);
   const [selfieErrors, setSelfieErrors] = useState<Record<string, string>>({});
 
@@ -190,6 +192,9 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
         selfieDataUrl && /^https?:\/\//i.test(selfieDataUrl) ? selfieDataUrl : null;
 
       // Upload local captures to private Supabase bucket via backend (returns signed HTTPS URL)
+      let docPath = documentStoragePath;
+      let selfPath = selfieStoragePath;
+
       if (!docUrl && uploadedFile?.dataUrl) {
         const up = await securityApi.uploadKycMedia(userId, {
           kind: tier2 ? 'utility' : 'document',
@@ -197,6 +202,8 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
           contentType: uploadedFile.type || 'image/jpeg',
         });
         docUrl = up.url;
+        docPath = up.path;
+        setDocumentStoragePath(up.path);
       }
       if (!selfieUrl && selfieDataUrl) {
         const up = await securityApi.uploadKycMedia(userId, {
@@ -205,17 +212,21 @@ export function KYCScreen({ goBack }: KYCScreenProps) {
           contentType: 'image/jpeg',
         });
         selfieUrl = up.url;
+        selfPath = up.path;
+        setSelfieStoragePath(up.path);
       }
 
-      if (!docUrl) throw new Error('Document image required');
+      if (!docUrl) throw new Error('Document image required — upload failed or not deployed yet');
       if (!isNG || tier2) {
-        if (!selfieUrl) throw new Error('Selfie required');
+        if (!selfieUrl) throw new Error('Selfie required — upload failed or not deployed yet');
       }
 
       await securityApi.submitKyc(userId, {
         documentType: mapDoc,
         documentImageUrl: docUrl,
         selfieImageUrl: selfieUrl || docUrl,
+        documentStoragePath: docPath || undefined,
+        selfieStoragePath: selfPath || undefined,
         declaredCountry: country?.code?.length === 2 ? country.code.toUpperCase() : undefined,
       });
       invalidateKyc();
