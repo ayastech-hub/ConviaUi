@@ -20,8 +20,6 @@ import { useLanguage } from '../../../shared/context/LanguageContext';
 import { PageTop } from '../../../shared/components/PageTop';
 import { BackButton } from '../../../shared/components/BackButton';
 import { ensureTransactionPin } from '../../../shared/security/ensureTransactionPin';
-// Note: Ensure ApiError is imported if it isn't globally available
-import { ApiError } from '../../../shared/api/client'; 
 
 interface OffRampScreenProps {
   goBack: () => void;
@@ -53,7 +51,6 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
       try {
         const pinGate = await ensureTransactionPin(userId);
         if (pinGate && !pinGate.ok) {
-          // Set error in state instead of throwing inside async function to avoid unhandled rejections
           setApiError({ code: 'pin_not_set', message: pinGate.message });
         }
       } catch (error) {
@@ -183,10 +180,12 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
                     void queryClient.invalidateQueries({ queryKey: queryKeys.transactions(userId, 50) });
                   }
                   setStep('done');
-                } catch (err) {
-                  if (err instanceof ApiError) {
-                    setApiError({ code: err.code, message: err.body?.message || err.message });
-                  }
+                } catch (err: any) {
+                  // Fallback safely whether err is a generic object, ApiError, or string
+                  setApiError({ 
+                    code: err?.code || 'unknown_error', 
+                    message: err?.body?.message || err?.message || 'Transaction failed' 
+                  });
                   setStep('review');
                 }
               }}
