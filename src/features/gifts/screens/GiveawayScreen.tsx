@@ -613,13 +613,15 @@ function JoinForm() {
   };
 
   const [claiming, setClaiming] = useState(false);
+  const [pin, setPin] = useState('');
   const confirm = async () => {
     setError('');
     setSuccess(null);
     if (!code.trim()) return setError('Enter a passcode');
+    if (!pin.trim() || pin.trim().length < 4) return setError('Enter your transaction PIN');
     setClaiming(true);
     try {
-      const res = await claimGift(code, userId || 'claimer_local');
+      const res = await claimGift(code, userId || 'claimer_local', pin.trim());
       if (!res.ok) {
         setError(res.error);
         return;
@@ -660,14 +662,30 @@ function JoinForm() {
         </div>
       </div>
 
+      <div>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600, marginBottom: 8 }}>Transaction PIN</p>
+        <input
+          type="password"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={6}
+          value={pin}
+          onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+          placeholder="••••••"
+          className="w-full px-4 h-13 rounded-2xl outline-none tabular-nums"
+          style={{ background: 'var(--muted)', border: '1px solid var(--border)', height: 52, color: 'var(--foreground)', fontSize: 16, letterSpacing: 4 }}
+        />
+      </div>
+
       <motion.button
         type="button"
         whileTap={{ scale: 0.98 }}
         onClick={confirm}
+        disabled={claiming}
         className="w-full py-4 rounded-full font-bold text-[15px]"
-        style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+        style={{ background: 'var(--primary)', color: 'var(--primary-foreground)', opacity: claiming ? 0.7 : 1 }}
       >
-        Confirm
+        {claiming ? 'Claiming…' : 'Confirm'}
       </motion.button>
 
       {error && <p style={{ color: 'var(--destructive, #ef4444)', fontSize: 13 }}>{error}</p>}

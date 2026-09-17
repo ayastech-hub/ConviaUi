@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api, newIdempotencyKey } from './client';
 
 export type ApiGiveaway = {
   id: string;
@@ -47,8 +47,8 @@ export function listGiveawayClaims(id: string) {
 export function claimGiveaway(code: string, pin?: string) {
   return api.post<{ amount: string; asset: string; giveawayId: string; claimId?: string }>(
     '/giveaways/claim',
-    { code, ...(pin ? { pin } : {}) },
-    { idempotent: true },
+    { code: code.trim().toUpperCase(), ...(pin ? { pin } : {}) },
+    { headers: { 'Idempotency-Key': newIdempotencyKey() } },
   );
 }
 
