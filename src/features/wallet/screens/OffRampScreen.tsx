@@ -20,6 +20,8 @@ import { useLanguage } from '../../../shared/context/LanguageContext';
 import { PageTop } from '../../../shared/components/PageTop';
 import { BackButton } from '../../../shared/components/BackButton';
 import { ensureTransactionPin } from '../../../shared/security/ensureTransactionPin';
+// Note: Ensure ApiError is imported if it isn't globally available
+import { ApiError } from '../../../shared/api/client'; 
 
 interface OffRampScreenProps {
   goBack: () => void;
@@ -30,51 +32,71 @@ interface OffRampScreenProps {
 export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenProps) {
   const { t } = useLanguage();
   const { assets: cryptoAssets, loading: registryLoading } = useWalletAssets();
+  
   useEffect(() => {
     if (!cryptoAssets.length) return;
   }, [cryptoAssets]);
+
   const { currency, format } = useCurrency();
   const { userId } = useAuth();
   const gates = useAccountGates();
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
-  useEffect(() => {
-    const pinGate = userId ? await ensureTransactionPin(userId) : null;
-    if (pinGate && !pinGate.ok) {
-      throw new ApiError(403, { code: 'pin_not_set', message: pinGate.message });
-    }
-    if (!userId) {
-      setBankAccounts([]);
-      return;
-    }
-    banksApi
-      .listBankAccounts(userId)
-      .then((list) => setBankAccounts(Array.isArray(list) ? list : []))
-      .catch(() => setBankAccounts([]));
-  }, [userId]);
-  const { isApproved } = useKycStatus();
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
+
+  useEffect(() => {
+    const initializeAccountsAndPin = async () => {
+      if (!userId) {
+        setBankAccounts([]);
+        return;
+      }
+
+      try {
+        const pinGate = await ensureTransactionPin(userId);
+        if (pinGate && !pinGate.ok) {
+          // Set error in state instead of throwing inside async function to avoid unhandled rejections
+          setApiError({ code: 'pin_not_set', message: pinGate.message });
+        }
+      } catch (error) {
+        console.error('Failed to verify transaction PIN:', error);
+      }
+
+      banksApi
+        .listBankAccounts(userId)
+        .then((list) => setBankAccounts(Array.isArray(list) ? list : []))
+        .catch(() => setBankAccounts([]));
+    };
+
+    initializeAccountsAndPin();
+  }, [userId]);
+
+  const { isApproved } = useKycStatus();
   const [eligibility, setEligibility] = useState<{ canOfframp?: boolean; kycStatus?: string; action?: string } | null>(null);
+  
   useEffect(() => {
     if (!userId) return;
     fiatApi.offrampEligibility(userId).then(setEligibility).catch(() => setEligibility(null));
   }, [userId]);
+
   const [selectedAsset, setSelectedAsset] = useState(cryptoAssets.find((a) => a.symbol === 'USDT') || cryptoAssets[0] || {
-  id: 'loading',
-  symbol: '…',
-  name: 'Loading',
-  price: 0,
-  change24h: 0,
-  balance: 0,
-  valueUSD: 0,
-  color: 'var(--muted-foreground)',
-  bgColor: 'var(--muted)',
-  chains: [],
-  sparkline: [],
-} as Asset);
+    id: 'loading',
+    symbol: '…',
+    name: 'Loading',
+    price: 0,
+    change24h: 0,
+    balance: 0,
+    valueUSD: 0,
+    color: 'var(--muted-foreground)',
+    bgColor: 'var(--muted)',
+    chains: [],
+    sparkline: [],
+  } as Asset);
+  
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  
   useEffect(() => {
     if (bankAccounts.length && !selectedAccountId) setSelectedAccountId(bankAccounts[0].id);
   }, [bankAccounts, selectedAccountId]);
+  
   const [amount, setAmount] = useState('');
   const [step, setStep] = useState<'form' | 'review' | 'processing' | 'done'>('form');
   const [showTokenDropdown, setShowTokenDropdown] = useState(false);
@@ -102,10 +124,10 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
           <FeatureAlert reason={mapApiCodeToReason(apiError.code)} message={apiError.message} detail={apiError.code} />
         )}
         {eligibility && eligibility.action === 'complete_kyc' && !isApproved && (
-          <FeatureAlert reason="kyc_required" message="Off-ramp requires approved KYC and a bank account in your legal name." onAction={() => navigate('kyc')} actionLabel="Start KYC" />
+          <FeatureAlert reason="kyc_required" message="Off-ramp requires approved KYC and a bank account in your legal name." onAction={() => navigate?.('kyc')} actionLabel="Start KYC" />
         )}
         {eligibility && eligibility.action === 'add_payment_details' && (
-          <FeatureAlert reason="generic" message="Add a bank account before selling crypto to fiat." onAction={() => navigate('payment-methods')} actionLabel="Add bank" />
+          <FeatureAlert reason="generic" message="Add a bank account before selling crypto to fiat." onAction={() => navigate?.('payment-methods')} actionLabel="Add bank" />
         )}
       </div>
 
@@ -125,7 +147,7 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
               compatibleAccounts={compatibleAccounts} selectedAccountId={selectedAccountId} setSelectedAccountId={setSelectedAccountId}
               selectedAccount={selectedAccount}
               showAccountDropdown={showAccountDropdown} setShowAccountDropdown={setShowAccountDropdown}
-              onAddAccount={() => navigate('payment-methods')}
+              onAddAccount={() => navigate?.('payment-methods')}
               fee={fee} youGet={youGet}
               onPreview={() => { if (!gates.canOfframp) return; if (Number(amount) > 0 && selectedAccountId) setStep('review'); }}
             />
@@ -163,7 +185,7 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
                   setStep('done');
                 } catch (err) {
                   if (err instanceof ApiError) {
-                    setApiError({ code: err.code, message: err.body.message || err.message });
+                    setApiError({ code: err.code, message: err.body?.message || err.message });
                   }
                   setStep('review');
                 }
