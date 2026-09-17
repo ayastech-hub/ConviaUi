@@ -25,6 +25,7 @@ import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBan
 import { executeSwap, getSwapQuote } from '../../../shared/api/swap';
 import { ApiError } from '../../../shared/api/types';
 import { PageTop } from '../../../shared/components/PageTop';
+import { ensureTransactionPin } from '../../../shared/security/ensureTransactionPin';
 
 interface SwapScreenProps {
   goBack: () => void;
@@ -284,6 +285,10 @@ export function SwapScreen({ goBack, presetSymbol }: SwapScreenProps) {
     setPhase('swapping');
     try {
       if (!userId) throw new ApiError(401, { code: 'unauthorized', message: 'Sign in required' });
+      const pinGate = await ensureTransactionPin(userId);
+      if (!pinGate.ok) {
+        throw new ApiError(403, { code: 'pin_not_set', message: pinGate.message });
+      }
       if (!quoteId) throw new ApiError(400, { code: 'no_quote', message: 'Get a fresh quote first' });
       const pinToSend = pinOverride || pendingSwapPin;
       const res = await executeSwap({ userId, quoteId, ...(pinToSend ? { pin: pinToSend } : {}) });
@@ -401,7 +406,15 @@ export function SwapScreen({ goBack, presetSymbol }: SwapScreenProps) {
         {!registryLoading && cryptoAssets.length === 0 && <EmptyCatalogBanner />}
         <GateHint mode="swap" />
         <WalletFeatureBanner feature="swap" />
-        {apiBlock && <FeatureAlert reason={mapApiCodeToReason(apiBlock.code)} message={apiBlock.message} detail={apiBlock.code} />}
+        {apiBlock && (
+          <FeatureAlert
+            reason={mapApiCodeToReason(apiBlock.code)}
+            message={apiBlock.message}
+            detail={apiBlock.code}
+            onAction={apiBlock.code === 'pin_not_set' && navigate ? () => navigate('security') : undefined}
+            actionLabel={apiBlock.code === 'pin_not_set' ? 'Set PIN' : 'Continue'}
+          />
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 pb-6">

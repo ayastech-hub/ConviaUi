@@ -29,6 +29,7 @@ import { usePortfolio } from '../../../shared/hooks/usePortfolio';
 import { holdingToAsset } from '../../../shared/utils/mapApiToUi';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { BackButton } from '../../../shared/components/BackButton';
+import { ensureTransactionPin } from '../../../shared/security/ensureTransactionPin';
 
 interface SendScreenProps {
   navigate: (s: Screen) => void;
@@ -137,6 +138,11 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
       ];
       try {
         if (!userId) throw new ApiError(401, { code: 'unauthorized', message: 'Sign in required' });
+
+        const pinGate = await ensureTransactionPin(userId);
+        if (!pinGate.ok) {
+          throw new ApiError(403, { code: 'pin_not_set', message: pinGate.message });
+        }
 
         const chain = resolveChain(selectedAsset.chains[0] || 'Ethereum');
         const amountAsset = cryptoAmount > 0 ? cryptoAmount.toFixed(8) : String(amount);
@@ -402,7 +408,13 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
       <PageTop />
       <div className="px-5">
         {apiError && (
-          <FeatureAlert reason={mapApiCodeToReason(apiError.code)} message={apiError.message} detail={apiError.code} />
+          <FeatureAlert
+            reason={mapApiCodeToReason(apiError.code)}
+            message={apiError.message}
+            detail={apiError.code}
+            onAction={apiError.code === 'pin_not_set' ? () => navigate('security') : undefined}
+            actionLabel={apiError.code === 'pin_not_set' ? 'Set PIN' : 'Continue'}
+          />
         )}
       </div>
       <div className="flex items-center gap-3 px-5 mb-3">

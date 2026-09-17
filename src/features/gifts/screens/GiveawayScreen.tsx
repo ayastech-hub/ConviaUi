@@ -33,6 +33,7 @@ import {
   listRecentClaims,
 } from '../store';
 import { claimUrl, remainingAmount, remainingSlots, type CardTheme, type Gift, type SplitMode } from '../types';
+import { ensureTransactionPin } from '../../../shared/security/ensureTransactionPin';
 
 type Mode = 'hub' | 'create' | 'join' | 'detail' | 'theme';
 
@@ -621,6 +622,13 @@ function JoinForm() {
     if (!pin.trim() || pin.trim().length < 4) return setError('Enter your transaction PIN');
     setClaiming(true);
     try {
+      const pinGate = await ensureTransactionPin(userId);
+      if (!pinGate.ok) {
+        setError(pinGate.hasPin === false
+          ? 'You have not set a transaction PIN. Open Profile → Security → Set transaction PIN, then try again.'
+          : pinGate.message);
+        return;
+      }
       const res = await claimGift(code, userId || 'claimer_local', pin.trim());
       if (!res.ok) {
         setError(res.error);

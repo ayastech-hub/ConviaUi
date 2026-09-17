@@ -22,6 +22,7 @@ import { holdingToAsset } from '../../../shared/utils/mapApiToUi';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
 import { BackButton } from '../../../shared/components/BackButton';
+import { ensureTransactionPin } from '../../../shared/security/ensureTransactionPin';
 
 interface WithdrawScreenProps {
   goBack: () => void;
@@ -120,6 +121,15 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
   };
 
   const submitWithdraw = async () => {
+    if (userId) {
+      const pinGate = await ensureTransactionPin(userId);
+      if (!pinGate.ok) {
+        setError(pinGate.message);
+        setApiError({ code: 'pin_not_set', message: pinGate.message });
+        // navigate if available
+        return;
+      }
+    }
     if (!userId || !selectedAsset) {
       setApiError({ message: 'Sign in required' });
       setStep('form');
@@ -301,7 +311,13 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
       <div className="px-5 pt-0">
         {apiError && (
-          <FeatureAlert reason={mapApiCodeToReason(apiError.code)} message={apiError.message} detail={apiError.code} />
+          <FeatureAlert
+            reason={mapApiCodeToReason(apiError.code)}
+            message={apiError.message}
+            detail={apiError.code}
+            onAction={apiError.code === 'pin_not_set' && navigate ? () => navigate('security') : undefined}
+            actionLabel={apiError.code === 'pin_not_set' ? 'Set PIN' : 'Continue'}
+          />
         )}
       </div>
       <WithdrawForm

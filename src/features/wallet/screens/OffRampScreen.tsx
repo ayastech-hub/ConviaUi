@@ -19,6 +19,7 @@ import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useLanguage } from '../../../shared/context/LanguageContext';
 import { PageTop } from '../../../shared/components/PageTop';
 import { BackButton } from '../../../shared/components/BackButton';
+import { ensureTransactionPin } from '../../../shared/security/ensureTransactionPin';
 
 interface OffRampScreenProps {
   goBack: () => void;
@@ -37,6 +38,10 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
   const gates = useAccountGates();
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   useEffect(() => {
+    const pinGate = userId ? await ensureTransactionPin(userId) : null;
+    if (pinGate && !pinGate.ok) {
+      throw new ApiError(403, { code: 'pin_not_set', message: pinGate.message });
+    }
     if (!userId) {
       setBankAccounts([]);
       return;

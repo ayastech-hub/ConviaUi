@@ -7,6 +7,7 @@ import * as securityApi from '../../../shared/api/security';
 import { ApiError } from '../../../shared/api/types';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { useLanguage } from '../../../shared/context/LanguageContext';
+import { markPinConfigured, invalidatePinStatusCache } from '../../../shared/security/ensureTransactionPin';
 
 interface ChangePinFlowProps {
   onBack: () => void;
@@ -57,8 +58,10 @@ export function ChangePinFlow({ onBack }: ChangePinFlowProps) {
     try {
       if (hasPin) {
         await securityApi.changeTransactionPin(userId, { currentPin, newPin });
+        if (userId) markPinConfigured(userId);
       } else {
         await securityApi.setTransactionPin(userId, newPin);
+        if (userId) markPinConfigured(userId);
       }
       setStep('done');
     } catch (err) {

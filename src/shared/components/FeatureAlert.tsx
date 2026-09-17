@@ -9,6 +9,7 @@ export type FeatureBlockReason =
   | 'account_frozen'
   | 'address_not_whitelisted'
   | 'limit_exceeded'
+  | 'pin_not_set'
   | 'generic';
 
 const COPY: Record<
@@ -51,6 +52,12 @@ const COPY: Record<
     icon: AlertTriangle,
     tone: 'warn',
   },
+  pin_not_set: {
+    title: 'Transaction PIN required',
+    body: 'Create a 6-digit PIN in Security before you can send, withdraw, or claim.',
+    icon: ShieldAlert,
+    tone: 'warn',
+  },
   generic: {
     title: 'Action blocked',
     body: 'This action was refused. Check details or try again.',
@@ -84,6 +91,7 @@ export function mapApiCodeToReason(code?: string): FeatureBlockReason {
   if (c.includes('kyc') || c === 'complete_kyc') return 'kyc_required';
   if (c.includes('country') || c.includes('suspended')) return 'country_feature_suspended';
   if (c.includes('frozen')) return 'account_frozen';
+  if (c.includes('pin_not_set') || c === 'pin_not_set' || c.includes('pin_required') && c.includes('not')) return 'pin_not_set';
   if (c.includes('whitelist')) return 'address_not_whitelisted';
   if (c.includes('limit')) return 'limit_exceeded';
   return 'generic';
