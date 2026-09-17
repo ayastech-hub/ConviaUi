@@ -34,6 +34,7 @@ import {
 } from '../store';
 import { claimUrl, remainingAmount, remainingSlots, type CardTheme, type Gift, type SplitMode } from '../types';
 import { ensureTransactionPin } from '../../../shared/security/ensureTransactionPin';
+import { ClaimCelebration } from '../components/ClaimCelebration';
 
 type Mode = 'hub' | 'create' | 'join' | 'detail' | 'theme';
 
@@ -698,17 +699,15 @@ function JoinForm() {
 
       {error && <p style={{ color: 'var(--destructive, #ef4444)', fontSize: 13 }}>{error}</p>}
       {success && (
-        <div
-          className="rounded-2xl px-4 py-3.5"
-          style={{
-            background: 'color-mix(in oklab, var(--primary) 14%, transparent)',
-            border: '1px solid color-mix(in oklab, var(--primary) 30%, transparent)',
+        <ClaimCelebration
+          amount={success.amount}
+          asset={success.asset}
+          onDone={() => {
+            setSuccess(null);
+            setCode('');
+            setPin('');
           }}
-        >
-          <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14 }}>
-            Claimed {formatAmt(success.amount)} {success.asset}
-          </p>
-        </div>
+        />
       )}
 
       <div className="flex items-center gap-3 py-1">
