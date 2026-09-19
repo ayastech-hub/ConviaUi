@@ -128,8 +128,23 @@ function groupByDate(rows: NotificationRow[]): Array<{ label: string; items: Not
 function titleOf(n: NotificationRow) {
   return String(n.title || n.type || 'Update');
 }
+const VENDOR_RE =
+  /\b(vtpass|monnify|flutterwave|reloadly|paystack|binance|supabase|railway|shadowpay|payonus)\b/gi;
+
+function scrubVendorText(text: string): string {
+  return text
+    .replace(VENDOR_RE, '')
+    .replace(/\s*via\s+/gi, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s*·\s*·+/g, ' · ')
+    .replace(/^\s*·\s*|\s*·\s*$/g, '')
+    .replace(/_http_\d+/gi, '')
+    .replace(/:\s*\d{3}\b/g, '')
+    .trim();
+}
+
 function bodyOf(n: NotificationRow) {
-  return String(n.body || n.message || '');
+  return scrubVendorText(String(n.body || n.message || ''));
 }
 
 export function NotificationsScreen({ goBack, navigate }: NotificationsScreenProps) {
