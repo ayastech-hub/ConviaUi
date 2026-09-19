@@ -1,4 +1,12 @@
-import { useMemo, useState, useRef, useEffect } from 'react';
+import {
+  useMemo,
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  type ReactNode,
+} from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ChevronDown,
@@ -12,18 +20,21 @@ import {
   TrendingDown,
   Inbox,
   Search,
-  SlidersHorizontal,
   X,
   CalendarDays,
   ChevronRight,
 } from 'lucide-react';
+
 import type { Transaction } from '../../../shared/data/mockData';
 import { TransactionReceipt } from '../../../shared/components/TransactionReceipt';
 import { formatTokenAmount } from '../../../shared/utils/formatAmount';
 import { PageTop } from '../../../shared/components/PageTop';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { useTransactions } from '../../../shared/hooks/useTransactions';
-import { apiTxToUi, filterHistoryForUi } from '../../../shared/utils/mapApiToUi';
+import {
+  apiTxToUi,
+  filterHistoryForUi,
+} from '../../../shared/utils/mapApiToUi';
 import { BackButton } from '../../../shared/components/BackButton';
 
 type TypeFilter =
@@ -38,11 +49,25 @@ type TypeFilter =
   | 'onramp'
   | 'offramp';
 
-type StatusFilter = 'all' | 'confirmed' | 'pending' | 'failed';
+type StatusFilter =
+  | 'all'
+  | 'confirmed'
+  | 'pending'
+  | 'failed';
 
-type RangeFilter = '30d' | '90d' | '1y' | 'all' | 'custom';
+type RangeFilter =
+  | '30d'
+  | 'all'
+  | 'custom';
 
-const TYPE_OPTIONS: { id: TypeFilter; label: string }[] = [
+/* -------------------------------------------------------------------------- */
+/* Filter options                                                             */
+/* -------------------------------------------------------------------------- */
+
+const TYPE_OPTIONS: {
+  id: TypeFilter;
+  label: string;
+}[] = [
   { id: 'all', label: 'All activity' },
   { id: 'receive', label: 'Received' },
   { id: 'send', label: 'Sent' },
@@ -55,7 +80,10 @@ const TYPE_OPTIONS: { id: TypeFilter; label: string }[] = [
   { id: 'offramp', label: 'Cash out' },
 ];
 
-const STATUS_OPTIONS: { id: StatusFilter; label: string }[] = [
+const STATUS_OPTIONS: {
+  id: StatusFilter;
+  label: string;
+}[] = [
   { id: 'all', label: 'Any status' },
   { id: 'confirmed', label: 'Confirmed' },
   { id: 'pending', label: 'Pending' },
@@ -73,21 +101,15 @@ const QUICK_DATE_OPTIONS: {
     description: 'Transactions from the last 30 days',
   },
   {
-    id: '90d',
-    label: 'Last 90 days',
-    description: 'Transactions from the last 90 days',
-  },
-  {
-    id: '1y',
-    label: 'Last year',
-    description: 'Transactions from the last 12 months',
-  },
-  {
     id: 'all',
     label: 'All time',
     description: 'Your complete transaction history',
   },
 ];
+
+/* -------------------------------------------------------------------------- */
+/* Transaction metadata                                                       */
+/* -------------------------------------------------------------------------- */
 
 const TX_META: Record<
   string,
@@ -157,16 +179,35 @@ function meta(type: string) {
 }
 
 function statusColor(status: string) {
-  if (status === 'confirmed') return 'var(--positive)';
-  if (status === 'pending') return '#F59E0B';
-  if (status === 'failed') return 'var(--destructive)';
+  if (status === 'confirmed') {
+    return 'var(--positive)';
+  }
+
+  if (status === 'pending') {
+    return '#F59E0B';
+  }
+
+  if (status === 'failed') {
+    return 'var(--destructive)';
+  }
+
   return 'var(--muted-foreground)';
 }
 
+/* -------------------------------------------------------------------------- */
+/* Group transactions by day                                                  */
+/* -------------------------------------------------------------------------- */
+
 function groupByDay(
   txs: Transaction[],
-): { label: string; items: Transaction[] }[] {
-  const map = new Map<string, Transaction[]>();
+): {
+  label: string;
+  items: Transaction[];
+}[] {
+  const map = new Map<
+    string,
+    Transaction[]
+  >();
 
   for (const tx of txs) {
     const key =
@@ -181,14 +222,19 @@ function groupByDay(
     map.get(key)!.push(tx);
   }
 
-  return Array.from(map.entries()).map(([label, items]) => ({
-    label,
-    items,
-  }));
+  return Array.from(map.entries()).map(
+    ([label, items]) => ({
+      label,
+      items,
+    }),
+  );
 }
 
 /* -------------------------------------------------------------------------- */
 /* Filter chip                                                                */
+/*                                                                            */
+/* Important: the menu is rendered into document.body.                       */
+/* This prevents the horizontal filter scroller from clipping the menu.      */
 /* -------------------------------------------------------------------------- */
 
 function FilterChip({
@@ -200,103 +246,258 @@ function FilterChip({
   open: boolean;
   label: string;
   onToggle: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
+  const buttonRef =
+    useRef<HTMLButtonElement>(null);
+
+  const menuRef =
+    useRef<HTMLDivElement>(null);
+
+  const [position, setPosition] =
+    useState({
+      top: 0,
+      left: 0,
+      width: 220,
+    });
+
+  const updatePosition = useCallback(() => {
+    const button =
+      buttonRef.current;
+
+    if (!button) return;
+
+    const rect =
+      button.getBoundingClientRect();
+
+    const width = Math.min(
+      240,
+      window.innerWidth - 24,
+    );
+
+    const estimatedHeight = Math.min(
+      360,
+      window.innerHeight * 0.52,
+    );
+
+    const spaceBelow =
+      window.innerHeight - rect.bottom;
+
+    let top: number;
+
+    if (
+      spaceBelow >=
+      estimatedHeight + 12
+    ) {
+      top = rect.bottom + 8;
+    } else {
+      top = Math.max(
+        12,
+        rect.top -
+          estimatedHeight -
+          8,
+      );
+    }
+
+    const left = Math.min(
+      Math.max(12, rect.left),
+      window.innerWidth -
+        width -
+        12,
+    );
+
+    setPosition({
+      top,
+      left,
+      width,
+    });
+  }, []);
 
   useEffect(() => {
     if (!open) return;
 
-    const onDoc = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) {
+    updatePosition();
+
+    const handleResize = () => {
+      updatePosition();
+    };
+
+    const handleScroll = () => {
+      updatePosition();
+    };
+
+    const handleOutside = (
+      event: MouseEvent,
+    ) => {
+      const target =
+        event.target as Node;
+
+      const insideButton =
+        buttonRef.current?.contains(
+          target,
+        );
+
+      const insideMenu =
+        menuRef.current?.contains(
+          target,
+        );
+
+      if (
+        !insideButton &&
+        !insideMenu
+      ) {
         onToggle();
       }
     };
 
-    document.addEventListener('mousedown', onDoc);
+    const handleKeyDown = (
+      event: KeyboardEvent,
+    ) => {
+      if (event.key === 'Escape') {
+        onToggle();
+      }
+    };
+
+    document.addEventListener(
+      'mousedown',
+      handleOutside,
+    );
+
+    document.addEventListener(
+      'keydown',
+      handleKeyDown,
+    );
+
+    window.addEventListener(
+      'resize',
+      handleResize,
+    );
+
+    window.addEventListener(
+      'scroll',
+      handleScroll,
+      true,
+    );
 
     return () => {
-      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener(
+        'mousedown',
+        handleOutside,
+      );
+
+      document.removeEventListener(
+        'keydown',
+        handleKeyDown,
+      );
+
+      window.removeEventListener(
+        'resize',
+        handleResize,
+      );
+
+      window.removeEventListener(
+        'scroll',
+        handleScroll,
+        true,
+      );
     };
-  }, [open, onToggle]);
+  }, [
+    open,
+    onToggle,
+    updatePosition,
+  ]);
+
+  const menu =
+    typeof document !== 'undefined'
+      ? createPortal(
+          <AnimatePresence>
+            {open && (
+              <motion.div
+                ref={menuRef}
+                initial={{
+                  opacity: 0,
+                  y: 5,
+                  scale: 0.98,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                  scale: 1,
+                }}
+                exit={{
+                  opacity: 0,
+                  y: 4,
+                  scale: 0.98,
+                }}
+                transition={{
+                  duration: 0.14,
+                }}
+                className="fixed overflow-y-auto rounded-2xl shadow-2xl"
+                style={{
+                  top: position.top,
+                  left: position.left,
+                  width: position.width,
+                  maxHeight: '52vh',
+                  zIndex: 9999,
+                  background:
+                    'var(--card)',
+                  border:
+                    '1px solid var(--border)',
+                }}
+              >
+                {children}
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body,
+        )
+      : null;
 
   return (
-    <div
-      ref={ref}
-      className={`relative flex-shrink-0 ${
-        open ? 'z-[80]' : 'z-30'
-      }`}
-    >
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex items-center gap-1.5 h-9 px-3 rounded-xl"
-        style={{
-          background: open
-            ? 'var(--liquid-chip-on-bg)'
-            : 'var(--card)',
-          color: open
-            ? 'var(--liquid-chip-on-text)'
-            : 'var(--foreground)',
-          border: open
-            ? '1px solid var(--liquid-pill-border)'
-            : '1px solid var(--border)',
-          fontSize: 12,
-          fontWeight: 650,
-        }}
-      >
-        {label}
-
-        <ChevronDown
-          size={14}
+    <>
+      <div className="relative flex-shrink-0">
+        <button
+          ref={buttonRef}
+          type="button"
+          onClick={onToggle}
+          className="flex items-center gap-1.5 h-9 px-3 rounded-xl"
           style={{
-            opacity: 0.65,
-            transform: open
-              ? 'rotate(180deg)'
-              : undefined,
-            transition: 'transform 150ms ease',
+            background: open
+              ? 'var(--liquid-chip-on-bg)'
+              : 'var(--card)',
+            color: open
+              ? 'var(--liquid-chip-on-text)'
+              : 'var(--foreground)',
+            border: open
+              ? '1px solid var(--liquid-pill-border)'
+              : '1px solid var(--border)',
+            fontSize: 12,
+            fontWeight: 650,
           }}
-        />
-      </button>
+        >
+          {label}
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            key="chip-menu"
-            initial={{
-              opacity: 0,
-              y: 5,
-              scale: 0.98,
-            }}
-            animate={{
-              opacity: 1,
-              y: 0,
-              scale: 1,
-            }}
-            exit={{
-              opacity: 0,
-              y: 4,
-              scale: 0.98,
-            }}
-            transition={{
-              duration: 0.14,
-            }}
-            className="absolute z-[90] left-0 mt-2 min-w-[190px] max-h-[52vh] overflow-y-auto rounded-2xl shadow-2xl"
+          <ChevronDown
+            size={14}
             style={{
-              background: 'var(--card)',
-              border: '1px solid var(--border)',
+              opacity: 0.65,
+              transform: open
+                ? 'rotate(180deg)'
+                : undefined,
+              transition:
+                'transform 150ms ease',
             }}
-          >
-            {children}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+          />
+        </button>
+      </div>
+
+      {menu}
+    </>
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/* Date filter                                                                */
+/* Date filter sheet                                                          */
 /* -------------------------------------------------------------------------- */
 
 function DateFilterSheet({
@@ -333,7 +534,12 @@ function DateFilterSheet({
     setDraftRange(range);
     setDraftFrom(customFrom);
     setDraftTo(customTo);
-  }, [open, range, customFrom, customTo]);
+  }, [
+    open,
+    range,
+    customFrom,
+    customTo,
+  ]);
 
   useEffect(() => {
     if (!open) return;
@@ -341,15 +547,21 @@ function DateFilterSheet({
     const previousOverflow =
       document.body.style.overflow;
 
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow =
+      'hidden';
 
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+    const handleKey = (
+      event: KeyboardEvent,
+    ) => {
+      if (event.key === 'Escape') {
         onClose();
       }
     };
 
-    document.addEventListener('keydown', onKey);
+    document.addEventListener(
+      'keydown',
+      handleKey,
+    );
 
     return () => {
       document.body.style.overflow =
@@ -357,32 +569,49 @@ function DateFilterSheet({
 
       document.removeEventListener(
         'keydown',
-        onKey,
+        handleKey,
       );
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (
+    !open ||
+    typeof document === 'undefined'
+  ) {
+    return null;
+  }
 
-  const canApplyCustom =
+  const customDatesValid =
     draftRange !== 'custom' ||
-    (!!draftFrom && !!draftTo);
+    (!!draftFrom &&
+      !!draftTo &&
+      draftFrom <= draftTo);
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <motion.div
         key="date-sheet"
         className="fixed inset-0 z-[120] flex items-end justify-center"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
+        initial={{
+          opacity: 0,
+        }}
+        animate={{
+          opacity: 1,
+        }}
+        exit={{
+          opacity: 0,
+        }}
         style={{
           background:
             'color-mix(in oklab, var(--background) 72%, transparent)',
-          backdropFilter: 'blur(3px)',
+          backdropFilter:
+            'blur(3px)',
         }}
-        onMouseDown={(e) => {
-          if (e.target === e.currentTarget) {
+        onMouseDown={(event) => {
+          if (
+            event.target ===
+            event.currentTarget
+          ) {
             onClose();
           }
         }}
@@ -404,13 +633,15 @@ function DateFilterSheet({
           }}
           className="w-full max-w-[520px] rounded-t-[28px] overflow-hidden"
           style={{
-            background: 'var(--card)',
-            borderTop: '1px solid var(--border)',
+            background:
+              'var(--card)',
+            borderTop:
+              '1px solid var(--border)',
             boxShadow:
               '0 -18px 50px color-mix(in oklab, var(--background) 35%, transparent)',
           }}
-          onMouseDown={(e) =>
-            e.stopPropagation()
+          onMouseDown={(event) =>
+            event.stopPropagation()
           }
         >
           {/* Handle */}
@@ -418,7 +649,8 @@ function DateFilterSheet({
             <div
               className="w-10 h-1 rounded-full"
               style={{
-                background: 'var(--border)',
+                background:
+                  'var(--border)',
               }}
             />
           </div>
@@ -428,7 +660,8 @@ function DateFilterSheet({
             <div>
               <h2
                 style={{
-                  color: 'var(--foreground)',
+                  color:
+                    'var(--foreground)',
                   fontSize: 17,
                   fontWeight: 800,
                   letterSpacing: -0.25,
@@ -445,7 +678,7 @@ function DateFilterSheet({
                   fontSize: 11.5,
                 }}
               >
-                Choose the period to show
+                Choose when to show transactions
               </p>
             </div>
 
@@ -454,7 +687,8 @@ function DateFilterSheet({
               onClick={onClose}
               className="w-9 h-9 rounded-xl flex items-center justify-center"
               style={{
-                background: 'var(--muted)',
+                background:
+                  'var(--muted)',
                 border:
                   '1px solid var(--border)',
               }}
@@ -469,87 +703,101 @@ function DateFilterSheet({
             </button>
           </div>
 
-          {/* Quick ranges */}
+          {/* Quick date options */}
           <div className="px-5 pb-2">
-            {QUICK_DATE_OPTIONS.map((option) => {
-              const active =
-                draftRange === option.id;
+            {QUICK_DATE_OPTIONS.map(
+              (option) => {
+                const active =
+                  draftRange ===
+                  option.id;
 
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() =>
-                    setDraftRange(option.id)
-                  }
-                  className="w-full flex items-center text-left py-3.5"
-                  style={{
-                    borderBottom:
-                      '1px solid color-mix(in oklab, var(--border) 65%, transparent)',
-                  }}
-                >
-                  <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() =>
+                      setDraftRange(
+                        option.id,
+                      )
+                    }
+                    className="w-full flex items-center text-left py-3.5"
                     style={{
-                      background: active
-                        ? 'var(--liquid-chip-on-bg)'
-                        : 'var(--muted)',
+                      borderBottom:
+                        '1px solid color-mix(in oklab, var(--border) 65%, transparent)',
                     }}
                   >
-                    <CalendarDays
-                      size={16}
-                      style={{
-                        color: active
-                          ? 'var(--liquid-chip-on-text)'
-                          : 'var(--muted-foreground)',
-                      }}
-                    />
-                  </div>
-
-                  <div className="ml-3 flex-1 min-w-0">
                     <div
+                      className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                       style={{
-                        color:
-                          'var(--foreground)',
-                        fontSize: 13,
-                        fontWeight: active
-                          ? 750
-                          : 650,
+                        background:
+                          active
+                            ? 'var(--liquid-chip-on-bg)'
+                            : 'var(--muted)',
                       }}
                     >
-                      {option.label}
+                      <CalendarDays
+                        size={16}
+                        style={{
+                          color:
+                            active
+                              ? 'var(--liquid-chip-on-text)'
+                              : 'var(--muted-foreground)',
+                        }}
+                      />
                     </div>
 
-                    <div
-                      className="mt-0.5"
-                      style={{
-                        color:
-                          'var(--muted-foreground)',
-                        fontSize: 10.5,
-                      }}
-                    >
-                      {option.description}
+                    <div className="ml-3 flex-1 min-w-0">
+                      <div
+                        style={{
+                          color:
+                            'var(--foreground)',
+                          fontSize: 13,
+                          fontWeight:
+                            active
+                              ? 750
+                              : 650,
+                        }}
+                      >
+                        {
+                          option.label
+                        }
+                      </div>
+
+                      <div
+                        className="mt-0.5"
+                        style={{
+                          color:
+                            'var(--muted-foreground)',
+                          fontSize: 10.5,
+                        }}
+                      >
+                        {
+                          option.description
+                        }
+                      </div>
                     </div>
-                  </div>
 
-                  {active && (
-                    <Check
-                      size={17}
-                      style={{
-                        color:
-                          'var(--primary)',
-                      }}
-                    />
-                  )}
-                </button>
-              );
-            })}
+                    {active && (
+                      <Check
+                        size={17}
+                        style={{
+                          color:
+                            'var(--primary)',
+                        }}
+                      />
+                    )}
+                  </button>
+                );
+              },
+            )}
 
-            {/* Custom */}
+            {/* Custom range */}
             <button
               type="button"
               onClick={() =>
-                setDraftRange('custom')
+                setDraftRange(
+                  'custom',
+                )
               }
               className="w-full flex items-center text-left py-3.5"
             >
@@ -557,7 +805,8 @@ function DateFilterSheet({
                 className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{
                   background:
-                    draftRange === 'custom'
+                    draftRange ===
+                    'custom'
                       ? 'var(--liquid-chip-on-bg)'
                       : 'var(--muted)',
                 }}
@@ -566,7 +815,8 @@ function DateFilterSheet({
                   size={16}
                   style={{
                     color:
-                      draftRange === 'custom'
+                      draftRange ===
+                      'custom'
                         ? 'var(--liquid-chip-on-text)'
                         : 'var(--muted-foreground)',
                   }}
@@ -580,7 +830,8 @@ function DateFilterSheet({
                       'var(--foreground)',
                     fontSize: 13,
                     fontWeight:
-                      draftRange === 'custom'
+                      draftRange ===
+                      'custom'
                         ? 750
                         : 650,
                   }}
@@ -600,7 +851,8 @@ function DateFilterSheet({
                 </div>
               </div>
 
-              {draftRange === 'custom' ? (
+              {draftRange ===
+              'custom' ? (
                 <Check
                   size={17}
                   style={{
@@ -620,9 +872,10 @@ function DateFilterSheet({
             </button>
           </div>
 
-          {/* Custom dates */}
+          {/* Custom date fields */}
           <AnimatePresence initial={false}>
-            {draftRange === 'custom' && (
+            {draftRange ===
+              'custom' && (
               <motion.div
                 initial={{
                   height: 0,
@@ -648,6 +901,7 @@ function DateFilterSheet({
                   }}
                 >
                   <div className="grid grid-cols-2 gap-3">
+                    {/* From */}
                     <label>
                       <span
                         className="block mb-1.5"
@@ -663,14 +917,18 @@ function DateFilterSheet({
 
                       <input
                         type="date"
-                        value={draftFrom}
+                        value={
+                          draftFrom
+                        }
                         max={
                           draftTo ||
                           undefined
                         }
-                        onChange={(e) =>
+                        onChange={(event) =>
                           setDraftFrom(
-                            e.target.value,
+                            event
+                              .target
+                              .value,
                           )
                         }
                         className="w-full h-10 px-3 rounded-xl outline-none"
@@ -686,6 +944,7 @@ function DateFilterSheet({
                       />
                     </label>
 
+                    {/* To */}
                     <label>
                       <span
                         className="block mb-1.5"
@@ -701,14 +960,18 @@ function DateFilterSheet({
 
                       <input
                         type="date"
-                        value={draftTo}
+                        value={
+                          draftTo
+                        }
                         min={
                           draftFrom ||
                           undefined
                         }
-                        onChange={(e) =>
+                        onChange={(event) =>
                           setDraftTo(
-                            e.target.value,
+                            event
+                              .target
+                              .value,
                           )
                         }
                         className="w-full h-10 px-3 rounded-xl outline-none"
@@ -724,6 +987,23 @@ function DateFilterSheet({
                       />
                     </label>
                   </div>
+
+                  {draftFrom &&
+                    draftTo &&
+                    draftFrom >
+                      draftTo && (
+                      <p
+                        className="mt-2"
+                        style={{
+                          color:
+                            'var(--destructive)',
+                          fontSize: 10.5,
+                        }}
+                      >
+                        The start date must be
+                        before the end date.
+                      </p>
+                    )}
                 </div>
               </motion.div>
             )}
@@ -739,8 +1019,16 @@ function DateFilterSheet({
           >
             <button
               type="button"
-              disabled={!canApplyCustom}
+              disabled={
+                !customDatesValid
+              }
               onClick={() => {
+                if (
+                  !customDatesValid
+                ) {
+                  return;
+                }
+
                 onApply(
                   draftRange,
                   draftFrom,
@@ -750,18 +1038,19 @@ function DateFilterSheet({
               className="w-full h-11 rounded-xl transition-opacity"
               style={{
                 background:
-                  canApplyCustom
+                  customDatesValid
                     ? 'var(--primary)'
                     : 'var(--muted)',
                 color:
-                  canApplyCustom
+                  customDatesValid
                     ? 'var(--primary-foreground)'
                     : 'var(--muted-foreground)',
                 fontSize: 12.5,
                 fontWeight: 750,
-                opacity: canApplyCustom
-                  ? 1
-                  : 0.6,
+                opacity:
+                  customDatesValid
+                    ? 1
+                    : 0.6,
               }}
             >
               Apply date filter
@@ -769,7 +1058,8 @@ function DateFilterSheet({
           </div>
         </motion.div>
       </motion.div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
 
@@ -793,12 +1083,18 @@ function TransactionRow({
 
   const amountPrimary =
     tx.type === 'swap'
-      ? `${formatTokenAmount(tx.amount)} ${tx.asset || ''}`
-      : `${m.sign}${formatTokenAmount(tx.amount)} ${tx.asset || ''}`;
+      ? `${formatTokenAmount(
+          tx.amount,
+        )} ${tx.asset || ''}`
+      : `${m.sign}${formatTokenAmount(
+          tx.amount,
+        )} ${tx.asset || ''}`;
 
   const amountSecondary =
     tx.type === 'swap'
-      ? `→ ${formatTokenAmount(tx.amountTo)} ${tx.assetTo || ''}`
+      ? `→ ${formatTokenAmount(
+          tx.amountTo,
+        )} ${tx.assetTo || ''}`
       : tx.valueUSD > 0
         ? format(tx.valueUSD)
         : null;
@@ -811,7 +1107,9 @@ function TransactionRow({
   return (
     <motion.button
       type="button"
-      whileTap={{ scale: 0.995 }}
+      whileTap={{
+        scale: 0.995,
+      }}
       onClick={onOpen}
       className="w-full flex items-center text-left"
       style={{
@@ -821,37 +1119,42 @@ function TransactionRow({
           : '1px solid color-mix(in oklab, var(--border) 72%, transparent)',
       }}
     >
-      {/* Neutral transaction icon */}
+      {/* Neutral icon */}
       <div
         className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
         style={{
-          background: 'var(--muted)',
+          background:
+            'var(--muted)',
           border:
             '1px solid color-mix(in oklab, var(--border) 80%, transparent)',
         }}
       >
         <Icon
           size={17}
-          style={{
-            color: 'var(--muted-foreground)',
-          }}
           strokeWidth={2.2}
+          style={{
+            color:
+              'var(--muted-foreground)',
+          }}
         />
       </div>
 
-      {/* Main */}
+      {/* Main transaction information */}
       <div className="flex-1 min-w-0 ml-3.5 pr-3">
         <div
           className="truncate"
           style={{
-            color: 'var(--foreground)',
+            color:
+              'var(--foreground)',
             fontWeight: 700,
             fontSize: 13.5,
             letterSpacing: -0.1,
           }}
         >
           {tx.type === 'swap'
-            ? `${tx.asset || '—'} → ${tx.assetTo || '—'}`
+            ? `${tx.asset || '—'} → ${
+                tx.assetTo || '—'
+              }`
             : m.label}
         </div>
 
@@ -860,7 +1163,9 @@ function TransactionRow({
             className="w-1.5 h-1.5 rounded-full flex-shrink-0"
             style={{
               background:
-                statusColor(tx.status),
+                statusColor(
+                  tx.status,
+                ),
             }}
           />
 
@@ -871,36 +1176,39 @@ function TransactionRow({
                 'var(--muted-foreground)',
               fontSize: 10.5,
               fontWeight: 550,
-              textTransform: 'capitalize',
+              textTransform:
+                'capitalize',
             }}
           >
             {tx.status}
           </span>
 
-          {tx.asset && tx.type !== 'swap' && (
-            <>
-              <span
-                style={{
-                  color: 'var(--border)',
-                  fontSize: 10,
-                }}
-              >
-                •
-              </span>
+          {tx.asset &&
+            tx.type !== 'swap' && (
+              <>
+                <span
+                  style={{
+                    color:
+                      'var(--border)',
+                    fontSize: 10,
+                  }}
+                >
+                  •
+                </span>
 
-              <span
-                className="truncate"
-                style={{
-                  color:
-                    'var(--muted-foreground)',
-                  fontSize: 10.5,
-                  fontWeight: 600,
-                }}
-              >
-                {tx.asset}
-              </span>
-            </>
-          )}
+                <span
+                  className="truncate"
+                  style={{
+                    color:
+                      'var(--muted-foreground)',
+                    fontSize: 10.5,
+                    fontWeight: 600,
+                  }}
+                >
+                  {tx.asset}
+                </span>
+              </>
+            )}
         </div>
       </div>
 
@@ -944,11 +1252,17 @@ interface Props {
   goBack: () => void;
 }
 
-export function HistoryScreen({ goBack }: Props) {
-  const { format } = useCurrency();
+export function HistoryScreen({
+  goBack,
+}: Props) {
+  const { format } =
+    useCurrency();
 
+  /*
+   * Default is now Last 30 days.
+   */
   const [range, setRange] =
-    useState<RangeFilter>('1y');
+    useState<RangeFilter>('30d');
 
   const [customFrom, setCustomFrom] =
     useState('');
@@ -959,6 +1273,10 @@ export function HistoryScreen({ goBack }: Props) {
   const [dateOpen, setDateOpen] =
     useState(false);
 
+  /* ------------------------------------------------------------------------ */
+  /* Date query                                                               */
+  /* ------------------------------------------------------------------------ */
+
   const sinceIso = useMemo(() => {
     if (range === 'all') {
       return undefined;
@@ -968,24 +1286,32 @@ export function HistoryScreen({ goBack }: Props) {
       range === 'custom' &&
       customFrom
     ) {
-      return new Date(
+      const date = new Date(
         `${customFrom}T00:00:00`,
-      ).toISOString();
-    }
-
-    const d = new Date();
-
-    if (range === '30d') {
-      d.setDate(d.getDate() - 30);
-    } else if (range === '90d') {
-      d.setDate(d.getDate() - 90);
-    } else {
-      d.setFullYear(
-        d.getFullYear() - 1,
       );
+
+      if (
+        Number.isNaN(
+          date.getTime(),
+        )
+      ) {
+        return undefined;
+      }
+
+      return date.toISOString();
     }
 
-    return d.toISOString();
+    const date = new Date();
+
+    /*
+     * Default quick filter:
+     * Last 30 days.
+     */
+    date.setDate(
+      date.getDate() - 30,
+    );
+
+    return date.toISOString();
   }, [
     range,
     customFrom,
@@ -999,72 +1325,96 @@ export function HistoryScreen({ goBack }: Props) {
     since: sinceIso,
   });
 
+  /* ------------------------------------------------------------------------ */
+  /* Filters                                                                  */
+  /* ------------------------------------------------------------------------ */
+
   const [typeFilter, setTypeFilter] =
     useState<TypeFilter>('all');
 
-  const [statusFilter, setStatusFilter] =
+  const [
+    statusFilter,
+    setStatusFilter,
+  ] =
     useState<StatusFilter>('all');
 
   const [typeOpen, setTypeOpen] =
     useState(false);
 
-  const [statusOpen, setStatusOpen] =
-    useState(false);
+  const [
+    statusOpen,
+    setStatusOpen,
+  ] = useState(false);
 
   const [search, setSearch] =
     useState('');
 
   const [receiptTx, setReceiptTx] =
-    useState<Transaction | null>(null);
+    useState<Transaction | null>(
+      null,
+    );
+
+  /* ------------------------------------------------------------------------ */
+  /* Map + filter transactions                                                */
+  /* ------------------------------------------------------------------------ */
 
   const txs = useMemo(() => {
     const mapped =
       filterHistoryForUi(
-        (apiTxs || []).map(apiTxToUi),
+        (apiTxs || []).map(
+          apiTxToUi,
+        ),
       );
 
     const query =
-      search.trim().toLowerCase();
+      search
+        .trim()
+        .toLowerCase();
 
-    return mapped.filter((tx) => {
-      if (
-        typeFilter !== 'all' &&
-        tx.type !== typeFilter
-      ) {
-        return false;
-      }
-
-      if (
-        statusFilter !== 'all' &&
-        tx.status !== statusFilter
-      ) {
-        return false;
-      }
-
-      if (query) {
-        const haystack = [
-          tx.type,
-          tx.status,
-          tx.asset,
-          tx.assetTo,
-          tx.id,
-          tx.time,
-          String(tx.amount),
-          String(tx.amountTo),
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase();
-
+    return mapped.filter(
+      (tx) => {
         if (
-          !haystack.includes(query)
+          typeFilter !== 'all' &&
+          tx.type !== typeFilter
         ) {
           return false;
         }
-      }
 
-      return true;
-    });
+        if (
+          statusFilter !== 'all' &&
+          tx.status !==
+            statusFilter
+        ) {
+          return false;
+        }
+
+        if (query) {
+          const haystack = [
+            tx.type,
+            tx.status,
+            tx.asset,
+            tx.assetTo,
+            tx.id,
+            tx.time,
+            String(tx.amount),
+            String(tx.amountTo),
+          ]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+
+          if (
+            !haystack.includes(
+              query,
+            )
+          ) {
+            return false;
+          }
+        }
+
+        return true;
+      },
+    );
   }, [
     apiTxs,
     typeFilter,
@@ -1077,42 +1427,58 @@ export function HistoryScreen({ goBack }: Props) {
     [txs],
   );
 
+  /* ------------------------------------------------------------------------ */
+  /* Labels                                                                   */
+  /* ------------------------------------------------------------------------ */
+
   const typeLabel =
     TYPE_OPTIONS.find(
-      (o) => o.id === typeFilter,
-    )?.label || 'All activity';
+      (option) =>
+        option.id ===
+        typeFilter,
+    )?.label ||
+    'All activity';
 
   const statusLabel =
     STATUS_OPTIONS.find(
-      (o) => o.id === statusFilter,
-    )?.label || 'Any status';
+      (option) =>
+        option.id ===
+        statusFilter,
+    )?.label ||
+    'Any status';
 
   const dateLabel =
     range === '30d'
       ? '30 days'
-      : range === '90d'
-        ? '90 days'
-        : range === '1y'
-          ? '1 year'
-          : range === 'all'
-            ? 'All time'
-            : customFrom && customTo
-              ? `${customFrom} – ${customTo}`
-              : 'Custom range';
+      : range === 'all'
+        ? 'All time'
+        : customFrom &&
+            customTo
+          ? `${customFrom} – ${customTo}`
+          : 'Custom range';
+
+  /* ------------------------------------------------------------------------ */
+  /* Active filters                                                           */
+  /* ------------------------------------------------------------------------ */
 
   const hasActiveFilters =
     typeFilter !== 'all' ||
     statusFilter !== 'all' ||
     search.trim().length > 0 ||
-    range !== '1y';
+    range !== '30d';
 
   const clearFilters = () => {
     setTypeFilter('all');
     setStatusFilter('all');
     setSearch('');
-    setRange('1y');
+
+    /*
+     * Reset date to the default.
+     */
+    setRange('30d');
     setCustomFrom('');
     setCustomTo('');
+
     setTypeOpen(false);
     setStatusOpen(false);
   };
@@ -1127,10 +1493,15 @@ export function HistoryScreen({ goBack }: Props) {
     >
       <PageTop />
 
-      {/* Header */}
+      {/* ------------------------------------------------------------------ */}
+      {/* Header                                                             */}
+      {/* ------------------------------------------------------------------ */}
+
       <div className="px-5 pt-1 pb-4">
         <div className="flex items-center gap-3">
-          <BackButton onClick={goBack} />
+          <BackButton
+            onClick={goBack}
+          />
 
           <div className="flex-1 min-w-0">
             <h1
@@ -1145,6 +1516,7 @@ export function HistoryScreen({ goBack }: Props) {
               Transactions
             </h1>
 
+            {/* Transaction count intentionally retained */}
             <div className="flex items-center gap-1.5 mt-0.5">
               <span
                 style={{
@@ -1153,12 +1525,14 @@ export function HistoryScreen({ goBack }: Props) {
                   fontSize: 11.5,
                 }}
               >
-                {loading && !txs.length
+                {loading &&
+                !txs.length
                   ? 'Loading activity…'
                   : isFetching
                     ? 'Updating activity…'
                     : `${txs.length} ${
-                        txs.length === 1
+                        txs.length ===
+                        1
                           ? 'transaction'
                           : 'transactions'
                       }`}
@@ -1178,7 +1552,10 @@ export function HistoryScreen({ goBack }: Props) {
         </div>
       </div>
 
-      {/* Search */}
+      {/* ------------------------------------------------------------------ */}
+      {/* Search                                                             */}
+      {/* ------------------------------------------------------------------ */}
+
       <div className="px-5 pb-3">
         <div
           className="h-11 rounded-2xl flex items-center gap-2.5 px-3.5"
@@ -1200,8 +1577,11 @@ export function HistoryScreen({ goBack }: Props) {
 
           <input
             value={search}
-            onChange={(e) =>
-              setSearch(e.target.value)
+            onChange={(event) =>
+              setSearch(
+                event.target
+                  .value,
+              )
             }
             placeholder="Search transactions"
             className="flex-1 min-w-0 bg-transparent outline-none"
@@ -1237,52 +1617,37 @@ export function HistoryScreen({ goBack }: Props) {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* ------------------------------------------------------------------ */}
+      {/* Filters                                                            */}
+      {/* ------------------------------------------------------------------ */}
+
       <div className="px-5 pb-4 relative z-30">
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-          {/* Filter icon */}
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{
-              background:
-                hasActiveFilters
-                  ? 'var(--liquid-chip-on-bg)'
-                  : 'var(--card)',
-              color:
-                hasActiveFilters
-                  ? 'var(--liquid-chip-on-text)'
-                  : 'var(--muted-foreground)',
-              border:
-                hasActiveFilters
-                  ? '1px solid var(--liquid-pill-border)'
-                  : '1px solid var(--border)',
-            }}
-          >
-            <SlidersHorizontal
-              size={15}
-            />
-          </div>
-
           {/* Type */}
           <FilterChip
             open={typeOpen}
             label={typeLabel}
             onToggle={() => {
               setTypeOpen(
-                (o) => !o,
+                (open) =>
+                  !open,
               );
-              setStatusOpen(false);
+
+              setStatusOpen(
+                false,
+              );
             }}
           >
             {TYPE_OPTIONS.map(
-              (o) => (
+              (option) => (
                 <button
-                  key={o.id}
+                  key={option.id}
                   type="button"
                   onClick={() => {
                     setTypeFilter(
-                      o.id,
+                      option.id,
                     );
+
                     setTypeOpen(
                       false,
                     );
@@ -1291,7 +1656,7 @@ export function HistoryScreen({ goBack }: Props) {
                   style={{
                     background:
                       typeFilter ===
-                      o.id
+                      option.id
                         ? 'color-mix(in oklab, var(--primary) 11%, transparent)'
                         : 'transparent',
                     color:
@@ -1299,15 +1664,15 @@ export function HistoryScreen({ goBack }: Props) {
                     fontSize: 12.5,
                     fontWeight:
                       typeFilter ===
-                      o.id
+                      option.id
                         ? 700
                         : 500,
                   }}
                 >
-                  {o.label}
+                  {option.label}
 
                   {typeFilter ===
-                    o.id && (
+                    option.id && (
                     <Check
                       size={14}
                       style={{
@@ -1327,20 +1692,23 @@ export function HistoryScreen({ goBack }: Props) {
             label={statusLabel}
             onToggle={() => {
               setStatusOpen(
-                (o) => !o,
+                (open) =>
+                  !open,
               );
+
               setTypeOpen(false);
             }}
           >
             {STATUS_OPTIONS.map(
-              (o) => (
+              (option) => (
                 <button
-                  key={o.id}
+                  key={option.id}
                   type="button"
                   onClick={() => {
                     setStatusFilter(
-                      o.id,
+                      option.id,
                     );
+
                     setStatusOpen(
                       false,
                     );
@@ -1349,7 +1717,7 @@ export function HistoryScreen({ goBack }: Props) {
                   style={{
                     background:
                       statusFilter ===
-                      o.id
+                      option.id
                         ? 'color-mix(in oklab, var(--primary) 11%, transparent)'
                         : 'transparent',
                     color:
@@ -1357,15 +1725,15 @@ export function HistoryScreen({ goBack }: Props) {
                     fontSize: 12.5,
                     fontWeight:
                       statusFilter ===
-                      o.id
+                      option.id
                         ? 700
                         : 500,
                   }}
                 >
-                  {o.label}
+                  {option.label}
 
                   {statusFilter ===
-                    o.id && (
+                    option.id && (
                     <Check
                       size={14}
                       style={{
@@ -1388,15 +1756,15 @@ export function HistoryScreen({ goBack }: Props) {
             className="h-9 px-3 rounded-xl flex items-center gap-1.5 flex-shrink-0"
             style={{
               background:
-                range !== '1y'
+                range !== '30d'
                   ? 'var(--liquid-chip-on-bg)'
                   : 'var(--card)',
               color:
-                range !== '1y'
+                range !== '30d'
                   ? 'var(--liquid-chip-on-text)'
                   : 'var(--foreground)',
               border:
-                range !== '1y'
+                range !== '30d'
                   ? '1px solid var(--liquid-pill-border)'
                   : '1px solid var(--border)',
               fontSize: 12,
@@ -1410,7 +1778,7 @@ export function HistoryScreen({ goBack }: Props) {
               }}
             />
 
-            <span className="max-w-[105px] truncate">
+            <span className="max-w-[120px] truncate">
               {dateLabel}
             </span>
 
@@ -1426,7 +1794,9 @@ export function HistoryScreen({ goBack }: Props) {
           {hasActiveFilters && (
             <button
               type="button"
-              onClick={clearFilters}
+              onClick={
+                clearFilters
+              }
               className="h-9 px-3 rounded-xl flex items-center gap-1.5 flex-shrink-0"
               style={{
                 color:
@@ -1444,23 +1814,28 @@ export function HistoryScreen({ goBack }: Props) {
         </div>
       </div>
 
-      {/* Transaction list */}
+      {/* ------------------------------------------------------------------ */}
+      {/* Transaction list                                                   */}
+      {/* ------------------------------------------------------------------ */}
+
       <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-10">
         {/* Loading */}
-        {loading && !txs.length && (
-          <div
-            className="overflow-hidden rounded-2xl"
-            style={{
-              background:
-                'var(--card)',
-              border:
-                '1px solid var(--border)',
-            }}
-          >
-            {[1, 2, 3, 4, 5, 6].map(
-              (i) => (
+        {loading &&
+          !txs.length && (
+            <div
+              className="overflow-hidden rounded-2xl"
+              style={{
+                background:
+                  'var(--card)',
+                border:
+                  '1px solid var(--border)',
+              }}
+            >
+              {[
+                1, 2, 3, 4, 5, 6,
+              ].map((item) => (
                 <div
-                  key={i}
+                  key={item}
                   className="h-[76px] mx-3 border-b last:border-b-0 animate-pulse"
                   style={{
                     borderColor:
@@ -1503,10 +1878,9 @@ export function HistoryScreen({ goBack }: Props) {
                     />
                   </div>
                 </div>
-              ),
-            )}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
 
         {/* Empty */}
         {!loading &&
@@ -1596,7 +1970,7 @@ export function HistoryScreen({ goBack }: Props) {
             </div>
           )}
 
-        {/* Groups */}
+        {/* Transaction groups */}
         {!loading &&
           groups.map(
             (group) => (
@@ -1604,7 +1978,7 @@ export function HistoryScreen({ goBack }: Props) {
                 key={group.label}
                 className="mb-6"
               >
-                {/* Date heading */}
+                {/* Date header + transaction count */}
                 <div className="flex items-center justify-between px-1 mb-2">
                   <div className="flex items-center gap-2">
                     <CalendarDays
@@ -1628,6 +2002,7 @@ export function HistoryScreen({ goBack }: Props) {
                     </span>
                   </div>
 
+                  {/* Count intentionally retained */}
                   <span
                     style={{
                       color:
@@ -1636,10 +2011,7 @@ export function HistoryScreen({ goBack }: Props) {
                       fontWeight: 550,
                     }}
                   >
-                    {
-                      group.items
-                        .length
-                    }{' '}
+                    {group.items.length}{' '}
                     {group.items
                       .length === 1
                       ? 'transaction'
@@ -1660,20 +2032,17 @@ export function HistoryScreen({ goBack }: Props) {
                   {group.items.map(
                     (
                       tx,
-                      i,
+                      index,
                     ) => (
                       <TransactionRow
-                        key={
-                          tx.id
-                        }
+                        key={tx.id}
                         tx={tx}
                         format={
                           format
                         }
                         isLast={
-                          i ===
-                          group
-                            .items
+                          index ===
+                          group.items
                             .length -
                             1
                         }
@@ -1691,11 +2060,16 @@ export function HistoryScreen({ goBack }: Props) {
           )}
       </div>
 
-      {/* Date filter */}
+      {/* ------------------------------------------------------------------ */}
+      {/* Date filter                                                         */}
+      {/* ------------------------------------------------------------------ */}
+
       <DateFilterSheet
         open={dateOpen}
         range={range}
-        customFrom={customFrom}
+        customFrom={
+          customFrom
+        }
         customTo={customTo}
         onClose={() =>
           setDateOpen(false)
@@ -1705,14 +2079,19 @@ export function HistoryScreen({ goBack }: Props) {
           from,
           to,
         ) => {
-          setRange(nextRange);
+          setRange(
+            nextRange,
+          );
           setCustomFrom(from);
           setCustomTo(to);
           setDateOpen(false);
         }}
       />
 
-      {/* Receipt */}
+      {/* ------------------------------------------------------------------ */}
+      {/* Receipt                                                             */}
+      {/* ------------------------------------------------------------------ */}
+
       <TransactionReceipt
         tx={receiptTx}
         open={!!receiptTx}
