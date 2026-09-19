@@ -126,7 +126,15 @@ export function fiatQuote(params: Record<string, string>) {
 /** PaymentIntent card domain — no PAN/CVV. */
 export type PaymentCustomerAction =
   | { type: 'REDIRECT'; url: string }
-  | { type: 'HOSTED_FIELDS'; publicKey: string; provider: string; clientReference: string }
+  | {
+      type: 'HOSTED_FIELDS';
+      publicKey: string;
+      provider: string;
+      clientReference: string;
+      contractCode?: string;
+      amount?: string;
+      currency?: string;
+    }
   | { type: 'OTP'; challengeId: string }
   | { type: 'THREE_DS'; providerSessionId: string; clientActionToken?: string };
 

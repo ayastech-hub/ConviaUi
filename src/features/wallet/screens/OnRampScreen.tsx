@@ -24,6 +24,7 @@ import { localFiatForCountry } from '../../../shared/lib/countryFiat';
 import { useMyProfile } from '../../../shared/hooks/useMyProfile';
 import { getRate } from '../../../shared/rates/fx';
 import { fetchTransactions } from '../../../shared/api/transactions';
+import { openInlineCardCheckout } from '../../../shared/payments/inlineCheckout';
 
 interface OnRampScreenProps {
   goBack: () => void;
@@ -162,7 +163,7 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
     setApiError(null);
     try {
       if (paymentMethod === 'card') {
-        // PaymentIntent domain — no PAN; provider-hosted action
+        // PaymentIntent — no PAN on Convia; Flutterwave/Monnify open overlay on this page
         const payment = await createCardPayment({
           amount: fiatAmount,
           currency: fiatCurrency,
@@ -171,7 +172,27 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
         });
         setCardPaymentId(payment.id);
         const action = payment.customerAction;
-        if (action?.type === 'REDIRECT' && action.url) {
+        if (action?.type === 'HOSTED_FIELDS') {
+          const inline = await openInlineCardCheckout({
+            action,
+            amount: action.amount || payment.amount || fiatAmount,
+            currency: action.currency || payment.currency || fiatCurrency,
+            email: authEmail || `${userId}@users.convia.app`,
+            customerName: 'Convia User',
+            description: `Buy ${selectedAsset.symbol}`,
+          });
+          if (inline.status === 'error') {
+            setApiError({ message: inline.message });
+            setStep('form');
+            return;
+          }
+          if (inline.status === 'closed') {
+            setApiError({ message: 'Payment window closed. You can try again.' });
+            setStep('form');
+            return;
+          }
+        } else if (action?.type === 'REDIRECT' && action.url) {
+          // Fallback only when public keys not configured on provider
           window.open(action.url, '_blank', 'noopener,noreferrer');
         }
         setStep('processing');
