@@ -40,6 +40,7 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
   const { currency } = useCurrency();
   const [activeService, setActiveService] = useState<string | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+  const [providerImage, setProviderImage] = useState<string | null>(null);
   const [selectedBillerCode, setSelectedBillerCode] = useState<string | null>(null);
   const [productCode, setProductCode] = useState<string | null>(null);
   const [meterType, setMeterType] = useState<'prepaid' | 'postpaid'>('prepaid');
@@ -256,6 +257,7 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
     setStep('hub');
     setActiveService(null);
     setSelectedProvider(null);
+    setProviderImage(null);
     setSelectedBillerCode(null);
     setProductCode(null);
     setMinLocalAmount(null);
@@ -329,6 +331,7 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
                     onSelect={(name, code, meta) => {
                       setSelectedBillerCode(code);
                       setSelectedProvider(name);
+                      setProviderImage(meta?.image || getCachedLogo(code) || null);
                       const m = meta?.minAmount != null ? Number(meta.minAmount) : NaN;
                       setMinLocalAmount(Number.isFinite(m) && m > 0 ? m : null);
                     }}
@@ -349,6 +352,8 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
                       setCustomAmount={setCustomAmount}
                       amountCurrency={localCurrency}
                       provider={selectedProvider}
+                      providerImage={providerImage}
+                      minLocalAmount={minLocalAmount}
                       liveVariations={liveVariations}
                       productCode={productCode}
                       onProductCode={setProductCode}

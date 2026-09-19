@@ -1,12 +1,11 @@
+import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Phone, Zap, User } from 'lucide-react';
+import { ChevronDown, Phone, UserRound } from 'lucide-react';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
-import {
-  localAirtimeAmounts,
-  localDataBundles,
-  localQuickAmounts,
-} from '../../../shared/rates/fx';
-import { PlanPicker } from './PlanPicker';
+import { localAirtimeAmounts, localQuickAmounts } from '../../../shared/rates/fx';
+import { ProviderIcon } from '../../../shared/icons/ProviderIcon';
+import { EnterprisePlanGrid } from './EnterprisePlanGrid';
+import { ContactsSheet } from './ContactsSheet';
 
 interface ServiceAmountInputProps {
   serviceId: string;
@@ -19,23 +18,29 @@ interface ServiceAmountInputProps {
   customAmount: string;
   setCustomAmount: (v: string) => void;
   provider?: string | null;
+  providerImage?: string | null;
   onChangeProvider?: () => void;
-  /** Override currency code (e.g. biller market). Defaults to app currency. */
   amountCurrency?: string;
-  /** Live VTPass plans for data/cable */
   liveVariations?: Array<{ code: string; name: string; amount?: string }>;
   productCode?: string | null;
   onProductCode?: (code: string | null) => void;
-  /** Electricity meter type */
   meterType?: 'prepaid' | 'postpaid';
   onMeterType?: (t: 'prepaid' | 'postpaid') => void;
   contactPhone?: string;
   setContactPhone?: (v: string) => void;
   loadingVariations?: boolean;
+  minLocalAmount?: number | null;
+}
+
+function formatPhoneDisplay(digits: string) {
+  const d = digits.replace(/\D/g, '').slice(0, 11);
+  const parts = [d.slice(0, 4), d.slice(4, 7), d.slice(7, 11)].filter(Boolean);
+  return parts.join(' ');
 }
 
 /**
- * Bill form — amounts in local currency (not USD-only).
+ * Enterprise bill form — structure aligned with top NG fintech UIs.
+ * Separate screens per service (no data/airtime tab switch). Live provider plans.
  */
 export function ServiceAmountInput({
   serviceId,
@@ -48,6 +53,7 @@ export function ServiceAmountInput({
   customAmount,
   setCustomAmount,
   provider,
+  providerImage,
   onChangeProvider,
   amountCurrency,
   liveVariations,
@@ -58,9 +64,10 @@ export function ServiceAmountInput({
   contactPhone,
   setContactPhone,
   loadingVariations,
+  minLocalAmount,
 }: ServiceAmountInputProps) {
   const { currency } = useCurrency();
-  const code = (amountCurrency || currency.code || 'USD').toUpperCase();
+  const code = (amountCurrency || currency.code || 'NGN').toUpperCase();
   const symbol =
     code === currency.code
       ? currency.symbol
@@ -72,178 +79,155 @@ export function ServiceAmountInput({
             ? 'KSh'
             : code;
 
+  const [contactsOpen, setContactsOpen] = useState(false);
   const needsPhone = serviceId === 'data' || serviceId === 'airtime';
   const needsMeter = serviceId === 'electricity';
   const needsAccount = serviceId === 'bills' || serviceId === 'betting';
+  const needsPlans = serviceId === 'data' || serviceId === 'bills';
 
   const airtimeAmts = localAirtimeAmounts(code);
-  const dataBundles = localDataBundles(code);
-  const quickAmts = localQuickAmounts(code);
+  const powerAmts = localQuickAmounts(code).filter((n) => !minLocalAmount || n >= minLocalAmount);
 
   const fmtChip = (n: number) => {
     if (n >= 1000) return `${symbol}${(n / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })}k`;
     return `${symbol}${n.toLocaleString()}`;
   };
 
+  const applyPhone = (raw: string) => {
+    const next = raw.replace(/\D/g, '').slice(0, 11);
+    setPhoneNumber(next);
+  };
+
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
+      {/* Provider header card */}
       {provider && (
-        <div
-          className="flex items-center justify-between px-4 py-3 rounded-2xl"
+        <button
+          type="button"
+          onClick={onChangeProvider}
+          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-[20px] text-left"
           style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
         >
-          <div>
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>Provider</p>
-            <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 15 }}>{provider}</p>
+          <ProviderIcon name={provider} logo={providerImage || undefined} size={44} rounded="full" />
+          <div className="flex-1 min-w-0">
+            <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 16 }}>{provider}</p>
+            <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>Tap to change provider</p>
           </div>
-          {onChangeProvider && (
+          <ChevronDown size={18} style={{ color: 'var(--muted-foreground)' }} />
+        </button>
+      )}
+
+      {/* Electricity meter type */}
+      {needsMeter && (
+        <div
+          className="grid grid-cols-2 gap-1.5 p-1 rounded-2xl"
+          style={{ background: 'var(--muted)' }}
+        >
+          {(['prepaid', 'postpaid'] as const).map((mt) => (
+            <button
+              key={mt}
+              type="button"
+              onClick={() => onMeterType?.(mt)}
+              className="py-2.5 rounded-[14px] capitalize text-[14px] font-semibold"
+              style={{
+                background: meterType === mt ? 'var(--primary)' : 'transparent',
+                color: meterType === mt ? 'var(--primary-foreground, #fff)' : 'var(--muted-foreground)',
+                border: 'none',
+              }}
+            >
+              {mt}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Phone / meter / smartcard field */}
+      <div
+        className="rounded-[22px] px-4 pt-3.5 pb-3"
+        style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+      >
+        <div className="flex items-center justify-between mb-2">
+          <span style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }}>
+            {needsPhone ? 'Mobile number' : needsMeter ? 'Meter / account number' : needsAccount ? 'Smartcard / account' : 'Reference'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          {needsPhone && (
+            <Phone size={18} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
+          )}
+          <input
+            type={needsPhone ? 'tel' : 'text'}
+            inputMode={needsPhone || needsMeter ? 'numeric' : 'text'}
+            value={
+              needsPhone
+                ? formatPhoneDisplay(phoneNumber)
+                : needsMeter || needsAccount
+                  ? meterNumber
+                  : phoneNumber
+            }
+            onChange={(e) => {
+              if (needsPhone) applyPhone(e.target.value);
+              else if (needsMeter || needsAccount) setMeterNumber(e.target.value.replace(/\s/g, '').slice(0, 20));
+              else setPhoneNumber(e.target.value);
+            }}
+            placeholder={
+              needsPhone
+                ? '0801 234 5678'
+                : needsMeter
+                  ? 'Enter meter number'
+                  : 'Enter smartcard / ID'
+            }
+            className="flex-1 bg-transparent outline-none min-w-0"
+            style={{
+              color: 'var(--foreground)',
+              fontSize: 20,
+              fontWeight: 700,
+              letterSpacing: '0.02em',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          />
+          {(needsPhone || needsMeter) && (
             <button
               type="button"
-              onClick={onChangeProvider}
-              style={{ color: 'var(--primary)', fontSize: 13, fontWeight: 600 }}
+              onClick={() => setContactsOpen(true)}
+              className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: 'var(--muted)', color: 'var(--primary)' }}
+              aria-label="Choose from contacts"
             >
-              Change
+              <UserRound size={18} />
             </button>
           )}
         </div>
-      )}
+        {minLocalAmount != null && needsMeter && (
+          <p className="mt-2" style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
+            Minimum {symbol}
+            {minLocalAmount.toLocaleString()}
+          </p>
+        )}
+      </div>
 
-      {needsPhone && (
-        <div>
-          <label style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13, marginBottom: 8, display: 'block' }}>
-            Phone number
-          </label>
-          <div
-            className="flex items-center gap-3 px-4 h-14 rounded-2xl"
-            style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-          >
-            <Phone size={18} style={{ color: 'var(--muted-foreground)' }} />
-            <input
-              type="tel"
-              inputMode="tel"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value.replace(/[^\d+]/g, '').slice(0, 15))}
-              placeholder="0801 234 5678"
-              className="flex-1 bg-transparent outline-none"
-              style={{ color: 'var(--foreground)', fontSize: 16, fontWeight: 500 }}
-            />
-          </div>
+      {/* Contact phone for electricity / cable */}
+      {(needsMeter || serviceId === 'bills') && setContactPhone && (
+        <div
+          className="rounded-[20px] px-4 py-3 flex items-center gap-3"
+          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+        >
+          <Phone size={16} style={{ color: 'var(--muted-foreground)' }} />
+          <input
+            type="tel"
+            inputMode="numeric"
+            value={formatPhoneDisplay(contactPhone || '')}
+            onChange={(e) => setContactPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
+            placeholder="Contact phone"
+            className="flex-1 bg-transparent outline-none"
+            style={{ color: 'var(--foreground)', fontSize: 15, fontWeight: 600 }}
+          />
         </div>
       )}
 
-      {needsMeter && (
-        <div>
-          <label style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13, marginBottom: 8, display: 'block' }}>
-            Meter number
-          </label>
-          <div
-            className="flex items-center gap-3 px-4 h-14 rounded-2xl"
-            style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-          >
-            <Zap size={18} style={{ color: 'var(--muted-foreground)' }} />
-            <input
-              type="text"
-              inputMode="numeric"
-              value={meterNumber}
-              onChange={(e) => setMeterNumber(e.target.value.slice(0, 20))}
-              placeholder="Enter meter number"
-              className="flex-1 bg-transparent outline-none"
-              style={{ color: 'var(--foreground)', fontSize: 16, fontWeight: 500 }}
-            />
-          </div>
-          <div className="flex gap-2 mt-3">
-            {(['prepaid', 'postpaid'] as const).map((mt) => (
-              <button
-                key={mt}
-                type="button"
-                onClick={() => onMeterType?.(mt)}
-                className="flex-1 py-3 rounded-2xl capitalize"
-                style={{
-                  background: meterType === mt ? 'var(--muted)' : 'var(--card)',
-                  border: meterType === mt ? '1.5px solid var(--primary)' : '1px solid var(--border)',
-                  color: 'var(--foreground)',
-                  fontWeight: 600,
-                  fontSize: 13,
-                }}
-              >
-                {mt}
-              </button>
-            ))}
-          </div>
-          <div className="mt-3">
-            <label style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13, marginBottom: 8, display: 'block' }}>
-              Contact phone
-            </label>
-            <div
-              className="flex items-center gap-3 px-4 h-14 rounded-2xl"
-              style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-            >
-              <Phone size={18} style={{ color: 'var(--muted-foreground)' }} />
-              <input
-                type="tel"
-                inputMode="tel"
-                value={contactPhone || ''}
-                onChange={(e) => setContactPhone?.(e.target.value.replace(/[^\d+]/g, '').slice(0, 15))}
-                placeholder="0801 234 5678"
-                className="flex-1 bg-transparent outline-none"
-                style={{ color: 'var(--foreground)', fontSize: 16, fontWeight: 500 }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {needsAccount && (
-        <div>
-          <label style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13, marginBottom: 8, display: 'block' }}>
-            {serviceId === 'betting' ? 'User ID' : 'Smartcard / account'}
-          </label>
-          <div
-            className="flex items-center gap-3 px-4 h-14 rounded-2xl"
-            style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-          >
-            <User size={18} style={{ color: 'var(--muted-foreground)' }} />
-            <input
-              type="text"
-              value={meterNumber}
-              onChange={(e) => setMeterNumber(e.target.value.slice(0, 20))}
-              placeholder={serviceId === 'betting' ? 'Enter user ID' : 'Enter smartcard number'}
-              className="flex-1 bg-transparent outline-none"
-              style={{ color: 'var(--foreground)', fontSize: 16, fontWeight: 500 }}
-            />
-          </div>
-          {serviceId === 'bills' && setContactPhone && (
-            <div className="mt-3">
-              <label style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13, marginBottom: 8, display: 'block' }}>
-                Contact phone
-              </label>
-              <div
-                className="flex items-center gap-3 px-4 h-14 rounded-2xl"
-                style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-              >
-                <Phone size={18} style={{ color: 'var(--muted-foreground)' }} />
-                <input
-                  type="tel"
-                  value={contactPhone || ''}
-                  onChange={(e) => setContactPhone(e.target.value.replace(/[^\d+]/g, '').slice(0, 15))}
-                  placeholder="0801 234 5678"
-                  className="flex-1 bg-transparent outline-none"
-                  style={{ color: 'var(--foreground)', fontSize: 16, fontWeight: 500 }}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {(serviceId === 'data' || serviceId === 'bills') && (
-        <PlanPicker
-          title={serviceId === 'bills' ? 'TV packages' : 'Data plans'}
-          subtitle={
-            serviceId === 'bills'
-              ? 'Official bouquets from your provider'
-              : 'Live plans · amounts in local currency'
-          }
+      {/* Data / TV plans — enterprise grid */}
+      {needsPlans && (
+        <EnterprisePlanGrid
           plans={liveVariations || []}
           selectedCode={productCode}
           currency={code}
@@ -259,109 +243,74 @@ export function ServiceAmountInput({
         />
       )}
 
-      {serviceId === 'airtime' && (
+      {/* Airtime / electricity amount chips */}
+      {(serviceId === 'airtime' || needsMeter) && (
         <div>
-          <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13, marginBottom: 10 }}>
-            Amount · {code}
+          <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14, marginBottom: 12 }}>
+            Select amount
           </p>
-          <div className="grid grid-cols-3 gap-2.5">
-            {airtimeAmts.map((amt) => {
+          <div className="grid grid-cols-3 gap-2">
+            {(serviceId === 'airtime' ? airtimeAmts : powerAmts).map((amt) => {
               const active = selectedAmount === amt;
               return (
                 <motion.button
                   key={amt}
                   type="button"
-                  whileTap={{ scale: 0.96 }}
+                  whileTap={{ scale: 0.97 }}
                   onClick={() => {
                     setSelectedAmount(amt);
                     setCustomAmount('');
                   }}
-                  className="py-3.5 rounded-2xl text-center tabular-nums"
+                  className="py-4 rounded-[16px] text-center"
                   style={{
-                    background: active ? 'var(--muted)' : 'var(--card)',
-                    border: active ? '1.5px solid var(--primary)' : '1px solid var(--border)',
-                    color: 'var(--foreground)',
-                    fontWeight: 700,
-                    fontSize: 14,
+                    background: 'var(--card)',
+                    border: active ? '1.5px solid var(--primary)' : '1.5px solid var(--border)',
                   }}
                 >
-                  {fmtChip(amt)}
+                  <span
+                    className="block tabular-nums"
+                    style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 16 }}
+                  >
+                    {fmtChip(amt)}
+                  </span>
+                  {needsMeter && (
+                    <span style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 600 }}>
+                      Pay {fmtChip(amt)}
+                    </span>
+                  )}
                 </motion.button>
               );
             })}
           </div>
+
           <div
-            className="mt-3 flex items-center gap-2 px-4 h-14 rounded-2xl"
-            style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+            className="mt-3 flex items-center gap-2 h-14 px-4 rounded-2xl"
+            style={{ background: 'var(--card)', border: '1.5px solid var(--border)' }}
           >
-            <span style={{ color: 'var(--muted-foreground)', fontWeight: 600 }}>{symbol}</span>
+            <span style={{ color: 'var(--muted-foreground)', fontWeight: 700, fontSize: 18 }}>{symbol}</span>
             <input
-              type="text"
               inputMode="decimal"
+              placeholder="Enter amount"
               value={customAmount}
               onChange={(e) => {
-                setCustomAmount(e.target.value.replace(/[^0-9.]/g, ''));
+                setCustomAmount(e.target.value.replace(/[^\d.]/g, ''));
                 setSelectedAmount(null);
               }}
-              placeholder="Other amount"
-              className="flex-1 bg-transparent outline-none tabular-nums"
-              style={{ color: 'var(--foreground)', fontSize: 16, fontWeight: 600 }}
+              className="flex-1 bg-transparent outline-none"
+              style={{ color: 'var(--foreground)', fontSize: 17, fontWeight: 700 }}
             />
           </div>
         </div>
       )}
 
-      {(serviceId === 'electricity' || serviceId === 'bills' || serviceId === 'betting') && (
-        <div>
-          <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13, marginBottom: 10 }}>
-            Amount · {code}
-          </p>
-          <div className="grid grid-cols-3 gap-2.5 mb-3">
-            {quickAmts.map((amt) => {
-              const active = selectedAmount === amt;
-              return (
-                <motion.button
-                  key={amt}
-                  type="button"
-                  whileTap={{ scale: 0.96 }}
-                  onClick={() => {
-                    setSelectedAmount(amt);
-                    setCustomAmount('');
-                  }}
-                  className="py-3.5 rounded-2xl text-center tabular-nums"
-                  style={{
-                    background: active ? 'var(--muted)' : 'var(--card)',
-                    border: active ? '1.5px solid var(--primary)' : '1px solid var(--border)',
-                    color: 'var(--foreground)',
-                    fontWeight: 700,
-                    fontSize: 14,
-                  }}
-                >
-                  {fmtChip(amt)}
-                </motion.button>
-              );
-            })}
-          </div>
-          <div
-            className="flex items-center gap-2 px-4 h-14 rounded-2xl"
-            style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-          >
-            <span style={{ color: 'var(--muted-foreground)', fontWeight: 600 }}>{symbol}</span>
-            <input
-              type="text"
-              inputMode="decimal"
-              value={customAmount}
-              onChange={(e) => {
-                setCustomAmount(e.target.value.replace(/[^0-9.]/g, ''));
-                setSelectedAmount(null);
-              }}
-              placeholder="Enter amount"
-              className="flex-1 bg-transparent outline-none tabular-nums"
-              style={{ color: 'var(--foreground)', fontSize: 18, fontWeight: 600 }}
-            />
-          </div>
-        </div>
-      )}
+      <ContactsSheet
+        open={contactsOpen}
+        onClose={() => setContactsOpen(false)}
+        onPick={(phone) => {
+          if (needsPhone) setPhoneNumber(phone);
+          else if (needsMeter) setMeterNumber(phone);
+        }}
+      />
     </div>
   );
 }
