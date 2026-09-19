@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Loader } from 'lucide-react';
-import type { Screen, Transaction } from '../../../shared/data/mockData';
-import { TransactionReceipt } from '../../../shared/components/TransactionReceipt';
+import { ArrowLeft, Loader, Lock } from 'lucide-react';
+import type { Screen } from '../../../shared/data/mockData';
 import { SERVICE_GROUPS, isBillService, type ServiceItem } from '../components/serviceData';
 import { ServiceHub } from '../components/ServiceHub';
 import { ProviderSelector } from '../components/ProviderSelector';
@@ -12,13 +11,14 @@ import { ServicePaymentSuccess, type ServiceSuccessInfo } from '../components/Se
 import { useAuth } from '../../../shared/context/AuthContext';
 import { useSupportedCountries } from '../../../shared/hooks/useSupportedCountries';
 import * as billsApi from '../../../shared/api/bills';
+import type { Biller } from '../../../shared/api/bills';
 import { ApiError } from '../../../shared/api/types';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { useLanguage } from '../../../shared/context/LanguageContext';
 import { PageTop } from '../../../shared/components/PageTop';
-import { LocalPaymentSheet } from '../../../shared/components/LocalPaymentSheet';
+import { PinBoxes } from '../../../shared/components/PinBoxes';
 
 interface ServicesScreenProps {
   navigate: (s: Screen) => void;
@@ -26,7 +26,6 @@ interface ServicesScreenProps {
   switchTab: (s: Screen) => void;
 }
 
-/** Map UI service ids → backend CATEGORY (airtime|data|electricity|cable|betting). */
 function toCategory(serviceId: string): string {
   if (serviceId === 'bills') return 'cable';
   return serviceId;
@@ -34,7 +33,7 @@ function toCategory(serviceId: string): string {
 
 export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
   const { t } = useLanguage();
-  const { userId, status } = useAuth();
+  const { userId } = useAuth();
   const { currency } = useCurrency();
   const [activeService, setActiveService] = useState<string | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
@@ -43,22 +42,26 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
   const [customAmount, setCustomAmount] = useState('');
   const [meterNumber, setMeterNumber] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [step, setStep] = useState<'hub' | 'detail' | 'success'>('hub');
+  const [step, setStep] = useState<'hub' | 'detail' | 'confirm' | 'success'>('hub');
   const [successInfo, setSuccessInfo] = useState<ServiceSuccessInfo | null>(null);
-  const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);
   const [billers, setBillers] = useState<Biller[]>([]);
   const [billerCurrency, setBillerCurrency] = useState('NGN');
   const [loadingBillers, setLoadingBillers] = useState(false);
   const [paying, setPaying] = useState(false);
-  const [showPaySheet, setShowPaySheet] = useState(false);
+  const [pin, setPin] = useState<string[]>(['', '', '', '']);
+  const [pinError, setPinError] = useState('');
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
   const { countries: marketCountries } = useSupportedCountries();
   const [country, setCountry] = useState('');
+
   useEffect(() => {
     if (marketCountries.length && !country) setCountry(marketCountries[0].code);
   }, [marketCountries, country]);
 
   const activeItem = SERVICE_GROUPS.flatMap((g) => g.items).find((i) => i.id === activeService);
+  const localCurrency = (billerCurrency || currency.code || 'NGN').toUpperCase();
+  const localAmountNum = selectedAmount ?? parseFloat(customAmount) || 0;
+  const localAmountStr = String(localAmountNum);
 
   const handleServiceClick = (item: ServiceItem) => {
     if (isBillService(item.id)) {
@@ -70,6 +73,8 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
       setMeterNumber('');
       setPhoneNumber('');
       setApiError(null);
+      setPin(['', '', '', '']);
+      setPinError('');
       setStep('detail');
     } else {
       navigate(item.id as Screen);
@@ -83,7 +88,7 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
     setLoadingBillers(true);
     setBillers([]);
     billsApi
-      .listBillers(country, category)
+      .listBillers(country || 'NG', category)
       .then((res) => {
         if (cancelled) return;
         setBillers(res.billers || []);
@@ -107,46 +112,79 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
     return phoneNumber.trim();
   }, [activeService, meterNumber, phoneNumber]);
 
-  const handlePay = () => {
-    const amount = selectedAmount ?? parseFloat(customAmount);
-    if (!amount || !selectedProvider) return;
+  const canPay = () =>
+    !!(localAmountNum > 0 && selectedProvider && selectedBillerCode && customerRef && !paying);
+
+  const goConfirm = () => {
+    if (!canPay()) return;
     if (!userId) {
       setApiError({ message: 'Sign in required' });
       return;
     }
-    if (!selectedBillerCode) {
-      setApiError({ message: 'Select a biller from the live list' });
-      return;
-    }
-    if (!customerRef) {
-      setApiError({ message: 'Enter phone / meter / account reference' });
-      return;
-    }
     setApiError(null);
-    setShowPaySheet(true);
+    setPin(['', '', '', '']);
+    setPinError('');
+    setStep('confirm');
   };
 
-  const onLocalPaid = (info: { paymentId?: string; legs: { asset: string; cryptoAmount: string }[] }) => {
-    const amount = selectedAmount ?? parseFloat(customAmount);
-    const asset = info.legs[0]?.asset || 'USDT';
-    setShowPaySheet(false);
-    setSuccessInfo({ label: activeItem?.label ?? '', amount: amount || 0, provider: selectedProvider || '' });
-    setReceiptTx({
-      id: info.paymentId || 'svc_' + Date.now(),
-      type: 'send',
-      asset,
-      amount: amount || 0,
-      valueUSD: amount || 0,
-      status: 'confirmed',
-      time: 'Just now',
-      username: selectedProvider || '',
-    });
-    setStep('success');
-  };
+  const submitPay = async () => {
+    const pinStr = pin.join('');
+    if (pinStr.length < 4) {
+      setPinError('Enter your 4-digit PIN');
+      return;
+    }
+    if (!userId || !selectedBillerCode || !activeService) return;
 
-  const canPay = () => {
-    const amount = selectedAmount ?? parseFloat(customAmount);
-    return !!(amount > 0 && selectedProvider && selectedBillerCode && customerRef && !paying);
+    setPaying(true);
+    setPinError('');
+    setApiError(null);
+    try {
+      // Backend recomputes crypto debit from localAmount via token→USDT→FX
+      const res = await billsApi.payBill({
+        userId,
+        pin: pinStr,
+        country: country || 'NG',
+        category: toCategory(activeService),
+        billerCode: selectedBillerCode,
+        customerRef,
+        amount: '0', // server overwrites from local
+        asset: 'USDT',
+        localAmount: localAmountStr,
+        localCurrency,
+      });
+
+      const st = String(res.status || '').toLowerCase();
+      const status: ServiceSuccessInfo['status'] =
+        st === 'completed' || st === 'success' ? 'completed' : st === 'processing' || st === 'pending' ? 'processing' : 'failed';
+
+      setSuccessInfo({
+        label: activeItem?.label ?? activeService,
+        provider: selectedProvider || res.billerCode || '',
+        localAmount: res.localAmount || localAmountStr,
+        localCurrency: res.localCurrency || localCurrency,
+        cryptoAmount: res.amount,
+        cryptoAsset: res.asset || 'USDT',
+        status,
+        externalRef: res.externalRef || undefined,
+        failureReason: res.failureReason || undefined,
+        customerRef,
+      });
+      setStep('success');
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.code?.includes('pin') || /pin/i.test(err.message)) {
+          setPinError(err.message || 'Incorrect PIN');
+        } else {
+          setApiError({ code: err.code, message: err.message });
+          setStep('detail');
+        }
+      } else {
+        setApiError({ message: 'Payment failed. Try again.' });
+        setStep('detail');
+      }
+    } finally {
+      setPaying(false);
+    }
   };
 
   const reset = () => {
@@ -156,186 +194,169 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
     setSelectedBillerCode(null);
     setSuccessInfo(null);
     setApiError(null);
+    setPin(['', '', '', '']);
+    setPinError('');
+    setSelectedAmount(null);
+    setCustomAmount('');
+    setMeterNumber('');
+    setPhoneNumber('');
   };
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
+    <div className="flex flex-col min-h-full" style={{ background: 'var(--background)' }}>
       <PageTop />
-      {step === 'hub' && (
-        <div className="px-5 mb-2">
-          <h1 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22, letterSpacing: -0.3 }}>
-            More
-          </h1>
-        </div>
-      )}
-      {step !== 'hub' && (
-        <div className="flex items-center gap-3 px-5 mb-4">
-          <motion.button
-            whileTap={{ scale: 0.9 }}
+      <div className="px-4 pt-2 pb-3 flex items-center gap-3">
+        {step !== 'hub' && (
+          <button
+            type="button"
             onClick={() => {
               if (step === 'success') reset();
-              else if (selectedProvider) {
-                setSelectedProvider(null);
-                setSelectedBillerCode(null);
-              } else setStep('hub');
+              else if (step === 'confirm') setStep('detail');
+              else reset();
             }}
-            className="w-10 h-10 rounded-2xl flex items-center justify-center"
+            className="w-10 h-10 rounded-full flex items-center justify-center"
             style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
             aria-label="Back"
           >
-            <ArrowLeft size={20} style={{ color: 'var(--foreground)' }} />
-          </motion.button>
-          <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20 }}>
-            {step === 'success' ? 'Done' : activeItem?.label || 'Service'}
-          </h2>
+            <ArrowLeft size={18} style={{ color: 'var(--foreground)' }} />
+          </button>
+        )}
+        <h1 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20 }}>
+          {step === 'hub' ? t('services.title') || 'Services' : step === 'success' ? 'Done' : step === 'confirm' ? 'Confirm' : activeItem?.label || 'Service'}
+        </h1>
+      </div>
+
+      {apiError && (
+        <div className="px-4 mb-2">
+          <FeatureAlert
+            reason={mapApiCodeToReason(apiError.code)}
+            message={apiError.message}
+            onDismiss={() => setApiError(null)}
+          />
         </div>
       )}
 
-      {step === 'hub' && <ServiceHub onSelectService={handleServiceClick} />}
+      <div className="px-4 flex-1">
+        {step === 'hub' && (
+          <>
+            <WalletFeatureBanner feature="bills" />
+            <ServiceHub onSelect={handleServiceClick} />
+          </>
+        )}
 
-      {step === 'detail' && activeItem && (
-        <div className="px-5 pb-5">
-          <WalletFeatureBanner feature="deposit" />
-          {status === 'anonymous' && (
-            <FeatureAlert reason="generic" message="Sign in to pay bills from your crypto ledger." />
-          )}
-          {apiError && (
-            <FeatureAlert reason={mapApiCodeToReason(apiError.code)} message={apiError.message} detail={apiError.code} />
-          )}
+        {step === 'detail' && activeItem && (
+          <div className="flex flex-col gap-4">
+            {loadingBillers ? (
+              <div className="flex justify-center py-10">
+                <Loader className="animate-spin" size={22} style={{ color: 'var(--muted-foreground)' }} />
+              </div>
+            ) : (
+              <>
+                {!selectedProvider && (
+                  <ProviderSelector
+                    serviceId={activeService || ''}
+                    billers={billers}
+                    onSelect={(name, code) => {
+                      setSelectedBillerCode(code);
+                      setSelectedProvider(name);
+                    }}
+                  />
+                )}
 
-          <div className="mb-4">
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginBottom: 6 }}>Country</p>
-            <select
-              value={country}
-              onChange={(e) => setCountry(e.target.value)}
-              className="w-full rounded-[12px] px-3 py-2.5"
-              style={{ background: 'var(--muted)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
-            >
-              {(marketCountries.length ? marketCountries.map((c) => c.code) : []).map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+                {selectedProvider && activeService && (
+                  <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-5">
+                    <ServiceAmountInput
+                      serviceId={activeService}
+                      phoneNumber={phoneNumber}
+                      setPhoneNumber={setPhoneNumber}
+                      meterNumber={meterNumber}
+                      setMeterNumber={setMeterNumber}
+                      selectedAmount={selectedAmount}
+                      setSelectedAmount={setSelectedAmount}
+                      customAmount={customAmount}
+                      setCustomAmount={setCustomAmount}
+                      amountCurrency={localCurrency}
+                      provider={selectedProvider}
+                      onChangeProvider={() => {
+                        setSelectedProvider(null);
+                        setSelectedBillerCode(null);
+                        setSelectedAmount(null);
+                        setCustomAmount('');
+                      }}
+                    />
+                    <PaymentSummaryCard
+                      provider={selectedProvider}
+                      serviceLabel={activeItem.label}
+                      localAmount={localAmountStr}
+                      localCurrency={localCurrency}
+                      canPay={canPay()}
+                      onPay={goConfirm}
+                      paying={paying}
+                    />
+                  </motion.div>
+                )}
+              </>
+            )}
           </div>
+        )}
 
-          <div
-            className="flex items-center gap-3 mb-5 p-4 rounded-[16px]"
-            style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-          >
+        {step === 'confirm' && (
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center pt-6 pb-8">
             <div
-              className="w-12 h-12 rounded-2xl flex items-center justify-center"
-              style={{ background: 'var(--muted)' }}
+              className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+              style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
             >
-              <activeItem.icon size={20} style={{ color: 'var(--foreground)' }} />
+              <Lock size={22} style={{ color: 'var(--foreground)' }} />
             </div>
-            <div>
-              <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 15 }}>{activeItem.label}</p>
-              <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>{activeItem.description}</p>
-            </div>
-          </div>
+            <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20, marginBottom: 6 }}>Confirm payment</h2>
+            <p style={{ color: 'var(--muted-foreground)', fontSize: 14, textAlign: 'center', marginBottom: 8 }}>
+              {activeItem?.label} · {selectedProvider}
+            </p>
+            <p style={{ color: 'var(--primary)', fontWeight: 800, fontSize: 28, marginBottom: 6 }}>
+              {(() => {
+                try {
+                  return new Intl.NumberFormat(undefined, {
+                    style: 'currency',
+                    currency: localCurrency,
+                    maximumFractionDigits: 2,
+                  }).format(localAmountNum);
+                } catch {
+                  return `${localCurrency} ${localAmountStr}`;
+                }
+              })()}
+            </p>
+            <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginBottom: 24 }}>
+              To {customerRef} · debited from USDT balance
+            </p>
+            <PinBoxes value={pin} onChange={setPin} error={pinError} length={4} />
+            <motion.button
+              type="button"
+              whileTap={{ scale: paying ? 1 : 0.98 }}
+              disabled={paying || pin.join('').length < 4}
+              onClick={() => void submitPay()}
+              className="w-full max-w-sm mt-8 py-4 rounded-full"
+              style={{
+                background: paying || pin.join('').length < 4 ? 'var(--muted)' : 'var(--primary)',
+                color: paying || pin.join('').length < 4 ? 'var(--muted-foreground)' : 'var(--primary-foreground, #fff)',
+                fontWeight: 700,
+                fontSize: 16,
+              }}
+            >
+              {paying ? 'Paying…' : 'Confirm & pay'}
+            </motion.button>
+          </motion.div>
+        )}
 
-          {!selectedProvider && (
-            <>
-              {loadingBillers ? (
-                <div className="flex justify-center py-8">
-                  <Loader className="animate-spin" style={{ color: 'var(--muted-foreground)' }} />
-                </div>
-              ) : billers.length > 0 ? (
-                <div className="flex flex-col gap-2 mb-4">
-                  <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }}>Live billers</p>
-                  {billers.map((b, i) => {
-                    const code = String(b.billerCode || b.code || b.id || '');
-                    const name = String(b.name || code || `Biller ${i + 1}`);
-                    return (
-                      <motion.button
-                        key={code + i}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => {
-                          setSelectedProvider(name);
-                          setSelectedBillerCode(code);
-                        }}
-                        className="text-left px-4 py-3.5 rounded-[14px]"
-                        style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-                      >
-                        <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>{name}</p>
-                        <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>{code}</p>
-                      </motion.button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <ProviderSelector
-                  serviceId={activeService!}
-                  onSelect={(name) => {
-                    setSelectedProvider(name);
-                    setSelectedBillerCode(name);
-                  }}
-                />
-              )}
-            </>
-          )}
-
-          {selectedProvider && activeService && (
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-5">
-              <ServiceAmountInput
-                serviceId={activeService}
-                phoneNumber={phoneNumber}
-                setPhoneNumber={setPhoneNumber}
-                meterNumber={meterNumber}
-                setMeterNumber={setMeterNumber}
-                selectedAmount={selectedAmount}
-                setSelectedAmount={setSelectedAmount}
-                customAmount={customAmount}
-                setCustomAmount={setCustomAmount}
-                amountCurrency={billerCurrency || currency.code}
-                provider={selectedProvider}
-                onChangeProvider={() => {
-                  setSelectedProvider(null);
-                  setSelectedBillerCode(null);
-                  setSelectedAmount(null);
-                  setCustomAmount('');
-                }}
-              />
-              <PaymentSummaryCard
-                provider={selectedProvider}
-                serviceLabel={activeItem.label}
-                displayAmount={String(selectedAmount ?? (customAmount || '0'))}
-                canPay={canPay()}
-                onPay={() => void handlePay()}
-              />
-              {paying && (
-                <p className="text-center" style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
-                  Submitting bill payment…
-                </p>
-              )}
-            </motion.div>
-          )}
-        </div>
-      )}
-
-      {step === 'success' && successInfo && (
-        <ServicePaymentSuccess
-          info={successInfo}
-          onNewPayment={reset}
-          onViewReceipt={() => setReceiptTx(receiptTx)}
-          onBackToHome={() => switchTab('home')}
-        />
-      )}
-
-      <TransactionReceipt tx={receiptTx} open={!!receiptTx} onClose={() => setReceiptTx(null)} />
+        {step === 'success' && successInfo && (
+          <ServicePaymentSuccess
+            info={successInfo}
+            onNewPayment={reset}
+            onBackToHome={() => switchTab('home')}
+          />
+        )}
+      </div>
 
       <div style={{ height: 100 }} />
-      {showPaySheet && (
-        <LocalPaymentSheet
-          fiatAmount={selectedAmount ?? parseFloat(customAmount) ?? 0}
-          fiatCurrency={billerCurrency || currency.code || 'NGN'}
-          purpose={toCategory(activeService || 'airtime')}
-          purposeRef={selectedBillerCode || undefined}
-          onPaid={onLocalPaid}
-          onCancel={() => setShowPaySheet(false)}
-        />
-      )}
     </div>
   );
 }

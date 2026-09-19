@@ -8,11 +8,27 @@ export type Biller = {
   [key: string]: unknown;
 };
 
+export type BillPaymentResult = {
+  id: string;
+  status: string;
+  amount?: string;
+  asset?: string;
+  localAmount?: string;
+  localCurrency?: string;
+  provider?: string;
+  billerCode?: string;
+  customerRef?: string;
+  customerName?: string | null;
+  externalRef?: string | null;
+  failureReason?: string | null;
+};
+
 export function getBillsMarkets() {
   return api.get<{
     countries: string[];
     categories: string[];
     settlement: string;
+    providers?: Record<string, unknown>;
   }>('/bills/markets', { auth: false });
 }
 
@@ -21,6 +37,7 @@ export function listBillers(country: string, category: string) {
     country: string;
     currency: string;
     category: string;
+    provider?: string;
     billers: Biller[];
   }>(`/bills/billers?country=${encodeURIComponent(country)}&category=${encodeURIComponent(category)}`, {
     auth: false,
@@ -38,6 +55,7 @@ export function validateCustomer(body: {
 
 export function payBill(body: {
   userId: string;
+  pin: string;
   country: string;
   category: string;
   billerCode: string;
@@ -46,10 +64,10 @@ export function payBill(body: {
   asset: string;
   localAmount: string;
   localCurrency: string;
+  productCode?: string;
 }) {
-  return api.post('/bills/pay', body, { idempotent: true });
+  return api.post<BillPaymentResult>('/bills/pay', body, { idempotent: true });
 }
-
 
 export function listVariations(serviceId: string, country = 'NG') {
   return api.get<{ serviceId: string; variations: Array<{ code: string; name: string; amount?: string }> }>(

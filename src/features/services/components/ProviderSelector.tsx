@@ -3,21 +3,38 @@ import { ChevronRight, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { PROVIDERS } from './serviceData';
 import { ProviderIcon } from '../../../shared/icons/ProviderIcon';
+import type { Biller } from '../../../shared/api/bills';
 
 interface ProviderSelectorProps {
   serviceId: string;
-  onSelect: (providerName: string) => void;
+  /** Live billers from API — preferred over static PROVIDERS */
+  billers?: Biller[];
+  onSelect: (providerName: string, billerCode: string) => void;
 }
 
-/** Provider list with search — enterprise density. */
-export function ProviderSelector({ serviceId, onSelect }: ProviderSelectorProps) {
+/** Provider list with search — prefers live API billers. */
+export function ProviderSelector({ serviceId, billers, onSelect }: ProviderSelectorProps) {
   const [q, setQ] = useState('');
-  const list = PROVIDERS[serviceId] || [];
+
+  const list = useMemo(() => {
+    if (billers && billers.length) {
+      return billers.map((b) => ({
+        name: String(b.name || b.code || b.billerCode || 'Provider'),
+        code: String(b.code || b.billerCode || b.id || ''),
+        logo: undefined as string | undefined,
+      }));
+    }
+    return (PROVIDERS[serviceId] || []).map((p) => ({
+      name: p.name,
+      code: p.name,
+      logo: p.logo,
+    }));
+  }, [billers, serviceId]);
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     if (!needle) return list;
-    return list.filter((p) => p.name.toLowerCase().includes(needle));
+    return list.filter((p) => p.name.toLowerCase().includes(needle) || p.code.toLowerCase().includes(needle));
   }, [list, q]);
 
   return (
@@ -48,13 +65,13 @@ export function ProviderSelector({ serviceId, onSelect }: ProviderSelectorProps)
       >
         {filtered.map((p, i) => (
           <motion.button
-            key={p.name}
+            key={p.code + p.name}
             type="button"
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.04 }}
+            transition={{ delay: i * 0.03 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => onSelect(p.name)}
+            onClick={() => onSelect(p.name, p.code)}
             className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
             style={{
               borderBottom: i === filtered.length - 1 ? 'none' : '1px solid var(--border)',
@@ -71,7 +88,7 @@ export function ProviderSelector({ serviceId, onSelect }: ProviderSelectorProps)
 
       {!filtered.length && (
         <p className="py-8 text-center" style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
-          No providers match “{q}”
+          {list.length ? `No providers match “${q}”` : 'No providers available for this country'}
         </p>
       )}
     </motion.div>
