@@ -15,6 +15,7 @@ import {
   CheckCheck,
   Trash2,
   ExternalLink,
+  CheckCircle2,
 } from 'lucide-react';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { useNotifications } from '../../../shared/hooks/useNotifications';
@@ -34,25 +35,43 @@ interface NotificationsScreenProps {
 
 type Filter = 'all' | 'unread' | 'money' | 'security';
 
+const FILTERS: { id: Filter; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'unread', label: 'Unread' },
+  { id: 'money', label: 'Money' },
+  { id: 'security', label: 'Security' },
+];
+
 function notifIcon(type: string) {
   const t = (type || '').toLowerCase();
-  if (t.includes('deposit') || t.includes('receive')) return { Icon: ArrowDownLeft, tone: 'var(--positive)' };
-  if (t.includes('withdraw') || t.includes('send') || t.includes('sold') || t === 'sell') return { Icon: ArrowUpRight, tone: 'var(--foreground)' };
-  if (t.includes('swap')) return { Icon: RefreshCw, tone: 'var(--primary)' };
-  if (t.includes('buy') || t.includes('onramp') || t.includes('on-ramp')) return { Icon: Plus, tone: 'var(--positive)' };
-  if (t.includes('security') || t.includes('login')) return { Icon: Shield, tone: 'var(--destructive)' };
-  if (t.includes('kyc')) return { Icon: FileCheck, tone: 'var(--positive)' };
-  if (t.includes('reward') || t.includes('point')) return { Icon: Gift, tone: 'var(--primary)' };
-  if (t.includes('price')) return { Icon: TrendingUp, tone: 'var(--foreground)' };
-  return { Icon: ArrowDownLeft, tone: 'var(--muted-foreground)' };
+
+  if (t.includes('deposit') || t.includes('receive')) return ArrowDownLeft;
+  if (t.includes('withdraw') || t.includes('send') || t.includes('sold') || t === 'sell') return ArrowUpRight;
+  if (t.includes('swap')) return RefreshCw;
+  if (t.includes('buy') || t.includes('onramp') || t.includes('on-ramp')) return Plus;
+  if (t.includes('security') || t.includes('login')) return Shield;
+  if (t.includes('kyc')) return FileCheck;
+  if (t.includes('reward') || t.includes('point')) return Gift;
+  if (t.includes('price')) return TrendingUp;
+
+  return ArrowDownLeft;
 }
 
 function isMoneyType(type: string) {
   const t = (type || '').toLowerCase();
-  return t.includes('deposit') || t.includes('withdraw') || t.includes('send') ||
-    t.includes('receive') || t.includes('swap') || t.includes('buy') ||
-    t.includes('sell') || t.includes('onramp') || t.includes('offramp') ||
-    t.includes('payment');
+
+  return (
+    t.includes('deposit') ||
+    t.includes('withdraw') ||
+    t.includes('send') ||
+    t.includes('receive') ||
+    t.includes('swap') ||
+    t.includes('buy') ||
+    t.includes('sell') ||
+    t.includes('onramp') ||
+    t.includes('offramp') ||
+    t.includes('payment')
+  );
 }
 
 function isSecurityType(type: string) {
@@ -62,6 +81,7 @@ function isSecurityType(type: string) {
 
 function deepLinkFor(type: string): { screen: string; label: string } | null {
   const t = (type || '').toLowerCase();
+
   if (t.includes('kyc')) return { screen: 'kyc', label: 'View verification' };
   if (t.includes('security') || t.includes('login')) return { screen: 'security', label: 'Review security' };
   if (t.includes('reward')) return { screen: 'rewards', label: 'Open rewards' };
@@ -71,30 +91,46 @@ function deepLinkFor(type: string): { screen: string; label: string } | null {
     return { screen: 'history', label: 'View history' };
   }
   if (t.includes('price')) return { screen: 'home', label: 'Open wallet' };
+
   return null;
 }
 
 function relativeTime(iso: string | undefined): string {
   if (!iso) return '';
+
   const then = new Date(iso).getTime();
   if (Number.isNaN(then)) return iso;
+
   const diffMs = Date.now() - then;
   const min = Math.floor(diffMs / 60000);
+
   if (min < 1) return 'Just now';
   if (min < 60) return `${min}m ago`;
+
   const hr = Math.floor(min / 60);
   if (hr < 24) return `${hr}h ago`;
+
   const day = Math.floor(hr / 24);
   if (day === 1) return 'Yesterday';
   if (day < 7) return `${day}d ago`;
-  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
 function groupByDate(rows: NotificationRow[]): Array<{ label: string; items: NotificationRow[] }> {
   const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+  ).getTime();
+
   const startOfYesterday = startOfToday - 86400000;
   const startOfWeek = startOfToday - 6 * 86400000;
+
   const buckets: Record<string, NotificationRow[]> = {
     Today: [],
     Yesterday: [],
@@ -103,11 +139,12 @@ function groupByDate(rows: NotificationRow[]): Array<{ label: string; items: Not
   };
 
   for (const n of rows) {
-    const t = n.createdAt ? new Date(n.createdAt).getTime() : 0;
-    if (Number.isNaN(t) || t <= 0) buckets.Earlier.push(n);
-    else if (t >= startOfToday) buckets.Today.push(n);
-    else if (t >= startOfYesterday) buckets.Yesterday.push(n);
-    else if (t >= startOfWeek) buckets['This week'].push(n);
+    const time = n.createdAt ? new Date(n.createdAt).getTime() : 0;
+
+    if (Number.isNaN(time) || time <= 0) buckets.Earlier.push(n);
+    else if (time >= startOfToday) buckets.Today.push(n);
+    else if (time >= startOfYesterday) buckets.Yesterday.push(n);
+    else if (time >= startOfWeek) buckets['This week'].push(n);
     else buckets.Earlier.push(n);
   }
 
@@ -142,40 +179,60 @@ function bodyOf(n: NotificationRow) {
 export function NotificationsScreen({ goBack, navigate }: NotificationsScreenProps) {
   const { userId, status } = useAuth();
   const { data: notifs, loading, refresh } = useNotifications(30);
+
   const [error, setError] = useState<{ code?: string; message?: string } | null>(null);
   const [selected, setSelected] = useState<NotificationRow | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
   const [justMarkedAll, setJustMarkedAll] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggered = useRef(false);
 
   const selectionMode = selectedIds.size > 0;
+  const unreadCount = notifs.filter((n) => !n.readAt).length;
 
   const load = useCallback(async () => {
     setError(null);
+
     try {
       await refresh();
     } catch (e) {
-      if (e instanceof ApiError) setError({ code: e.code, message: e.message });
-      else setError({ message: 'Failed to load notifications' });
+      if (e instanceof ApiError) {
+        setError({ code: e.code, message: e.message });
+      } else {
+        setError({ message: 'Failed to load notifications' });
+      }
     }
   }, [refresh]);
-
-  const unreadCount = notifs.filter((n) => !n.readAt).length;
 
   const toggleSelection = useCallback((id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
+
       if (next.has(id)) next.delete(id);
       else next.add(id);
+
       return next;
     });
   }, []);
 
+  const selectAllVisible = useCallback(() => {
+    setSelectedIds(new Set(visible.map((n) => n.id)));
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
   const startLongPress = (id: string) => {
     longPressTriggered.current = false;
-    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+    }
 
     longPressTimer.current = setTimeout(() => {
       longPressTriggered.current = true;
@@ -194,44 +251,6 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
     return () => cancelLongPress();
   }, []);
 
-  useEffect(() => {
-    if (!selectedIds.size) return;
-    const existing = new Set(notifs.map((n) => n.id));
-    setSelectedIds((prev) => {
-      const next = new Set([...prev].filter((id) => existing.has(id)));
-      return next.size === prev.size ? prev : next;
-    });
-  }, [notifs]);
-
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteNotification(id);
-      queryClient.setQueryData(
-        queryKeys.notifications(userId || '_', 30),
-        (prev: NotificationRow[] | undefined) => (prev || []).filter((n) => n.id !== id),
-      );
-      void queryClient.invalidateQueries({ queryKey: queryKeys.notifications(userId || '_') });
-    } catch {
-    }
-  };
-
-  const handleDeleteSelected = async () => {
-    if (!selectedIds.size) return;
-
-    const ids = [...selectedIds];
-    try {
-      await Promise.all(ids.map((id) => deleteNotification(id)));
-      queryClient.setQueryData(
-        queryKeys.notifications(userId || '_', 30),
-        (prev: NotificationRow[] | undefined) => (prev || []).filter((n) => !selectedIds.has(n.id)),
-      );
-      void queryClient.invalidateQueries({ queryKey: queryKeys.notifications(userId || '_') });
-      setSelectedIds(new Set());
-    } catch {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.notifications(userId || '_') });
-    }
-  };
-
   const visible = useMemo(() => {
     return notifs.filter((n) => {
       if (filter === 'unread') return !n.readAt;
@@ -242,6 +261,74 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
   }, [notifs, filter]);
 
   const grouped = useMemo(() => groupByDate(visible), [visible]);
+
+  useEffect(() => {
+    if (!selectedIds.size) return;
+
+    const existing = new Set(notifs.map((n) => n.id));
+
+    setSelectedIds((prev) => {
+      const next = new Set([...prev].filter((id) => existing.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [notifs, selectedIds.size]);
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteNotification(id);
+
+      queryClient.setQueryData(
+        queryKeys.notifications(userId || '_', 30),
+        (prev: NotificationRow[] | undefined) =>
+          (prev || []).filter((n) => n.id !== id),
+      );
+
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.notifications(userId || '_'),
+      });
+    } catch {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.notifications(userId || '_'),
+      });
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (!selectedIds.size || deleting) return;
+
+    const ids = [...selectedIds];
+
+    setDeleting(true);
+
+    try {
+      const results = await Promise.allSettled(
+        ids.map((id) => deleteNotification(id)),
+      );
+
+      const deletedIds = new Set(
+        ids.filter((_, index) => results[index].status === 'fulfilled'),
+      );
+
+      queryClient.setQueryData(
+        queryKeys.notifications(userId || '_', 30),
+        (prev: NotificationRow[] | undefined) =>
+          (prev || []).filter((n) => !deletedIds.has(n.id)),
+      );
+
+      setSelectedIds((prev) => {
+        const next = new Set([...prev].filter((id) => !deletedIds.has(id)));
+        return next;
+      });
+
+      setConfirmDelete(false);
+
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.notifications(userId || '_'),
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const openDetail = async (notif: NotificationRow) => {
     if (selectionMode) {
@@ -254,12 +341,15 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
     if (!notif.readAt && notif.id) {
       try {
         await notifApi.markNotificationRead(notif.id);
+
         if (userId) {
           queryClient.setQueryData(
             queryKeys.notifications(userId, 30),
             (prev: NotificationRow[] | undefined) =>
               (prev || []).map((n) =>
-                n.id === notif.id ? { ...n, readAt: new Date().toISOString() } : n,
+                n.id === notif.id
+                  ? { ...n, readAt: new Date().toISOString() }
+                  : n,
               ),
           );
         }
@@ -273,38 +363,46 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
 
     try {
       await notifApi.markAllNotificationsRead(userId);
+
       queryClient.setQueryData(
         queryKeys.notifications(userId, 30),
         (prev: NotificationRow[] | undefined) =>
-          (prev || []).map((n) => ({ ...n, readAt: n.readAt || new Date().toISOString() })),
+          (prev || []).map((n) => ({
+            ...n,
+            readAt: n.readAt || new Date().toISOString(),
+          })),
       );
+
       setJustMarkedAll(true);
       setTimeout(() => setJustMarkedAll(false), 1800);
     } catch {
     }
   };
 
-  const FILTERS: { id: Filter; label: string }[] = [
-    { id: 'all', label: 'All' },
-    { id: 'unread', label: unreadCount ? `Unread · ${unreadCount}` : 'Unread' },
-    { id: 'money', label: 'Money' },
-    { id: 'security', label: 'Security' },
-  ];
-
-  const clearSelection = () => setSelectedIds(new Set());
-
   return (
-    <div className="flex flex-col h-full relative" style={{ background: 'var(--background)' }}>
+    <div
+      className="flex flex-col h-full relative"
+      style={{ background: 'var(--background)' }}
+    >
       <PageTop />
 
       <div className="flex items-center justify-between px-5 mb-3">
         <div className="flex items-center gap-3 min-w-0">
-          <BackButton onClick={selectionMode ? clearSelection : goBack} />
+          <BackButton
+            onClick={selectionMode ? clearSelection : goBack}
+          />
+
           <h2
             className="truncate"
-            style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22 }}
+            style={{
+              color: 'var(--foreground)',
+              fontWeight: 800,
+              fontSize: 21,
+            }}
           >
-            {selectionMode ? `${selectedIds.size} selected` : 'Notifications'}
+            {selectionMode
+              ? `${selectedIds.size} selected`
+              : 'Notifications'}
           </h2>
         </div>
 
@@ -312,24 +410,40 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => void handleDeleteSelected()}
-              className="w-9 h-9 rounded-full flex items-center justify-center"
+              onClick={selectAllVisible}
+              disabled={selectedIds.size === visible.length}
+              className="px-3 py-2 rounded-full"
               style={{
-                background: 'color-mix(in srgb, var(--destructive) 12%, transparent)',
-                color: 'var(--destructive)',
+                background:
+                  selectedIds.size === visible.length
+                    ? 'var(--muted)'
+                    : 'var(--card)',
+                color:
+                  selectedIds.size === visible.length
+                    ? 'var(--muted-foreground)'
+                    : 'var(--foreground)',
+                border: '1px solid var(--border)',
+                fontSize: 12,
+                fontWeight: 700,
               }}
-              aria-label={`Delete ${selectedIds.size} selected notifications`}
             >
-              <Trash2 size={17} />
+              Select all
             </button>
+
             <button
               type="button"
-              onClick={clearSelection}
+              onClick={() => setConfirmDelete(true)}
               className="w-9 h-9 rounded-full flex items-center justify-center"
-              style={{ background: 'var(--muted)', color: 'var(--foreground)' }}
-              aria-label="Cancel selection"
+              style={{
+                background:
+                  'color-mix(in srgb, var(--destructive) 14%, transparent)',
+                color: 'var(--destructive)',
+                border:
+                  '1px solid color-mix(in srgb, var(--destructive) 20%, transparent)',
+              }}
+              aria-label="Delete selected notifications"
             >
-              <X size={18} />
+              <Trash2 size={16} />
             </button>
           </div>
         ) : (
@@ -339,7 +453,10 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
             disabled={unreadCount === 0}
             className="flex items-center gap-1.5"
             style={{
-              color: unreadCount > 0 ? 'var(--primary)' : 'var(--muted-foreground)',
+              color:
+                unreadCount > 0
+                  ? 'var(--primary)'
+                  : 'var(--muted-foreground)',
               fontSize: 13,
               fontWeight: 600,
               opacity: unreadCount > 0 ? 1 : 0.45,
@@ -347,7 +464,8 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
           >
             {justMarkedAll ? (
               <>
-                <CheckCheck size={14} /> Done
+                <CheckCheck size={14} />
+                Done
               </>
             ) : (
               'Mark all read'
@@ -357,47 +475,89 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
       </div>
 
       {!selectionMode && (
-        <div
-          className="flex gap-2 overflow-x-auto px-5 pb-3 mb-1"
-          style={{ scrollbarWidth: 'none' }}
-        >
-          {FILTERS.map((f) => {
-            const on = filter === f.id;
-            return (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => setFilter(f.id)}
-                className="flex-shrink-0 px-3.5 py-1.5 rounded-full"
-                style={{
-                  background: on ? 'var(--liquid-chip-on-bg)' : 'var(--card)',
-                  color: on ? 'var(--liquid-chip-on-text)' : 'var(--muted-foreground)',
-                  border: on ? '1px solid var(--liquid-pill-border)' : '1px solid var(--border)',
-                  boxShadow: on ? 'var(--liquid-chip-on-shadow)' : undefined,
-                  backdropFilter: on ? 'blur(12px)' : undefined,
-                  WebkitBackdropFilter: on ? 'blur(12px)' : undefined,
-                  fontSize: 12,
-                  fontWeight: 600,
-                }}
-              >
-                {f.label}
-              </button>
-            );
-          })}
+        <div className="px-5 pb-3">
+          <div
+            className="flex p-1 rounded-xl gap-1 overflow-x-auto"
+            style={{
+              background: 'var(--muted)',
+              border: '1px solid var(--border)',
+              scrollbarWidth: 'none',
+            }}
+          >
+            {FILTERS.map((item) => {
+              const active = filter === item.id;
+              const count =
+                item.id === 'unread' ? unreadCount : undefined;
+
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setFilter(item.id)}
+                  className="flex-1 min-w-max px-3 py-1.5 rounded-lg"
+                  style={{
+                    background: active ? 'var(--card)' : 'transparent',
+                    color: active
+                      ? 'var(--foreground)'
+                      : 'var(--muted-foreground)',
+                    border: active
+                      ? '1px solid var(--border)'
+                      : '1px solid transparent',
+                    boxShadow: active
+                      ? '0 1px 3px color-mix(in srgb, var(--foreground) 7%, transparent)'
+                      : undefined,
+                    fontSize: 12,
+                    fontWeight: active ? 700 : 600,
+                  }}
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    {item.label}
+                    {count ? (
+                      <span
+                        className="min-w-4 h-4 px-1 rounded-full flex items-center justify-center"
+                        style={{
+                          background: active
+                            ? 'var(--primary)'
+                            : 'var(--card)',
+                          color: active
+                            ? 'var(--primary-foreground, #fff)'
+                            : 'var(--muted-foreground)',
+                          fontSize: 9,
+                          fontWeight: 800,
+                        }}
+                      >
+                        {count > 99 ? '99+' : count}
+                      </span>
+                    ) : null}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
       <div className="flex-1 overflow-y-auto px-5 pb-8">
         {status === 'anonymous' && (
-          <FeatureAlert reason="generic" message="Sign in to see your notification inbox." />
+          <FeatureAlert
+            reason="generic"
+            message="Sign in to see your notification inbox."
+          />
         )}
 
         {error && (
           <div
             className="rounded-2xl p-4 mb-4"
-            style={{ border: '1px solid var(--border)', background: 'var(--card)' }}
+            style={{
+              border: '1px solid var(--border)',
+              background: 'var(--card)',
+            }}
           >
-            <FeatureAlert reason={mapApiCodeToReason(error.code)} message={error.message} />
+            <FeatureAlert
+              reason={mapApiCodeToReason(error.code)}
+              message={error.message}
+            />
+
             <button
               type="button"
               onClick={() => void load()}
@@ -409,18 +569,22 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
                 fontWeight: 600,
               }}
             >
-              <RefreshCw size={13} /> Try again
+              <RefreshCw size={13} />
+              Try again
             </button>
           </div>
         )}
 
         {loading && (
-          <p
-            className="py-12 text-center"
-            style={{ color: 'var(--muted-foreground)', fontSize: 13 }}
-          >
-            Loading notifications…
-          </p>
+          <div className="space-y-2 pt-2">
+            {[1, 2, 3].map((item) => (
+              <div
+                key={item}
+                className="h-[72px] rounded-2xl animate-pulse"
+                style={{ background: 'var(--muted)' }}
+              />
+            ))}
+          </div>
         )}
 
         {!loading && !error && visible.length === 0 && (
@@ -429,25 +593,45 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
               className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3"
               style={{ background: 'var(--muted)' }}
             >
-              <BellOff size={22} style={{ color: 'var(--muted-foreground)' }} />
+              <BellOff
+                size={22}
+                style={{ color: 'var(--muted-foreground)' }}
+              />
             </div>
-            <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 15 }}>
+
+            <p
+              style={{
+                color: 'var(--foreground)',
+                fontWeight: 700,
+                fontSize: 15,
+              }}
+            >
               Nothing here
             </p>
+
             <p
               className="mt-1 px-6"
-              style={{ color: 'var(--muted-foreground)', fontSize: 13 }}
+              style={{
+                color: 'var(--muted-foreground)',
+                fontSize: 13,
+                lineHeight: 1.45,
+              }}
             >
               {filter === 'all'
                 ? 'Deposits, swaps, withdrawals, and security alerts will show up here.'
                 : 'No notifications in this filter.'}
             </p>
+
             {filter !== 'all' && (
               <button
                 type="button"
                 onClick={() => setFilter('all')}
                 className="mt-4"
-                style={{ color: 'var(--primary)', fontSize: 13, fontWeight: 600 }}
+                style={{
+                  color: 'var(--primary)',
+                  fontSize: 13,
+                  fontWeight: 700,
+                }}
               >
                 Show all
               </button>
@@ -455,7 +639,8 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
           </div>
         )}
 
-        {!loading && !error &&
+        {!loading &&
+          !error &&
           grouped.map((group) => (
             <div key={group.label} className="mb-5">
               <p
@@ -473,19 +658,22 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
 
               <div
                 className="rounded-[20px] overflow-hidden"
-                style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+                style={{
+                  background: 'var(--card)',
+                  border: '1px solid var(--border)',
+                }}
               >
-                {group.items.map((notif, i) => {
-                  const { Icon, tone } = notifIcon(String(notif.type));
+                {group.items.map((notif, index) => {
+                  const Icon = notifIcon(String(notif.type));
                   const read = Boolean(notif.readAt);
                   const isSelected = selectedIds.has(notif.id);
-                  const last = i === group.items.length - 1;
+                  const last = index === group.items.length - 1;
 
                   return (
                     <motion.button
                       key={notif.id}
                       type="button"
-                      whileTap={{ scale: 0.99 }}
+                      whileTap={{ scale: 0.985 }}
                       onPointerDown={() => startLongPress(notif.id)}
                       onPointerUp={cancelLongPress}
                       onPointerLeave={cancelLongPress}
@@ -495,40 +683,50 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
                           longPressTriggered.current = false;
                           return;
                         }
+
                         void openDetail(notif);
                       }}
                       className="w-full flex items-start gap-3 px-4 py-3.5 text-left"
                       style={{
-                        borderBottom: last ? 'none' : '1px solid var(--border)',
+                        borderBottom: last
+                          ? 'none'
+                          : '1px solid var(--border)',
                         background: isSelected
-                          ? 'color-mix(in srgb, var(--primary) 12%, transparent)'
+                          ? 'color-mix(in srgb, var(--primary) 13%, var(--card))'
                           : read
-                            ? 'transparent'
-                            : 'color-mix(in srgb, var(--primary) 6%, transparent)',
+                            ? 'var(--card)'
+                            : 'color-mix(in srgb, var(--primary) 4%, var(--card))',
+                        boxShadow: isSelected
+                          ? 'inset 3px 0 0 var(--primary)'
+                          : undefined,
                       }}
                     >
-                      <div className="relative flex-shrink-0">
-                        <div
-                          className="w-11 h-11 rounded-2xl flex items-center justify-center"
-                          style={{
-                            background: isSelected
-                              ? 'color-mix(in srgb, var(--primary) 15%, var(--muted))'
-                              : 'var(--muted)',
-                            border: isSelected
-                              ? '1px solid color-mix(in srgb, var(--primary) 35%, transparent)'
-                              : '1px solid transparent',
-                          }}
-                        >
-                          {isSelected ? (
-                            <Check
-                              size={19}
-                              strokeWidth={2.5}
-                              style={{ color: 'var(--primary)' }}
-                            />
-                          ) : (
-                            <Icon size={18} style={{ color: tone }} strokeWidth={2.2} />
-                          )}
-                        </div>
+                      <div
+                        className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
+                        style={{
+                          background: isSelected
+                            ? 'var(--primary)'
+                            : 'var(--muted)',
+                          border: isSelected
+                            ? '1px solid var(--primary)'
+                            : '1px solid var(--border)',
+                        }}
+                      >
+                        {isSelected ? (
+                          <Check
+                            size={19}
+                            strokeWidth={3}
+                            style={{
+                              color: 'var(--primary-foreground, #fff)',
+                            }}
+                          />
+                        ) : (
+                          <Icon
+                            size={18}
+                            strokeWidth={2.1}
+                            style={{ color: 'var(--muted-foreground)' }}
+                          />
+                        )}
                       </div>
 
                       <div className="flex-1 min-w-0">
@@ -537,12 +735,13 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
                             className="truncate"
                             style={{
                               color: 'var(--foreground)',
-                              fontWeight: read ? 500 : 700,
+                              fontWeight: read ? 550 : 750,
                               fontSize: 14,
                             }}
                           >
                             {titleOf(notif)}
                           </p>
+
                           <span
                             style={{
                               color: 'var(--muted-foreground)',
@@ -584,6 +783,123 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
       </div>
 
       <AnimatePresence>
+        {confirmDelete && (
+          <motion.div
+            className="absolute inset-0 z-[60] flex items-end"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              background: 'rgba(0,0,0,0.42)',
+              backdropFilter: 'blur(4px)',
+            }}
+            onClick={() => !deleting && setConfirmDelete(false)}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+              className="w-full rounded-t-[28px] px-5 pt-5 pb-7"
+              style={{
+                background: 'var(--background)',
+                borderTop: '1px solid var(--border)',
+                paddingBottom:
+                  'max(28px, calc(20px + env(safe-area-inset-bottom)))',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-center mb-5">
+                <div
+                  className="w-10 h-1 rounded-full"
+                  style={{ background: 'var(--border)' }}
+                />
+              </div>
+
+              <div className="flex items-center gap-3 mb-4">
+                <div
+                  className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                  style={{
+                    background:
+                      'color-mix(in srgb, var(--destructive) 12%, transparent)',
+                  }}
+                >
+                  <Trash2
+                    size={20}
+                    style={{ color: 'var(--destructive)' }}
+                  />
+                </div>
+
+                <div>
+                  <p
+                    style={{
+                      color: 'var(--foreground)',
+                      fontWeight: 800,
+                      fontSize: 17,
+                    }}
+                  >
+                    Delete notifications?
+                  </p>
+                  <p
+                    style={{
+                      color: 'var(--muted-foreground)',
+                      fontSize: 13,
+                      marginTop: 2,
+                    }}
+                  >
+                    {selectedIds.size} notification
+                    {selectedIds.size === 1 ? '' : 's'} will be deleted.
+                  </p>
+                </div>
+              </div>
+
+              <p
+                className="mb-5"
+                style={{
+                  color: 'var(--muted-foreground)',
+                  fontSize: 13,
+                  lineHeight: 1.45,
+                }}
+              >
+                This removes the selected notifications from your inbox.
+              </p>
+
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => void handleDeleteSelected()}
+                className="w-full h-12 rounded-full flex items-center justify-center gap-2 mb-2"
+                style={{
+                  background: 'var(--destructive)',
+                  color: 'var(--primary-foreground, #fff)',
+                  fontWeight: 750,
+                  fontSize: 14,
+                  opacity: deleting ? 0.6 : 1,
+                }}
+              >
+                <Trash2 size={16} />
+                {deleting ? 'Deleting…' : 'Delete selected'}
+              </button>
+
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => setConfirmDelete(false)}
+                className="w-full h-12 rounded-full"
+                style={{
+                  background: 'var(--muted)',
+                  color: 'var(--foreground)',
+                  border: '1px solid var(--border)',
+                  fontWeight: 650,
+                  fontSize: 14,
+                }}
+              >
+                Cancel
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+
         {selected && (
           <motion.div
             className="absolute inset-0 z-50 flex flex-col"
@@ -591,29 +907,49 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 30, stiffness: 340 }}
+            transition={{
+              type: 'spring',
+              damping: 30,
+              stiffness: 340,
+            }}
           >
             <div
               className="flex items-center justify-between px-5 pb-3"
-              style={{ paddingTop: 'max(12px, env(safe-area-inset-top))' }}
+              style={{
+                paddingTop:
+                  'max(12px, env(safe-area-inset-top))',
+              }}
             >
-              <h3 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20 }}>
+              <h3
+                style={{
+                  color: 'var(--foreground)',
+                  fontWeight: 800,
+                  fontSize: 20,
+                }}
+              >
                 Details
               </h3>
+
               <button
                 type="button"
                 onClick={() => setSelected(null)}
                 className="w-9 h-9 rounded-full flex items-center justify-center"
-                style={{ background: 'var(--muted)' }}
+                style={{
+                  background: 'var(--muted)',
+                  border: '1px solid var(--border)',
+                }}
                 aria-label="Close"
               >
-                <X size={18} style={{ color: 'var(--foreground)' }} />
+                <X
+                  size={18}
+                  style={{ color: 'var(--foreground)' }}
+                />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 pb-8">
               {(() => {
-                const { Icon, tone } = notifIcon(String(selected.type));
+                const Icon = notifIcon(String(selected.type));
                 const link = deepLinkFor(String(selected.type));
 
                 return (
@@ -621,9 +957,16 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
                     <div className="flex flex-col items-center text-center mb-6 mt-2">
                       <div
                         className="w-16 h-16 rounded-3xl flex items-center justify-center mb-4"
-                        style={{ background: 'var(--muted)' }}
+                        style={{
+                          background: 'var(--muted)',
+                          border: '1px solid var(--border)',
+                        }}
                       >
-                        <Icon size={28} style={{ color: tone }} strokeWidth={2} />
+                        <Icon
+                          size={28}
+                          style={{ color: 'var(--muted-foreground)' }}
+                          strokeWidth={2}
+                        />
                       </div>
 
                       <p
@@ -645,7 +988,9 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
                         }}
                       >
                         {selected.createdAt
-                          ? new Date(selected.createdAt).toLocaleString(undefined, {
+                          ? new Date(
+                              selected.createdAt,
+                            ).toLocaleString(undefined, {
                               dateStyle: 'medium',
                               timeStyle: 'short',
                             })
@@ -682,11 +1027,19 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
                     >
                       <div
                         className="flex justify-between py-2.5"
-                        style={{ borderBottom: '1px solid var(--border)' }}
+                        style={{
+                          borderBottom: '1px solid var(--border)',
+                        }}
                       >
-                        <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
+                        <span
+                          style={{
+                            color: 'var(--muted-foreground)',
+                            fontSize: 13,
+                          }}
+                        >
                           Category
                         </span>
+
                         <span
                           style={{
                             color: 'var(--foreground)',
@@ -703,9 +1056,15 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
                       </div>
 
                       <div className="flex justify-between py-2.5">
-                        <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
+                        <span
+                          style={{
+                            color: 'var(--muted-foreground)',
+                            fontSize: 13,
+                          }}
+                        >
                           Status
                         </span>
+
                         <span
                           style={{
                             color: 'var(--foreground)',
@@ -721,16 +1080,21 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
                     <button
                       type="button"
                       onClick={() => {
-                        if (selected?.id) {
-                          void handleDelete(selected.id).then(() => setSelected(null));
+                        if (selected.id) {
+                          void handleDelete(selected.id).then(() =>
+                            setSelected(null),
+                          );
                         }
                       }}
                       className="w-full py-3.5 rounded-full flex items-center justify-center gap-2 mb-3"
                       style={{
-                        background: 'color-mix(in srgb, var(--destructive) 12%, transparent)',
+                        background:
+                          'color-mix(in srgb, var(--destructive) 12%, transparent)',
                         color: 'var(--destructive)',
                         fontWeight: 700,
                         fontSize: 14,
+                        border:
+                          '1px solid color-mix(in srgb, var(--destructive) 18%, transparent)',
                       }}
                     >
                       <Trash2 size={16} />
