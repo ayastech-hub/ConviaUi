@@ -139,31 +139,43 @@ async function openMonnify(input: InlineCheckoutInput): Promise<InlineCheckoutRe
       resolve(r);
     };
 
+    // Unique ref per open (retry after fail must not reuse a burned reference)
+    const reference =
+      input.action.clientReference ||
+      `pay_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    const apiKey = input.action.publicKey;
+    const isTestMode = /TEST|MK_TEST/i.test(apiKey);
+
     window.MonnifySDK!.initialize({
-      amount,
+      amount, // number — required
       currency: 'NGN',
-      reference: input.action.clientReference,
+      reference,
       customerFullName: input.customerName || 'Convia User',
       customerEmail: input.email,
-      apiKey: input.action.publicKey,
+      apiKey,
       contractCode,
       paymentDescription: input.description || 'Convia wallet top-up',
-      // Card only — hide Transfer / USSD method picker
       paymentMethods: ['CARD'],
+      isTestMode,
       metadata: { source: 'convia_inline' },
-      incomeSplitConfig: undefined,
       onComplete: (response: {
         paymentStatus?: string;
         status?: string;
         transactionReference?: string;
         paymentReference?: string;
+        message?: string;
       }) => {
         const st = String(response?.paymentStatus || response?.status || '').toUpperCase();
         if (st === 'PAID' || st === 'SUCCESS' || st === 'COMPLETED' || st === 'SUCCESSFUL') {
           done({
             status: 'completed',
-            providerRef: String(response.transactionReference || response.paymentReference || ''),
+            providerRef: String(response.transactionReference || response.paymentReference || reference),
             raw: response,
+          });
+        } else if (st === 'FAILED' || st === 'CANCELLED' || st === 'EXPIRED') {
+          done({
+            status: 'error',
+            message: response?.message || 'Card payment failed. Try again with a new attempt.',
           });
         } else {
           done({ status: 'closed' });
