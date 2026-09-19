@@ -354,7 +354,8 @@ export function OnRampProcessingStep({
             style={{
               background:
                 'color-mix(in oklab, var(--primary) 10%, var(--card))',
-              border: '1px solid color-mix(in oklab, var(--primary) 20%, var(--border))',
+              border:
+                '1px solid color-mix(in oklab, var(--primary) 20%, var(--border))',
             }}
           >
             <Loader
@@ -558,7 +559,8 @@ export function OnRampProcessingStep({
             role="alert"
             style={{
               background: `color-mix(in oklab, ${DANGER} 8%, var(--card))`,
-              border: `1px solid color-mix(in oklab, ${DANGER} 22%, var(--border))`,
+              border:
+                `1px solid color-mix(in oklab, ${DANGER} 22%, var(--border))`,
             }}
           >
             <AlertTriangle
@@ -738,7 +740,8 @@ export function OnRampProcessingStep({
                 style={{
                   background:
                     'color-mix(in oklab, var(--foreground) 6%, transparent)',
-                  border: `1px solid color-mix(in oklab, var(--foreground) 8%, transparent)`,
+                  border:
+                    `1px solid color-mix(in oklab, var(--foreground) 8%, transparent)`,
                 }}
               >
                 <Building2
@@ -837,10 +840,11 @@ export function OnRampProcessingStep({
 
       {/* ------------------------------------------------------------------ */}
       {/* Bottom action                                                       */}
+      {/* ONLY CHANGE: keep the action visible on mobile                     */}
       {/* ------------------------------------------------------------------ */}
 
       <div
-        className="pt-3 pb-2"
+        className="sticky bottom-0 z-20 pt-3 pb-2"
         style={{
           background: PAGE,
         }}
