@@ -66,6 +66,8 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
   const [loadingBillers, setLoadingBillers] = useState(false);
   const [paying, setPaying] = useState(false);
   const [networkSheetOpen, setNetworkSheetOpen] = useState(false);
+  const [manualNetwork, setManualNetwork] = useState(false);
+  const [prefixMismatch, setPrefixMismatch] = useState(false);
   const [pin, setPin] = useState<string[]>(Array(6).fill(''));
   const [pinError, setPinError] = useState('');
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
@@ -84,15 +86,39 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
   const handleServiceClick = (item: ServiceItem) => {
     if (isBillService(item.id)) {
       setActiveService(item.id);
-      setSelectedProvider(null);
-      setSelectedBillerCode(null);
       setSelectedAmount(null);
       setCustomAmount('');
       setMeterNumber('');
       setPhoneNumber('');
+      setContactPhone('');
+      setProductCode(null);
+      setLiveVariations([]);
       setApiError(null);
       setPin(Array(6).fill(''));
       setPinError('');
+      setMeterType('prepaid');
+      setMinLocalAmount(null);
+      setNetworkSheetOpen(false);
+      setManualNetwork(false);
+      setPrefixMismatch(false);
+      // Defaults so packages load immediately (user can change at top)
+      if (item.id === 'data') {
+        setSelectedBillerCode('mtn-data');
+        setSelectedProvider('MTN Data');
+        setProviderImage(getCachedLogo('mtn-data') || null);
+      } else if (item.id === 'airtime') {
+        setSelectedBillerCode('mtn');
+        setSelectedProvider('MTN');
+        setProviderImage(getCachedLogo('mtn') || null);
+      } else if (item.id === 'bills') {
+        setSelectedBillerCode('dstv');
+        setSelectedProvider('DStv');
+        setProviderImage(getCachedLogo('dstv') || null);
+      } else {
+        setSelectedProvider(null);
+        setSelectedBillerCode(null);
+        setProviderImage(null);
+      }
       setStep('detail');
     } else {
       navigate(item.id as Screen);
@@ -118,8 +144,24 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
   });
   useEffect(() => {
     if (billersQuery.data) {
-      setBillers(billersQuery.data.billers || []);
+      const list = billersQuery.data.billers || [];
+      setBillers(list);
       if (billersQuery.data.currency) setBillerCurrency(billersQuery.data.currency);
+      // Electricity etc: default first disco so form is usable without a list step
+      if (
+        (activeService === 'electricity' || activeService === 'betting') &&
+        !selectedBillerCode &&
+        list.length
+      ) {
+        const b = list[0];
+        const code = String(b.code || b.billerCode || '');
+        const name = String(b.name || code);
+        setSelectedBillerCode(code);
+        setSelectedProvider(name);
+        setProviderImage((b as { image?: string }).image || getCachedLogo(code) || null);
+        const m = (b as { minAmount?: string }).minAmount != null ? Number((b as { minAmount?: string }).minAmount) : NaN;
+        if (Number.isFinite(m) && m > 0) setMinLocalAmount(m);
+      }
     }
     if (billersQuery.isError && billersQuery.error instanceof ApiError) {
       setApiError({ code: billersQuery.error.code, message: billersQuery.error.message });
@@ -175,23 +217,37 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
   }, [step, activeService, selectedBillerCode, customerRef, country]);
 
 
-  // Data & airtime: land on form immediately; auto-pick provider from NCC prefix
+  // Auto-detect network from prefix; never lock — warn on mismatch if user overrode
   useEffect(() => {
     if (step !== 'detail') return;
-    if (activeService !== 'data' && activeService !== 'airtime') return;
+    if (activeService !== 'data' && activeService !== 'airtime') {
+      setPrefixMismatch(false);
+      return;
+    }
     const op = detectNgOperator(phoneNumber);
-    if (!op) return;
+    if (!op) {
+      setPrefixMismatch(false);
+      return;
+    }
     const map = activeService === 'data' ? DATA_BILLER : AIRTIME_BILLER;
-    const b = map[op];
-    if (!b) return;
-    if (selectedBillerCode === b.code) return;
-    setSelectedBillerCode(b.code);
-    setSelectedProvider(b.name);
-    setProviderImage(getCachedLogo(b.code) || null);
-    setProductCode(null);
-    setSelectedAmount(null);
-    setCustomAmount('');
-  }, [phoneNumber, activeService, step, selectedBillerCode]);
+    const suggested = map[op];
+    if (!suggested) return;
+
+    if (!manualNetwork) {
+      if (selectedBillerCode !== suggested.code) {
+        setSelectedBillerCode(suggested.code);
+        setSelectedProvider(suggested.name);
+        setProviderImage(getCachedLogo(suggested.code) || null);
+        setProductCode(null);
+        setSelectedAmount(null);
+        setCustomAmount('');
+      }
+      setPrefixMismatch(false);
+      return;
+    }
+    // User picked a different network than the number's original allocation
+    setPrefixMismatch(selectedBillerCode !== suggested.code);
+  }, [phoneNumber, activeService, step, selectedBillerCode, manualNetwork]);
 
   const canPay = () => {
     if (!(localAmountNum > 0 && selectedProvider && selectedBillerCode && customerRef && !paying)) return false;
@@ -344,32 +400,22 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
           </>
         )}
 
-        {step === 'detail' && activeItem && (
+        {step === 'detail' && activeItem && activeService && (
           <div className="flex flex-col gap-4">
-            {loadingBillers && activeService !== 'data' && activeService !== 'airtime' && !selectedProvider ? (
-              <div className="flex justify-center py-10">
-                <Loader className="animate-spin" size={22} style={{ color: 'var(--muted-foreground)' }} />
-              </div>
-            ) : (
-              <>
-                {!selectedProvider &&
-                  activeService !== 'data' &&
-                  activeService !== 'airtime' && (
-                  <ProviderSelector
-                    serviceId={activeService || ''}
-                    billers={billers}
-                    onSelect={(name, code, meta) => {
-                      setSelectedBillerCode(code);
-                      setSelectedProvider(name);
-                      setProviderImage(meta?.image || getCachedLogo(code) || null);
-                      const m = meta?.minAmount != null ? Number(meta.minAmount) : NaN;
-                      setMinLocalAmount(Number.isFinite(m) && m > 0 ? m : null);
-                    }}
-                  />
-                )}
-
-                {(selectedProvider || activeService === 'data' || activeService === 'airtime') && activeService && (
-                  <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-5">
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-5">
+                    {prefixMismatch && selectedProvider && (
+                      <p
+                        className="rounded-2xl px-3.5 py-2.5 text-[13px] leading-snug"
+                        style={{
+                          background: 'color-mix(in oklab, var(--warning, #F2C14E) 14%, var(--card))',
+                          border: '1px solid color-mix(in oklab, var(--warning, #F2C14E) 35%, var(--border))',
+                          color: 'var(--foreground)',
+                        }}
+                      >
+                        This number is usually not on {selectedProvider}. You can still continue if it was
+                        ported, or change the network at the top.
+                      </p>
+                    )}
                     <ServiceAmountInput
                       serviceId={activeService}
                       phoneNumber={phoneNumber}
@@ -392,19 +438,7 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
                       contactPhone={contactPhone}
                       setContactPhone={setContactPhone}
                       loadingVariations={loadingVariations}
-                      onChangeProvider={() => {
-                        if (activeService === 'data' || activeService === 'airtime') {
-                          setNetworkSheetOpen(true);
-                          return;
-                        }
-                        setSelectedProvider(null);
-                        setProviderImage(null);
-                        setSelectedBillerCode(null);
-                        setSelectedAmount(null);
-                        setCustomAmount('');
-                        setProductCode(null);
-                        setLiveVariations([]);
-                      }}
+                      onChangeProvider={() => setNetworkSheetOpen(true)}
                     />
                     {minLocalAmount != null && localAmountNum > 0 && localAmountNum < minLocalAmount && (
                       <p className="text-center" style={{ color: 'var(--destructive)', fontSize: 12 }}>
@@ -412,7 +446,7 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
                       </p>
                     )}
                     <PaymentSummaryCard
-                      provider={selectedProvider}
+                      provider={selectedProvider || ''}
                       serviceLabel={activeItem.label}
                       localAmount={localAmountStr}
                       localCurrency={localCurrency}
@@ -420,10 +454,7 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
                       onPay={goConfirm}
                       paying={paying}
                     />
-                  </motion.div>
-                )}
-              </>
-            )}
+            </motion.div>
           </div>
         )}
 
@@ -483,6 +514,56 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
         )}
       </div>
 
+      {networkSheetOpen && (activeService === 'data' || activeService === 'airtime') && (
+        <NetworkSheet
+          open={networkSheetOpen}
+          mode={activeService === 'data' ? 'data' : 'airtime'}
+          currentCode={selectedBillerCode}
+          onClose={() => setNetworkSheetOpen(false)}
+          onPick={(code, name) => {
+            setManualNetwork(true);
+            setSelectedBillerCode(code);
+            setSelectedProvider(name);
+            setProviderImage(getCachedLogo(code) || null);
+            setProductCode(null);
+            setSelectedAmount(null);
+            setCustomAmount('');
+          }}
+        />
+      )}
+      {networkSheetOpen && activeService && activeService !== 'data' && activeService !== 'airtime' && (
+        <div
+          className="fixed inset-0 z-[80] flex items-end justify-center"
+          style={{ background: 'rgba(0,0,0,0.55)' }}
+          onClick={() => setNetworkSheetOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-t-[28px] px-4 pt-3 pb-10 max-h-[75vh] overflow-y-auto"
+            style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: 'var(--border)' }} />
+            <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 18, marginBottom: 12 }}>
+              Choose provider
+            </h2>
+            <ProviderSelector
+              serviceId={activeService}
+              billers={billers}
+              onSelect={(name, code, meta) => {
+                setSelectedBillerCode(code);
+                setSelectedProvider(name);
+                setProviderImage(meta?.image || getCachedLogo(code) || null);
+                const m = meta?.minAmount != null ? Number(meta.minAmount) : NaN;
+                setMinLocalAmount(Number.isFinite(m) && m > 0 ? m : null);
+                setProductCode(null);
+                setSelectedAmount(null);
+                setCustomAmount('');
+                setNetworkSheetOpen(false);
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

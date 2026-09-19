@@ -95,21 +95,21 @@ export function ServiceAmountInput({
   return (
     <div className="flex flex-col gap-4">
       {/* Provider header card */}
-      {provider && (
-        <button
-          type="button"
-          onClick={onChangeProvider}
-          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-[20px] text-left"
-          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-        >
-          <ProviderIcon name={provider} logo={providerImage || undefined} size={44} rounded="full" />
-          <div className="flex-1 min-w-0">
-            <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 16 }}>{provider}</p>
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>Tap to change provider</p>
-          </div>
-          <ChevronDown size={18} style={{ color: 'var(--muted-foreground)' }} />
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={onChangeProvider}
+        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-[20px] text-left"
+        style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+      >
+        <ProviderIcon name={provider || 'Network'} logo={providerImage || undefined} size={44} rounded="full" />
+        <div className="flex-1 min-w-0">
+          <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 16 }}>
+            {provider || 'Select network'}
+          </p>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>Tap to change</p>
+        </div>
+        <ChevronDown size={18} style={{ color: 'var(--muted-foreground)' }} />
+      </button>
 
       {/* Electricity meter type */}
       {needsMeter && (
