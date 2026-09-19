@@ -1,505 +1,491 @@
-import { useEffect, useState } from 'react';
-import { type Asset } from '../../../shared/data/mockData';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft } from 'lucide-react';
-import { useCurrency } from '../../../shared/context/CurrencyContext';
-import { OnRampFormStep } from '../components/onramp/OnRampFormStep';
-import { OnRampReviewStep } from '../components/onramp/OnRampReviewStep';
-import { OnRampProcessingStep, OnRampDoneStep } from '../components/onramp/OnRampStatusSteps';
-import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
-import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
-import { GateHint } from '../../../shared/components/AccountStatusBanners';
-import { useAuth } from '../../../shared/context/AuthContext';
-import { useAccountGates } from '../../../shared/hooks/useAccountGates';
-import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
-import * as fiatApi from '../../../shared/api/fiat';
-import { createCardPayment, refreshPayment, getLocalOnrampOrder, listDepositRequests } from '../../../shared/api/fiat';
-import type { LocalOnrampOrder, LocalOnrampQuote } from '../../../shared/api/fiat';
-import { ApiError } from '../../../shared/api/types';
-import { queryClient, queryKeys } from '../../../shared/query/queryClient';
-import { useLanguage } from '../../../shared/context/LanguageContext';
-import { PageTop } from '../../../shared/components/PageTop';
-import { BackButton } from '../../../shared/components/BackButton';
-import { localFiatForCountry } from '../../../shared/lib/countryFiat';
-import { useMyProfile } from '../../../shared/hooks/useMyProfile';
-import { getRate } from '../../../shared/rates/fx';
-import { fetchTransactions } from '../../../shared/api/transactions';
-import { openInlineCardCheckout } from '../../../shared/payments/inlineCheckout';
+import { Loader, CheckCircle2, Copy, Check, Clock, Landmark, AlertTriangle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import type { Currency } from '../../../../shared/context/CurrencyContext';
 
-interface OnRampScreenProps {
-  goBack: () => void;
-  presetSymbol?: string;
+interface OnRampProcessingStepProps {
+  currency: Currency;
+  amount: string;
+  youGet: number;
+  symbol: string;
+  bankName?: string;
+  accountNumber?: string;
+  accountName?: string;
+  reference?: string;
+  expiresAt?: string | null;
+  checking?: boolean;
+  toast?: string | null;
+  onDismissToast?: () => void;
+  onConfirmPaid?: () => void;
 }
 
-/**
- * On-ramp: bank transfer (VA in-app) or card via PaymentIntent (provider-hosted — no PAN on Convia).
- */
-export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
-  const { t } = useLanguage();
-  const { assets: cryptoAssets } = useWalletAssets();
-  const { userId, email: authEmail } = useAuth();
-  const gates = useAccountGates();
-  const { profile } = useMyProfile();
-  const { currency, format } = useCurrency();
+/* ---------- helpers ---------- */
 
-  const [selectedAsset, setSelectedAsset] = useState<Asset>(
-    cryptoAssets.find((a) => a.symbol === 'USDT') ||
-      cryptoAssets[0] || {
-        id: 'usdt',
-        symbol: 'USDT',
-        name: 'Tether',
-        price: 1,
-        change24h: 0,
-        balance: 0,
-        valueUSD: 0,
-        color: '#26A17B',
-        bgColor: 'rgba(38,161,123,0.15)',
-        chains: [],
-        sparkline: [],
-      },
-  );
-  const [paymentMethod, setPaymentMethod] = useState<'bank' | 'card'>('bank');
-  const [cardPaymentId, setCardPaymentId] = useState<string | null>(null);
-  const [amount, setAmount] = useState('');
-  const [amountMode] = useState<'fiat' | 'usd'>('fiat'); // local fiat only for payment rails
-  const [step, setStep] = useState<'form' | 'review' | 'processing' | 'done'>(
-    'form',
-  );
-  const [showTokenDropdown, setShowTokenDropdown] = useState(false);
-  const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
-  const [quote, setQuote] = useState<LocalOnrampQuote | null>(null);
-  const [order, setOrder] = useState<LocalOnrampOrder | null>(null);
-  const [quoting, setQuoting] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [checkingPaid, setCheckingPaid] = useState(false);
-  const [paidToast, setPaidToast] = useState<string | null>(null);
+const WARN = 'var(--warning, #f59e0b)';
+const DANGER = 'var(--destructive, #ef4444)';
 
-  useEffect(() => {
-    if (!presetSymbol || !cryptoAssets.length) return;
-    const hit = cryptoAssets.find((a) => a.symbol.toUpperCase() === presetSymbol.toUpperCase());
-    if (hit && selectedAsset.symbol !== hit.symbol) setSelectedAsset(hit);
-  }, [presetSymbol, cryptoAssets]);
+const truncateMiddle = (s: string, head = 12, tail = 8) =>
+  s.length <= head + tail + 1 ? s : `${s.slice(0, head)}…${s.slice(-tail)}`;
 
-  // Always charge in country local currency (NGN/GHS/…), never display USD as the pay rail
-  const payCurrency = localFiatForCountry(profile?.country || gates.country, 'NGN');
-  const fiatCurrency = payCurrency;
-  const localPerUsd = getRate(payCurrency);
-  const effectiveFiatAmount = (() => {
-    const n = Number(amount);
-    if (!(n > 0)) return '';
-    if (amountMode === 'usd') {
-      if (!(localPerUsd > 0)) return '';
-      return String(Number((n * localPerUsd).toFixed(2)));
-    }
-    return amount.trim();
-  })();
-  const fiatAmount = effectiveFiatAmount;
-  const FIAT_META: Record<string, { symbol: string; name: string }> = {
-    NGN: { symbol: '₦', name: 'Nigerian Naira' },
-    GHS: { symbol: 'GH₵', name: 'Ghanaian Cedi' },
-    KES: { symbol: 'KSh', name: 'Kenyan Shilling' },
-    ZAR: { symbol: 'R', name: 'South African Rand' },
-    UGX: { symbol: 'USh', name: 'Ugandan Shilling' },
-  };
-  const payCurrencyDisplay = {
-    code: payCurrency,
-    name: FIAT_META[payCurrency]?.name || payCurrency,
-    symbol: FIAT_META[payCurrency]?.symbol || payCurrency,
-    rate: localPerUsd || 1,
-    flag: (profile?.country || gates.country || 'NG').toString().slice(0, 2),
-  };
-
-  // Live quote when amount changes
-  useEffect(() => {
-    if (!fiatAmount || Number(fiatAmount) <= 0 || !gates.canOnramp) {
-      setQuote(null);
-      return;
-    }
-    let cancelled = false;
-    setQuoting(true);
-    const t = setTimeout(() => {
-      void fiatApi
-        .localOnrampQuote({
-          fiatCurrency,
-          fiatAmount,
-          toAsset: selectedAsset.symbol,
-        })
-        .then((q) => {
-          if (!cancelled) {
-            setQuote(q);
-            setApiError(null);
-          }
-        })
-        .catch((err) => {
-          if (cancelled) return;
-          if (err instanceof ApiError) {
-            setApiError({ code: err.code, message: err.body.message || err.message });
-            setQuote(null);
-          }
-        })
-        .finally(() => {
-          if (!cancelled) setQuoting(false);
-        });
-    }, 400);
-    return () => {
-      cancelled = true;
-      clearTimeout(t);
-    };
-  }, [fiatAmount, fiatCurrency, selectedAsset.symbol, gates.canOnramp, amountMode]);
-
-  const youGet = quote ? Number(quote.netCrypto) : 0;
-  const usdAmount =
-    amountMode === 'usd'
-      ? Number(amount) || 0
-      : Number(currency.rate) > 0
-        ? (Number(amount) || 0) / Number(currency.rate)
-        : 0;
-  const feeDisplay = quote ? Number(quote.feeAmount) : 0;
-
-
-  const placeOrder = async () => {
-    if (!userId || !gates.canOnramp) return;
-    setSubmitting(true);
-    setApiError(null);
+function useCopy() {
+  const [copied, setCopied] = useState(false);
+  const copy = async (text: string) => {
     try {
-      if (paymentMethod === 'card') {
-        // PaymentIntent — no PAN on Convia; Flutterwave/Monnify open overlay on this page
-        const payment = await createCardPayment({
-          amount: fiatAmount,
-          currency: fiatCurrency,
-          asset: selectedAsset.symbol,
-          callbackUrl: typeof window !== 'undefined' ? `${window.location.origin}/payments/return` : undefined,
-        });
-        setCardPaymentId(payment.id);
-        const action = payment.customerAction;
-        if (action?.type === 'HOSTED_FIELDS') {
-          const inline = await openInlineCardCheckout({
-            action,
-            amount: action.amount || payment.amount || fiatAmount,
-            currency: action.currency || payment.currency || fiatCurrency,
-            email: authEmail || `${userId}@users.convia.app`,
-            customerName: 'Convia User',
-            description: `Buy ${selectedAsset.symbol}`,
-          });
-          if (inline.status === 'error') {
-            setApiError({ message: inline.message });
-            setStep('form');
-            return;
-          }
-          if (inline.status === 'closed') {
-            setApiError({ message: 'Payment window closed. You can try again.' });
-            setStep('form');
-            return;
-          }
-        } else if (action?.type === 'REDIRECT' && action.url) {
-          // Fallback only when public keys not configured on provider
-          window.open(action.url, '_blank', 'noopener,noreferrer');
-        }
-        setStep('processing');
-        // Poll status until SUCCESS / FAILED (max ~2 min)
-        const started = Date.now();
-        while (Date.now() - started < 120_000) {
-          await new Promise((r) => setTimeout(r, 3000));
-          const latest = await refreshPayment(payment.id);
-          if (latest.status === 'SUCCESS') {
-            if (userId) {
-              void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
-              void queryClient.invalidateQueries({ queryKey: queryKeys.transactions(userId, 50) });
-            }
-            setStep('done');
-            return;
-          }
-          if (['FAILED', 'CANCELLED', 'EXPIRED'].includes(latest.status)) {
-            setApiError({ code: latest.failureCode || 'payment_failed', message: latest.failureReason || 'Payment failed' });
-            setStep('form');
-            return;
-          }
-          if (latest.status === 'RECONCILIATION_REQUIRED') {
-            setApiError({ message: 'Payment is being verified. Balance will update shortly.' });
-            setStep('done');
-            return;
-          }
-        }
-        setApiError({ message: 'Payment still processing. Check history shortly.' });
-        setStep('done');
-        return;
-      }
-
-      const res = await fiatApi.localOnrampOrder({
-        userId,
-        email: authEmail || `${userId}@users.convia.app`,
-        fiatCurrency,
-        fiatAmount,
-        toAsset: selectedAsset.symbol,
-        method: 'bank_transfer',
-      });
-      // Normalize provider payload → payment.* the UI expects
-      const payRaw = (res as { payment?: Record<string, unknown>; bank?: Record<string, unknown> }).payment
-        || (res as { bank?: Record<string, unknown> }).bank
-        || {};
-      const normalized: LocalOnrampOrder = {
-        ...res,
-        payment: {
-          provider: String(payRaw.provider ?? res.provider ?? ''),
-          externalId: String(payRaw.externalId ?? payRaw.transactionReference ?? ''),
-          reference: String(payRaw.reference ?? res.reference ?? ''),
-          amount: String(payRaw.amount ?? res.quote?.fiatAmount ?? fiatAmount),
-          currency: String(payRaw.currency ?? res.quote?.fiatCurrency ?? fiatCurrency),
-          bankName: String(payRaw.bankName ?? payRaw.bank_name ?? payRaw.destinationBankName ?? '') || undefined,
-          accountNumber: String(payRaw.accountNumber ?? payRaw.account_number ?? payRaw.accountNumber ?? '') || undefined,
-          accountName: String(payRaw.accountName ?? payRaw.account_name ?? payRaw.accountName ?? '') || undefined,
-          checkoutUrl: payRaw.checkoutUrl ? String(payRaw.checkoutUrl) : undefined,
-          accessCode: payRaw.accessCode ? String(payRaw.accessCode) : undefined,
-          status: String(payRaw.status ?? res.status ?? 'pending'),
-          expiresAt: (payRaw.expiresAt || payRaw.expiryDate || payRaw.expiredTime) as string | undefined,
-        },
-        expiresAt: (res as { expiresAt?: string }).expiresAt
-          || (payRaw.expiresAt as string | undefined)
-          || (payRaw.expiryDate as string | undefined),
-      };
-      setOrder(normalized);
-      setStep('processing');
-      if (!normalized.payment?.accountNumber) {
-        setApiError({
-          message: res.note || 'Could not get a bank account for this payment. Try again or use card.',
-        });
-      }
-      // Stay on processing with VA until user taps I've paid / webhook credits
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setApiError({ code: err.code, message: err.body.message || err.message });
-      } else {
-        setApiError({ message: 'Could not create on-ramp order' });
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-
-
-  const checkPaid = async () => {
-    if (!userId || checkingPaid) return;
-    setCheckingPaid(true);
-    setPaidToast(null);
-    setApiError(null);
-
-    const isCreditedStatus = (s: string) =>
-      ['completed', 'credited', 'success', 'confirmed', 'paid', 'settled'].includes(
-        String(s || '').toLowerCase(),
-      );
-
-    try {
-      // 1) Authoritative: depositRequest list (works on production today)
-      try {
-        const rows = await listDepositRequests(userId);
-        const list = Array.isArray(rows) ? rows : [];
-        const match =
-          list.find((r) => order?.orderId && r.id === order.orderId) ||
-          list.find(
-            (r) =>
-              order?.reference &&
-              String(r.externalPaymentRef || '') === String(order.reference),
-          ) ||
-          list.find((r) => {
-            if (!order?.quote?.fiatAmount && !order?.payment?.amount) return false;
-            const want = Number(order?.payment?.amount || order?.quote?.fiatAmount || 0);
-            const got = Number(r.fiatAmount) || 0;
-            const sameAsset =
-              !r.asset || r.asset.toUpperCase() === selectedAsset.symbol.toUpperCase();
-            // same order window: created after this screen session roughly — prefer exact id/ref first
-            return sameAsset && want > 0 && Math.abs(got - want) < 0.01;
-          });
-
-        if (match && isCreditedStatus(match.status)) {
-          void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
-          void queryClient.invalidateQueries({ queryKey: queryKeys.transactions(userId, 50) });
-          setStep('done');
-          return;
-        }
-
-        // Exact order still pending
-        if (match && !isCreditedStatus(match.status)) {
-          setPaidToast(
-            'Transfer not confirmed by the bank yet. If you already paid, wait 1–2 minutes and try again.',
-          );
-          return;
-        }
-      } catch {
-        /* fall through */
-      }
-
-      // 2) Optional status route (when Railway has deployed it)
-      if (order?.orderId) {
-        try {
-          const st = await getLocalOnrampOrder(order.orderId);
-          if (st.credited || isCreditedStatus(st.status)) {
-            void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
-            void queryClient.invalidateQueries({ queryKey: queryKeys.transactions(userId, 50) });
-            setStep('done');
-            return;
-          }
-        } catch {
-          /* ignore — route may 404 until backend deploy */
-        }
-      }
-
-      // 3) Ledger history fallback
-      try {
-        const hist = await fetchTransactions(userId, { limit: 30 });
-        const items = hist.transactions || [];
-        const expected = Number(order?.quote?.netCrypto || youGet) || 0;
-        const hit = items.find((it) => {
-          const type = String((it as { type?: string; kind?: string }).type || (it as { kind?: string }).kind || '').toLowerCase();
-          const okType =
-            type.includes('onramp') ||
-            type.includes('deposit') ||
-            type.includes('fiat') ||
-            type.includes('credit');
-          const amt = Math.abs(Number((it as { amount?: string }).amount) || 0);
-          const assetOk =
-            !(it as { asset?: string }).asset ||
-            String((it as { asset?: string }).asset).toUpperCase() === selectedAsset.symbol.toUpperCase();
-          const status = String((it as { status?: string }).status || 'confirmed').toLowerCase();
-          return (
-            okType &&
-            assetOk &&
-            status !== 'failed' &&
-            status !== 'pending' &&
-            (expected <= 0 || Math.abs(amt - expected) < expected * 0.08 + 0.001)
-          );
-        });
-        if (hit) {
-          void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
-          void queryClient.invalidateQueries({ queryKey: queryKeys.transactions(userId, 50) });
-          setStep('done');
-          return;
-        }
-      } catch {
-        /* ignore */
-      }
-
-      setPaidToast(
-        'Payment not confirmed yet. Transfer the exact amount, wait for the bank, then try again.',
-      );
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1400);
     } catch {
-      setPaidToast('Could not verify payment right now. Try again in a moment.');
-    } finally {
-      setCheckingPaid(false);
+      /* ignore */
     }
   };
+  return { copied, copy };
+}
 
+/** Live countdown to expiresAt. Returns null when there is no usable date. */
+function useCountdown(expiresAt?: string | null) {
+  const target = expiresAt ? new Date(expiresAt).getTime() : NaN;
+  const [now, setNow] = useState(() => Date.now());
 
+  useEffect(() => {
+    if (Number.isNaN(target)) return;
+    setNow(Date.now());
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [target]);
+
+  if (Number.isNaN(target)) return null;
+
+  const ms = Math.max(0, target - now);
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const label = h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}:${String(sec).padStart(2, '0')}`;
+
+  return { expired: ms === 0, urgent: ms < 10 * 60 * 1000, label };
+}
+
+/* ---------- small pieces ---------- */
+
+function CopyPill({ value, label, big }: { value: string; label: string; big?: boolean }) {
+  const { copied, copy } = useCopy();
+  return (
+    <button
+      type="button"
+      onClick={() => copy(value)}
+      aria-label={`Copy ${label}`}
+      className="flex items-center gap-1.5 rounded-full flex-shrink-0"
+      style={{
+        height: big ? 40 : 32,
+        padding: big ? '0 16px' : '0 12px',
+        fontSize: 13,
+        fontWeight: 650,
+        color: copied ? 'var(--primary)' : 'var(--foreground)',
+        background: copied
+          ? 'color-mix(in oklab, var(--primary) 14%, var(--card))'
+          : 'var(--liquid-chip-off-bg, var(--muted))',
+        border: `1px solid ${copied ? 'color-mix(in oklab, var(--primary) 35%, var(--border))' : 'var(--border)'}`,
+        transition: 'background .15s, color .15s, border-color .15s',
+      }}
+    >
+      {copied ? <Check size={14} /> : <Copy size={14} />}
+      <span aria-live="polite">{copied ? 'Copied' : 'Copy'}</span>
+    </button>
+  );
+}
+
+function DetailRow({
+  label,
+  value,
+  display,
+  mono,
+}: {
+  label: string;
+  value?: string;
+  display?: string;
+  mono?: boolean;
+}) {
+  const has = Boolean(value) && value !== '—';
+  return (
+    <div
+      className="flex items-center justify-between gap-3 py-3.5"
+      style={{ borderTop: '1px solid var(--border)' }}
+    >
+      <div className="min-w-0">
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }}>{label}</p>
+        <p
+          title={value}
+          className="truncate"
+          style={{
+            color: has ? 'var(--foreground)' : 'var(--muted-foreground)',
+            fontSize: mono ? 13.5 : 15,
+            fontWeight: 650,
+            marginTop: 2,
+            fontFamily: mono ? 'ui-monospace, SFMono-Regular, Menlo, monospace' : undefined,
+          }}
+        >
+          {has ? display ?? value : '—'}
+        </p>
+      </div>
+      {has && <CopyPill value={value as string} label={label} />}
+    </div>
+  );
+}
+
+function TimerPill({ expiresAt }: { expiresAt?: string | null }) {
+  const cd = useCountdown(expiresAt);
+  if (!expiresAt) return null;
+
+  // Unparseable date: show whatever the server sent
+  if (!cd) {
+    return (
+      <span style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }}>
+        Expires {String(expiresAt)}
+      </span>
+    );
+  }
+
+  const tone = cd.expired ? DANGER : cd.urgent ? WARN : 'var(--muted-foreground)';
+  return (
+    <span
+      className="flex items-center gap-1.5 rounded-full tabular-nums"
+      style={{
+        height: 30,
+        padding: '0 12px',
+        fontSize: 12.5,
+        fontWeight: 650,
+        color: tone,
+        background: `color-mix(in oklab, ${tone} 10%, var(--card))`,
+        border: `1px solid color-mix(in oklab, ${tone} 28%, var(--border))`,
+      }}
+    >
+      <Clock size={13} />
+      {cd.expired ? 'Expired' : (
+        <>
+          Expires in <strong style={{ color: cd.urgent ? tone : 'var(--foreground)' }}>{cd.label}</strong>
+        </>
+      )}
+    </span>
+  );
+}
+
+/* ---------- step 1: bank transfer ---------- */
+
+export function OnRampProcessingStep({
+  currency,
+  amount,
+  youGet,
+  symbol,
+  bankName,
+  accountNumber,
+  accountName,
+  reference,
+  expiresAt,
+  checking,
+  toast,
+  onDismissToast,
+  onConfirmPaid,
+}: OnRampProcessingStepProps) {
+  const hasVa = Boolean(accountNumber);
+  const countdown = useCountdown(expiresAt);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => onDismissToast?.(), 4000);
+    return () => clearTimeout(t);
+  }, [toast, onDismissToast]);
+
+  const expiryText = (() => {
+    if (!expiresAt) return null;
+    const d = new Date(expiresAt);
+    if (Number.isNaN(d.getTime())) return String(expiresAt);
+    return d.toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  })();
+
+  /* creating account: skeleton of the real layout */
+  if (!hasVa) {
+    return (
+      <motion.div key="wait" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-10">
+        <div className="flex items-center gap-3 mb-6">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+          >
+            <Loader size={18} className="animate-spin" style={{ color: 'var(--foreground)' }} />
+          </div>
+          <div>
+            <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 15 }}>Creating your account…</p>
+            <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Usually a few seconds</p>
+          </div>
+        </div>
+        {[112, 208].map((h) => (
+          <div
+            key={h}
+            className="animate-pulse rounded-[24px] mb-3"
+            style={{ height: h, background: 'var(--card)', border: '1px solid var(--border)' }}
+          />
+        ))}
+      </motion.div>
+    );
+  }
+
+  const amountNumber = Number(amount);
+  const amt = `${amountNumber.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${currency.code}`;
+  // Copy the plain number so it pastes cleanly into a bank app
+  const amtRaw = Number.isFinite(amountNumber) ? String(amountNumber) : amount;
+  const receive = `${youGet.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${symbol}`;
+  const expired = Boolean(countdown?.expired);
+
+  const steps = [
+    'Open your bank app',
+    `Send exactly ${amt} to the account below`,
+    "Come back here and tap I've paid",
+  ];
 
   return (
-    <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
-      <PageTop />
-      <div className="px-5 pt-2">
-        <GateHint mode="onramp" />
-        {apiError && (
-          <FeatureAlert
-            reason={mapApiCodeToReason(apiError.code)}
-            message={apiError.message}
-            detail={apiError.code}
-          />
+    <motion.div key="va" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="pb-6 relative">
+      {/* Bottom toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            className="fixed left-4 right-4 z-50 mx-auto"
+            style={{ bottom: 'max(96px, env(safe-area-inset-bottom))', maxWidth: 420 }}
+          >
+            <div
+              className="rounded-2xl px-4 py-3.5 flex items-start gap-3"
+              style={{
+                background: 'var(--card)',
+                border: '1px solid var(--border)',
+                boxShadow: '0 12px 40px rgba(0,0,0,0.35)',
+              }}
+            >
+              <Clock size={18} className="mt-0.5 flex-shrink-0" style={{ color: WARN }} />
+              <div className="min-w-0 flex-1">
+                <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 13 }}>Not confirmed yet</p>
+                <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 2, lineHeight: 1.4 }}>
+                  {toast}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onDismissToast}
+                style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }}
+              >
+                OK
+              </button>
+            </div>
+          </motion.div>
         )}
+      </AnimatePresence>
+
+      {/* Status row */}
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 13, fontWeight: 600 }}>Bank transfer</p>
+        <TimerPill expiresAt={expiresAt} />
       </div>
 
-      <div className="flex items-center gap-3 px-5 mb-5">
-        <BackButton
-          onClick={step === 'form' ? goBack : step === 'review' ? () => setStep('form') : goBack}
-        />
-        <h2 style={{ color: 'var(--foreground)', fontWeight: 800 }}>Buy crypto</h2>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-5">
-        <AnimatePresence mode="wait">
-          {step === 'form' && (
-            <OnRampFormStep
-              currency={payCurrencyDisplay}
-              format={format}
-              amount={amount}
-              setAmount={setAmount}
-              amountMode={amountMode}
-              setAmountMode={() => {}}
-              usdAmount={usdAmount}
-              rampAssets={cryptoAssets}
-              selectedAsset={selectedAsset}
-              setSelectedAsset={setSelectedAsset}
-              showTokenDropdown={showTokenDropdown}
-              setShowTokenDropdown={setShowTokenDropdown}
-              paymentMethod={paymentMethod === 'card' ? 'card' : 'bank'}
-              setPaymentMethod={(m) => setPaymentMethod(m === 'card' ? 'card' : 'bank')}
-              cards={[]}
-              selectedCardId={null}
-              setSelectedCardId={() => {}}
-              showNewCard={false}
-              setShowNewCard={() => {}}
-              newCard={{ number: '', expiry: '', cvc: '', name: '' }}
-              setNewCard={() => {}}
-              onAddCard={() => {}}
-              fee={feeDisplay}
-              youGet={youGet}
-              quote={quote}
-              quoting={quoting}
-              submitting={submitting}
-              onPreview={() => {
-                if (!gates.canOnramp || submitting) return;
-                if (!quote || Number(fiatAmount) <= 0) return;
-                void placeOrder();
-              }}
-            />
-          )}
-
-          {step === 'review' && (
-            <OnRampReviewStep
-              currency={payCurrencyDisplay}
-              format={format}
-              amount={amount}
-              selectedAsset={selectedAsset}
-              youGet={youGet}
-              fee={feeDisplay}
-              paymentMethod={paymentMethod === 'card' ? 'card' : 'bank'}
-              newCard={{ number: '', expiry: '', cvc: '', name: '' }}
-              setNewCard={() => {}}
-              confirming={submitting}
-              onConfirm={() => {
-                if (!gates.canOnramp || submitting) return;
-                void placeOrder();
-              }}
-            />
-          )}
-
-          {step === 'processing' && (
-            <OnRampProcessingStep
-              currency={payCurrencyDisplay}
-              amount={String(order?.payment?.amount || order?.quote?.fiatAmount || fiatAmount || amount)}
-              youGet={youGet}
-              symbol={selectedAsset.symbol}
-              bankName={order?.payment?.bankName}
-              accountNumber={order?.payment?.accountNumber}
-              accountName={order?.payment?.accountName}
-              reference={order?.payment?.reference || order?.reference}
-              expiresAt={(order?.payment as { expiresAt?: string } | undefined)?.expiresAt
-                || (order as { expiresAt?: string } | null)?.expiresAt
-                || null}
-              checking={checkingPaid}
-              toast={paidToast}
-              onDismissToast={() => setPaidToast(null)}
-              onConfirmPaid={() => void checkPaid()}
-            />
-          )}
-
-          {step === 'done' && (
-            <OnRampDoneStep youGet={youGet} symbol={selectedAsset.symbol} onDone={goBack} />
-          )}
-        </AnimatePresence>
-        {quoting && step === 'form' && (
-          <p className="text-center text-xs mt-2" style={{ color: 'var(--muted-foreground)' }}>
-            Fetching live quote…
+      {expired && (
+        <div
+          className="flex items-start gap-2.5 rounded-2xl px-3.5 py-3 mb-4"
+          role="alert"
+          style={{
+            background: `color-mix(in oklab, ${DANGER} 10%, var(--card))`,
+            border: `1px solid color-mix(in oklab, ${DANGER} 30%, var(--border))`,
+          }}
+        >
+          <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" style={{ color: DANGER }} />
+          <p style={{ color: 'var(--foreground)', fontSize: 13, lineHeight: 1.45 }}>
+            <strong>This account has expired.</strong> Don&apos;t send money to it. Go back and start a new
+            purchase. If you already paid, tap I&apos;ve paid.
           </p>
-        )}
+        </div>
+      )}
+
+      {/* Amount hero */}
+      <div
+        className="rounded-[24px] px-5 py-5 mb-3"
+        style={{
+          background: 'color-mix(in oklab, var(--primary) 9%, var(--card))',
+          border: '1px solid color-mix(in oklab, var(--primary) 24%, var(--border))',
+        }}
+      >
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 13, fontWeight: 600 }}>Send exactly</p>
+        <div className="flex items-center justify-between gap-3 mt-1.5">
+          <p
+            className="tabular-nums"
+            style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 34, letterSpacing: -0.8, lineHeight: 1.1 }}
+          >
+            {amt}
+          </p>
+          <CopyPill value={amtRaw} label="amount" big />
+        </div>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 13.5, marginTop: 10 }}>
+          You&apos;ll receive about{' '}
+          <span className="tabular-nums" style={{ color: 'var(--foreground)', fontWeight: 700 }}>
+            {receive}
+          </span>
+        </p>
       </div>
-    </div>
+
+      {/* Account details */}
+      <div
+        className="rounded-[24px] px-5 pt-5 mb-4"
+        style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+          >
+            <Landmark size={18} style={{ color: 'var(--muted-foreground)' }} />
+          </div>
+          <div className="min-w-0">
+            <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }}>Transfer to</p>
+            <p className="truncate" style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 16 }}>
+              {bankName || '—'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-3 pt-4 pb-5">
+          <div className="min-w-0">
+            <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }}>Account number</p>
+            <p
+              className="tabular-nums"
+              style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 30, letterSpacing: 1, marginTop: 2 }}
+            >
+              {accountNumber}
+            </p>
+          </div>
+          <CopyPill value={accountNumber as string} label="account number" big />
+        </div>
+
+        <DetailRow label="Account name" value={accountName || '—'} />
+        <DetailRow
+          label="Reference"
+          value={reference || '—'}
+          display={reference ? truncateMiddle(reference) : undefined}
+          mono
+        />
+      </div>
+
+      {/* How it works */}
+      <ol className="flex flex-col gap-2.5 px-1 mb-2">
+        {steps.map((text, i) => (
+          <li key={text} className="flex items-start gap-3">
+            <span
+              className="flex items-center justify-center flex-shrink-0 rounded-full tabular-nums"
+              style={{
+                width: 22,
+                height: 22,
+                fontSize: 12,
+                fontWeight: 700,
+                color: 'var(--foreground)',
+                background: 'var(--muted)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              {i + 1}
+            </span>
+            <span style={{ color: 'var(--muted-foreground)', fontSize: 13.5, lineHeight: 1.45, paddingTop: 1 }}>
+              {text}
+            </span>
+          </li>
+        ))}
+      </ol>
+
+      {/* Sticky action */}
+      <div
+        className="sticky bottom-0 pt-8 pb-4"
+        style={{ background: 'linear-gradient(to top, var(--background, transparent) 65%, transparent)' }}
+      >
+        <button
+          type="button"
+          disabled={!!checking}
+          onClick={onConfirmPaid}
+          className="w-full py-4 rounded-full font-bold text-[15px] flex items-center justify-center gap-2"
+          style={{
+            background: 'var(--primary)',
+            color: 'var(--primary-foreground, #fff)',
+            opacity: checking ? 0.8 : 1,
+          }}
+        >
+          {checking ? (
+            <>
+              <Loader size={16} className="animate-spin" />
+              Checking payment…
+            </>
+          ) : (
+            "I've paid"
+          )}
+        </button>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 12, textAlign: 'center', marginTop: 10, lineHeight: 1.4 }}>
+          Tap once your transfer has gone through. We credit your {symbol} when the payment is confirmed.
+          {!countdown && expiryText ? ` Account expires ${expiryText}.` : ''}
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ---------- step 2: done ---------- */
+
+interface OnRampDoneStepProps {
+  youGet: number;
+  symbol: string;
+  onDone: () => void;
+}
+
+export function OnRampDoneStep({ youGet, symbol, onDone }: OnRampDoneStepProps) {
+  return (
+    <motion.div
+      key="done"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex flex-col items-center py-16 px-1 text-center"
+    >
+      <motion.div
+        initial={{ scale: 0.6, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 16 }}
+        className="w-20 h-20 rounded-full flex items-center justify-center mb-6"
+        style={{
+          background: 'color-mix(in oklab, var(--primary) 14%, var(--card))',
+          border: '1px solid color-mix(in oklab, var(--primary) 30%, var(--border))',
+          boxShadow: '0 0 0 10px color-mix(in oklab, var(--primary) 6%, transparent)',
+        }}
+      >
+        <CheckCircle2 size={38} style={{ color: 'var(--primary)' }} />
+      </motion.div>
+      <p style={{ color: 'var(--muted-foreground)', fontSize: 14, fontWeight: 600, marginBottom: 6 }}>
+        Payment confirmed
+      </p>
+      <p
+        className="tabular-nums"
+        style={{ color: 'var(--foreground)', fontSize: 32, fontWeight: 800, letterSpacing: -0.8 }}
+      >
+        +{youGet.toLocaleString(undefined, { maximumFractionDigits: 6 })} {symbol}
+      </p>
+      <p style={{ color: 'var(--muted-foreground)', fontSize: 13.5, marginTop: 8, marginBottom: 32 }}>
+        It&apos;s in your wallet now.
+      </p>
+      <motion.button
+        type="button"
+        whileTap={{ scale: 0.98 }}
+        onClick={onDone}
+        className="w-full py-4 rounded-full"
+        style={{
+          background: 'var(--primary)',
+          color: 'var(--primary-foreground, #fff)',
+          fontWeight: 700,
+          fontSize: 16,
+        }}
+      >
+        Done
+      </motion.button>
+    </motion.div>
   );
 }
