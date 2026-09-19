@@ -4,12 +4,17 @@ import { useMemo, useState } from 'react';
 import { PROVIDERS } from './serviceData';
 import { ProviderIcon } from '../../../shared/icons/ProviderIcon';
 import type { Biller } from '../../../shared/api/bills';
+import { getCachedLogo } from '../../../shared/utils/logoCache';
 
 interface ProviderSelectorProps {
   serviceId: string;
   /** Live billers from API — preferred over static PROVIDERS */
   billers?: Biller[];
-  onSelect: (providerName: string, billerCode: string) => void;
+  onSelect: (
+    providerName: string,
+    billerCode: string,
+    meta?: { minAmount?: string; image?: string },
+  ) => void;
 }
 
 /** Provider list with search — prefers live API billers. */
@@ -21,7 +26,8 @@ export function ProviderSelector({ serviceId, billers, onSelect }: ProviderSelec
       return billers.map((b) => ({
         name: String(b.name || b.code || b.billerCode || 'Provider'),
         code: String(b.code || b.billerCode || b.id || ''),
-        logo: undefined as string | undefined,
+        logo: (b as { image?: string }).image || getCachedLogo(String(b.code || b.billerCode || '')),
+        minAmount: (b as { minAmount?: string }).minAmount,
       }));
     }
     return (PROVIDERS[serviceId] || []).map((p) => ({
@@ -71,7 +77,7 @@ export function ProviderSelector({ serviceId, billers, onSelect }: ProviderSelec
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.03 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => onSelect(p.name, p.code)}
+            onClick={() => onSelect(p.name, p.code, { minAmount: (p as { minAmount?: string }).minAmount, image: p.logo })}
             className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
             style={{
               borderBottom: i === filtered.length - 1 ? 'none' : '1px solid var(--border)',

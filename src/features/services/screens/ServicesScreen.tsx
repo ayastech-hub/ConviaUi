@@ -12,6 +12,7 @@ import { useAuth } from '../../../shared/context/AuthContext';
 import { useSupportedCountries } from '../../../shared/hooks/useSupportedCountries';
 import * as billsApi from '../../../shared/api/bills';
 import type { Biller } from '../../../shared/api/bills';
+import { cacheProviderLogos, getCachedLogo } from '../../../shared/utils/logoCache';
 import { ApiError } from '../../../shared/api/types';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
@@ -41,6 +42,7 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
   const [productCode, setProductCode] = useState<string | null>(null);
   const [meterType, setMeterType] = useState<'prepaid' | 'postpaid'>('prepaid');
   const [contactPhone, setContactPhone] = useState('');
+  const [minLocalAmount, setMinLocalAmount] = useState<number | null>(null);
   const [liveVariations, setLiveVariations] = useState<Array<{ code: string; name: string; amount?: string }>>([]);
   const [loadingVariations, setLoadingVariations] = useState(false);
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
@@ -96,7 +98,14 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
       .listBillers(country || 'NG', category)
       .then((res) => {
         if (cancelled) return;
-        setBillers(res.billers || []);
+        const list = res.billers || [];
+        setBillers(list);
+        cacheProviderLogos(
+          list.map((b) => ({
+            code: String(b.code || b.billerCode || ''),
+            image: (b as { image?: string }).image || getCachedLogo(String(b.code || '')),
+          })),
+        );
         if (res.currency) setBillerCurrency(res.currency);
       })
       .catch((err) => {
@@ -114,7 +123,7 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
 
 
   useEffect(() => {
-    if (step !== 'detail' || activeService !== 'data' || !selectedBillerCode) {
+    if (step !== 'detail' || !selectedBillerCode || (activeService !== 'data' && activeService !== 'bills')) {
       setLiveVariations([]);
       return;
     }
@@ -141,10 +150,36 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
     return phoneNumber.trim();
   }, [activeService, meterNumber, phoneNumber]);
 
+  useEffect(() => {
+    if (step !== 'detail' || !selectedBillerCode || !customerRef) return;
+    if (activeService !== 'electricity' && activeService !== 'bills') return;
+    let cancelled = false;
+    const tmr = setTimeout(() => {
+      billsApi
+        .validateCustomer({
+          country: country || 'NG',
+          category: toCategory(activeService || ''),
+          billerCode: selectedBillerCode,
+          customerRef,
+        })
+        .then((res) => {
+          if (cancelled) return;
+          const m = res.minAmount != null ? Number(res.minAmount) : NaN;
+          if (Number.isFinite(m) && m > 0) setMinLocalAmount(m);
+        })
+        .catch(() => undefined);
+    }, 600);
+    return () => {
+      cancelled = true;
+      clearTimeout(tmr);
+    };
+  }, [step, activeService, selectedBillerCode, customerRef, country]);
+
   const canPay = () => {
     if (!(localAmountNum > 0 && selectedProvider && selectedBillerCode && customerRef && !paying)) return false;
-    if (activeService === 'data' && !productCode) return false;
+    if ((activeService === 'data' || activeService === 'bills') && !productCode) return false;
     if (activeService === 'electricity' && contactPhone.replace(/\D/g, '').length < 10) return false;
+    if (minLocalAmount != null && localAmountNum < minLocalAmount) return false;
     return true;
   };
 
@@ -188,7 +223,10 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
           activeService === 'electricity'
             ? meterType
             : productCode || undefined,
-        contactPhone: activeService === 'electricity' ? contactPhone : undefined,
+        contactPhone:
+          activeService === 'electricity' || activeService === 'bills'
+            ? contactPhone || phoneNumber || undefined
+            : undefined,
       });
 
       const st = String(res.status || '').toLowerCase();
@@ -231,6 +269,7 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
     setSelectedProvider(null);
     setSelectedBillerCode(null);
     setProductCode(null);
+    setMinLocalAmount(null);
     setMeterType('prepaid');
     setContactPhone('');
     setLiveVariations([]);
@@ -298,9 +337,11 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
                   <ProviderSelector
                     serviceId={activeService || ''}
                     billers={billers}
-                    onSelect={(name, code) => {
+                    onSelect={(name, code, meta) => {
                       setSelectedBillerCode(code);
                       setSelectedProvider(name);
+                      const m = meta?.minAmount != null ? Number(meta.minAmount) : NaN;
+                      setMinLocalAmount(Number.isFinite(m) && m > 0 ? m : null);
                     }}
                   />
                 )}
@@ -336,6 +377,11 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
                         setLiveVariations([]);
                       }}
                     />
+                    {minLocalAmount != null && localAmountNum > 0 && localAmountNum < minLocalAmount && (
+                      <p className="text-center" style={{ color: 'var(--destructive)', fontSize: 12 }}>
+                        Minimum amount is {localCurrency} {minLocalAmount.toLocaleString()}
+                      </p>
+                    )}
                     <PaymentSummaryCard
                       provider={selectedProvider}
                       serviceLabel={activeItem.label}

@@ -59,8 +59,13 @@ export function ProviderIcon({
 
   const radius = rounded === 'full' ? '50%' : 12; // matches rounded-xl ≈ 12px
 
-  // Free, no-key CDN for now. Swap this line later for self-hosted or paid.
-  const src = domain ? `https://logos.hunter.io/${domain}` : null;
+  // Prefer VTPass product image (absolute URL); else Hunter domain logo
+  const src =
+    logo && /^https?:\/\//i.test(logo)
+      ? logo
+      : domain
+        ? `https://logos.hunter.io/${domain}`
+        : null;
 
   if (!src || failed) {
     return (
@@ -88,7 +93,7 @@ export function ProviderIcon({
   }
 
   return (
-    <img
+    <img loading="lazy" decoding="async"
       src={src}
       alt=""
       width={size}

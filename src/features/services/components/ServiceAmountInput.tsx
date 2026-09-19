@@ -211,13 +211,34 @@ export function ServiceAmountInput({
               style={{ color: 'var(--foreground)', fontSize: 16, fontWeight: 500 }}
             />
           </div>
+          {serviceId === 'bills' && setContactPhone && (
+            <div className="mt-3">
+              <label style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13, marginBottom: 8, display: 'block' }}>
+                Contact phone
+              </label>
+              <div
+                className="flex items-center gap-3 px-4 h-14 rounded-2xl"
+                style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+              >
+                <Phone size={18} style={{ color: 'var(--muted-foreground)' }} />
+                <input
+                  type="tel"
+                  value={contactPhone || ''}
+                  onChange={(e) => setContactPhone(e.target.value.replace(/[^\d+]/g, '').slice(0, 15))}
+                  placeholder="0801 234 5678"
+                  className="flex-1 bg-transparent outline-none"
+                  style={{ color: 'var(--foreground)', fontSize: 16, fontWeight: 500 }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {serviceId === 'data' && (
+      {(serviceId === 'data' || serviceId === 'bills') && (
         <div>
           <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13, marginBottom: 10 }}>
-            Choose a data plan
+            {serviceId === 'bills' ? 'Choose a package' : 'Choose a data plan'}
           </p>
           {loadingVariations ? (
             <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Loading plans…</p>
