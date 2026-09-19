@@ -49,3 +49,10 @@ export function payBill(body: {
 }) {
   return api.post('/bills/pay', body, { idempotent: true });
 }
+
+
+export function listVariations(serviceId: string, country = 'NG') {
+  return api.get<{ serviceId: string; variations: Array<{ code: string; name: string; amount?: string }> }>(
+    `/bills/variations?country=${encodeURIComponent(country)}&serviceId=${encodeURIComponent(serviceId)}`,
+  );
+}
