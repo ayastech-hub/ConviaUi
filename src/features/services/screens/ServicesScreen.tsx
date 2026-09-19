@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { motion } from 'motion/react';
 import { ArrowLeft, Loader, Lock } from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
@@ -13,6 +14,7 @@ import { useSupportedCountries } from '../../../shared/hooks/useSupportedCountri
 import * as billsApi from '../../../shared/api/bills';
 import type { Biller } from '../../../shared/api/bills';
 import { cacheProviderLogos, getCachedLogo } from '../../../shared/utils/logoCache';
+import { queryKeys } from '../../../shared/query/queryClient';
 import { ApiError } from '../../../shared/api/types';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBanner';
@@ -88,62 +90,49 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
     }
   };
 
+  const category = activeService ? toCategory(activeService) : '';
+  const billersQuery = useQuery({
+    queryKey: queryKeys.billers(country || 'NG', category || 'airtime'),
+    queryFn: async () => {
+      const res = await billsApi.listBillers(country || 'NG', category);
+      const list = res.billers || [];
+      cacheProviderLogos(
+        list.map((b) => ({
+          code: String(b.code || b.billerCode || ''),
+          image: (b as { image?: string }).image || getCachedLogo(String(b.code || '')),
+        })),
+      );
+      return res;
+    },
+    enabled: step === 'detail' && !!activeService && !!category,
+    staleTime: 10 * 60_000,
+  });
   useEffect(() => {
-    if (step !== 'detail' || !activeService) return;
-    const category = toCategory(activeService);
-    let cancelled = false;
-    setLoadingBillers(true);
-    setBillers([]);
-    billsApi
-      .listBillers(country || 'NG', category)
-      .then((res) => {
-        if (cancelled) return;
-        const list = res.billers || [];
-        setBillers(list);
-        cacheProviderLogos(
-          list.map((b) => ({
-            code: String(b.code || b.billerCode || ''),
-            image: (b as { image?: string }).image || getCachedLogo(String(b.code || '')),
-          })),
-        );
-        if (res.currency) setBillerCurrency(res.currency);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        if (err instanceof ApiError) setApiError({ code: err.code, message: err.message });
-        setBillers([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingBillers(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [step, activeService, country]);
-
-
-  useEffect(() => {
-    if (step !== 'detail' || !selectedBillerCode || (activeService !== 'data' && activeService !== 'bills')) {
-      setLiveVariations([]);
-      return;
+    if (billersQuery.data) {
+      setBillers(billersQuery.data.billers || []);
+      if (billersQuery.data.currency) setBillerCurrency(billersQuery.data.currency);
     }
-    let cancelled = false;
-    setLoadingVariations(true);
-    billsApi
-      .listVariations(selectedBillerCode, country || 'NG')
-      .then((res) => {
-        if (!cancelled) setLiveVariations(res.variations || []);
-      })
-      .catch(() => {
-        if (!cancelled) setLiveVariations([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingVariations(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [step, activeService, selectedBillerCode, country]);
+    if (billersQuery.isError && billersQuery.error instanceof ApiError) {
+      setApiError({ code: billersQuery.error.code, message: billersQuery.error.message });
+    }
+    setLoadingBillers(billersQuery.isLoading && !billersQuery.data);
+  }, [billersQuery.data, billersQuery.isLoading, billersQuery.isError, billersQuery.error]);
+
+
+  const variationsQuery = useQuery({
+    queryKey: queryKeys.variations(selectedBillerCode || '', country || 'NG'),
+    queryFn: () => billsApi.listVariations(selectedBillerCode!, country || 'NG'),
+    enabled:
+      step === 'detail' &&
+      !!selectedBillerCode &&
+      (activeService === 'data' || activeService === 'bills'),
+    staleTime: 10 * 60_000,
+  });
+  useEffect(() => {
+    if (variationsQuery.data) setLiveVariations(variationsQuery.data.variations || []);
+    else if (!selectedBillerCode) setLiveVariations([]);
+    setLoadingVariations(variationsQuery.isLoading && !variationsQuery.data);
+  }, [variationsQuery.data, variationsQuery.isLoading, selectedBillerCode]);
 
   const customerRef = useMemo(() => {
     if (activeService === 'electricity' || activeService === 'bills') return meterNumber.trim();

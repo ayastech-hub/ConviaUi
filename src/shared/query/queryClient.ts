@@ -32,4 +32,6 @@ export const queryKeys = {
   countries: () => ['directory', 'countries'] as const,
   banks: (country: string) => ['directory', 'banks', country] as const,
   rates: () => ['rates', 'fx'] as const,
+  billers: (country: string, category: string) => ['bills', 'billers', country, category] as const,
+  variations: (serviceId: string, country: string) => ['bills', 'variations', country, serviceId] as const,
 };

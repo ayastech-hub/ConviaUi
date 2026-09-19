@@ -6,6 +6,7 @@ import {
   localDataBundles,
   localQuickAmounts,
 } from '../../../shared/rates/fx';
+import { PlanPicker } from './PlanPicker';
 
 interface ServiceAmountInputProps {
   serviceId: string;
@@ -236,73 +237,26 @@ export function ServiceAmountInput({
       )}
 
       {(serviceId === 'data' || serviceId === 'bills') && (
-        <div>
-          <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13, marginBottom: 10 }}>
-            {serviceId === 'bills' ? 'Choose a package' : 'Choose a data plan'}
-          </p>
-          {loadingVariations ? (
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Loading plans…</p>
-          ) : liveVariations && liveVariations.length > 0 ? (
-            <div className="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto">
-              {liveVariations.map((v) => {
-                const amt = Number(v.amount) || 0;
-                const active = productCode === v.code;
-                return (
-                  <motion.button
-                    key={v.code}
-                    type="button"
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      onProductCode?.(v.code);
-                      setSelectedAmount(amt);
-                      setCustomAmount('');
-                    }}
-                    className="text-left px-3.5 py-3 rounded-2xl flex justify-between items-center gap-2"
-                    style={{
-                      background: active ? 'var(--muted)' : 'var(--card)',
-                      border: active ? '1.5px solid var(--primary)' : '1px solid var(--border)',
-                    }}
-                  >
-                    <span style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13, flex: 1 }}>
-                      {v.name}
-                    </span>
-                    <span style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap' }}>
-                      {fmtChip(amt)}
-                    </span>
-                  </motion.button>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-2.5">
-              {dataBundles.map((b) => {
-                const active = selectedAmount === b.value;
-                return (
-                  <motion.button
-                    key={b.label}
-                    type="button"
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => {
-                      setSelectedAmount(b.value);
-                      setCustomAmount('');
-                      onProductCode?.(null);
-                    }}
-                    className="relative text-left px-3.5 py-3.5 rounded-2xl"
-                    style={{
-                      background: active ? 'var(--muted)' : 'var(--card)',
-                      border: active ? '1.5px solid var(--primary)' : '1px solid var(--border)',
-                    }}
-                  >
-                    <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14 }}>{b.label}</p>
-                    <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 4 }}>
-                      {fmtChip(b.value)}
-                    </p>
-                  </motion.button>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        <PlanPicker
+          title={serviceId === 'bills' ? 'TV packages' : 'Data plans'}
+          subtitle={
+            serviceId === 'bills'
+              ? 'Official bouquets from your provider'
+              : 'Live plans · amounts in local currency'
+          }
+          plans={liveVariations || []}
+          selectedCode={productCode}
+          currency={code}
+          loading={loadingVariations}
+          onSelect={(plan) => {
+            onProductCode?.(plan.code);
+            const amt = Number(plan.amount) || 0;
+            if (amt > 0) {
+              setSelectedAmount(amt);
+              setCustomAmount('');
+            }
+          }}
+        />
       )}
 
       {serviceId === 'airtime' && (

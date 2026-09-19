@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { prefetchAppData } from '../query/prefetchAppData';
+import { prefetchAppData, prefetchBillsCatalog } from '../query/prefetchAppData';
 
 /**
  * When session becomes authenticated, warm caches for Home → Wallet / History /
@@ -22,4 +22,10 @@ export function usePrefetchAppData() {
     const t = window.setTimeout(() => prefetchAppData(userId), 50);
     return () => window.clearTimeout(t);
   }, [status, userId]);
+
+  // Bills catalog is public — warm even before auth so Services is instant
+  useEffect(() => {
+    const t = window.setTimeout(() => prefetchBillsCatalog('NG'), 400);
+    return () => window.clearTimeout(t);
+  }, []);
 }
