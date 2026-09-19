@@ -55,19 +55,9 @@ type StatusFilter =
   | 'pending'
   | 'failed';
 
-type RangeFilter =
-  | '30d'
-  | 'all'
-  | 'custom';
+type RangeFilter = '30d' | 'all' | 'custom';
 
-/* -------------------------------------------------------------------------- */
-/* Filter options                                                             */
-/* -------------------------------------------------------------------------- */
-
-const TYPE_OPTIONS: {
-  id: TypeFilter;
-  label: string;
-}[] = [
+const TYPE_OPTIONS: { id: TypeFilter; label: string }[] = [
   { id: 'all', label: 'All activity' },
   { id: 'receive', label: 'Received' },
   { id: 'send', label: 'Sent' },
@@ -80,10 +70,7 @@ const TYPE_OPTIONS: {
   { id: 'offramp', label: 'Cash out' },
 ];
 
-const STATUS_OPTIONS: {
-  id: StatusFilter;
-  label: string;
-}[] = [
+const STATUS_OPTIONS: { id: StatusFilter; label: string }[] = [
   { id: 'all', label: 'Any status' },
   { id: 'confirmed', label: 'Confirmed' },
   { id: 'pending', label: 'Pending' },
@@ -107,10 +94,6 @@ const QUICK_DATE_OPTIONS: {
   },
 ];
 
-/* -------------------------------------------------------------------------- */
-/* Transaction metadata                                                       */
-/* -------------------------------------------------------------------------- */
-
 const TX_META: Record<
   string,
   {
@@ -124,49 +107,41 @@ const TX_META: Record<
     Icon: ArrowDownLeft,
     sign: '+',
   },
-
   send: {
     label: 'Sent',
     Icon: ArrowUpRight,
     sign: '−',
   },
-
   swap: {
     label: 'Swapped',
     Icon: RefreshCw,
     sign: '',
   },
-
   buy: {
     label: 'Bought',
     Icon: Plus,
     sign: '+',
   },
-
   sell: {
     label: 'Sold',
     Icon: Minus,
     sign: '−',
   },
-
   offramp: {
     label: 'Cash out',
     Icon: TrendingDown,
     sign: '−',
   },
-
   onramp: {
     label: 'Bought',
     Icon: TrendingUp,
     sign: '+',
   },
-
   deposit: {
     label: 'Deposit',
     Icon: ArrowDownLeft,
     sign: '+',
   },
-
   withdraw: {
     label: 'Withdraw',
     Icon: ArrowUpRight,
@@ -179,41 +154,17 @@ function meta(type: string) {
 }
 
 function statusColor(status: string) {
-  if (status === 'confirmed') {
-    return 'var(--positive)';
-  }
-
-  if (status === 'pending') {
-    return '#F59E0B';
-  }
-
-  if (status === 'failed') {
-    return 'var(--destructive)';
-  }
-
+  if (status === 'confirmed') return 'var(--positive)';
+  if (status === 'pending') return '#F59E0B';
+  if (status === 'failed') return 'var(--destructive)';
   return 'var(--muted-foreground)';
 }
 
-/* -------------------------------------------------------------------------- */
-/* Group transactions by day                                                  */
-/* -------------------------------------------------------------------------- */
-
-function groupByDay(
-  txs: Transaction[],
-): {
-  label: string;
-  items: Transaction[];
-}[] {
-  const map = new Map<
-    string,
-    Transaction[]
-  >();
+function groupByDay(txs: Transaction[]) {
+  const map = new Map<string, Transaction[]>();
 
   for (const tx of txs) {
-    const key =
-      tx.time?.split(',')[0]?.trim() ||
-      tx.time ||
-      'Recent';
+    const key = tx.time?.split(',')[0]?.trim() || tx.time || 'Recent';
 
     if (!map.has(key)) {
       map.set(key, []);
@@ -222,20 +173,11 @@ function groupByDay(
     map.get(key)!.push(tx);
   }
 
-  return Array.from(map.entries()).map(
-    ([label, items]) => ({
-      label,
-      items,
-    }),
-  );
+  return Array.from(map.entries()).map(([label, items]) => ({
+    label,
+    items,
+  }));
 }
-
-/* -------------------------------------------------------------------------- */
-/* Filter chip                                                                */
-/*                                                                            */
-/* Important: the menu is rendered into document.body.                       */
-/* This prevents the horizontal filter scroller from clipping the menu.      */
-/* -------------------------------------------------------------------------- */
 
 function FilterChip({
   open,
@@ -248,69 +190,35 @@ function FilterChip({
   onToggle: () => void;
   children: ReactNode;
 }) {
-  const buttonRef =
-    useRef<HTMLButtonElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  const menuRef =
-    useRef<HTMLDivElement>(null);
-
-  const [position, setPosition] =
-    useState({
-      top: 0,
-      left: 0,
-      width: 220,
-    });
+  const [position, setPosition] = useState({
+    top: 0,
+    left: 0,
+    width: 220,
+  });
 
   const updatePosition = useCallback(() => {
-    const button =
-      buttonRef.current;
-
+    const button = buttonRef.current;
     if (!button) return;
 
-    const rect =
-      button.getBoundingClientRect();
+    const rect = button.getBoundingClientRect();
+    const width = Math.min(240, window.innerWidth - 24);
+    const estimatedHeight = Math.min(360, window.innerHeight * 0.52);
+    const spaceBelow = window.innerHeight - rect.bottom;
 
-    const width = Math.min(
-      240,
-      window.innerWidth - 24,
-    );
-
-    const estimatedHeight = Math.min(
-      360,
-      window.innerHeight * 0.52,
-    );
-
-    const spaceBelow =
-      window.innerHeight - rect.bottom;
-
-    let top: number;
-
-    if (
-      spaceBelow >=
-      estimatedHeight + 12
-    ) {
-      top = rect.bottom + 8;
-    } else {
-      top = Math.max(
-        12,
-        rect.top -
-          estimatedHeight -
-          8,
-      );
-    }
+    const top =
+      spaceBelow >= estimatedHeight + 12
+        ? rect.bottom + 8
+        : Math.max(12, rect.top - estimatedHeight - 8);
 
     const left = Math.min(
       Math.max(12, rect.left),
-      window.innerWidth -
-        width -
-        12,
+      window.innerWidth - width - 12,
     );
 
-    setPosition({
-      top,
-      left,
-      width,
-    });
+    setPosition({ top, left, width });
   }, []);
 
   useEffect(() => {
@@ -318,94 +226,38 @@ function FilterChip({
 
     updatePosition();
 
-    const handleResize = () => {
-      updatePosition();
-    };
-
-    const handleScroll = () => {
-      updatePosition();
-    };
-
-    const handleOutside = (
-      event: MouseEvent,
-    ) => {
-      const target =
-        event.target as Node;
-
-      const insideButton =
-        buttonRef.current?.contains(
-          target,
-        );
-
-      const insideMenu =
-        menuRef.current?.contains(
-          target,
-        );
+    const handleOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
 
       if (
-        !insideButton &&
-        !insideMenu
+        !buttonRef.current?.contains(target) &&
+        !menuRef.current?.contains(target)
       ) {
         onToggle();
       }
     };
 
-    const handleKeyDown = (
-      event: KeyboardEvent,
-    ) => {
+    const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         onToggle();
       }
     };
 
-    document.addEventListener(
-      'mousedown',
-      handleOutside,
-    );
+    const handleResize = () => updatePosition();
+    const handleScroll = () => updatePosition();
 
-    document.addEventListener(
-      'keydown',
-      handleKeyDown,
-    );
-
-    window.addEventListener(
-      'resize',
-      handleResize,
-    );
-
-    window.addEventListener(
-      'scroll',
-      handleScroll,
-      true,
-    );
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', handleScroll, true);
 
     return () => {
-      document.removeEventListener(
-        'mousedown',
-        handleOutside,
-      );
-
-      document.removeEventListener(
-        'keydown',
-        handleKeyDown,
-      );
-
-      window.removeEventListener(
-        'resize',
-        handleResize,
-      );
-
-      window.removeEventListener(
-        'scroll',
-        handleScroll,
-        true,
-      );
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleScroll, true);
     };
-  }, [
-    open,
-    onToggle,
-    updatePosition,
-  ]);
+  }, [open, onToggle, updatePosition]);
 
   const menu =
     typeof document !== 'undefined'
@@ -414,24 +266,10 @@ function FilterChip({
             {open && (
               <motion.div
                 ref={menuRef}
-                initial={{
-                  opacity: 0,
-                  y: 5,
-                  scale: 0.98,
-                }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                  scale: 1,
-                }}
-                exit={{
-                  opacity: 0,
-                  y: 4,
-                  scale: 0.98,
-                }}
-                transition={{
-                  duration: 0.14,
-                }}
+                initial={{ opacity: 0, y: 5, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                transition={{ duration: 0.14 }}
                 className="fixed overflow-y-auto rounded-2xl shadow-2xl"
                 style={{
                   top: position.top,
@@ -439,10 +277,8 @@ function FilterChip({
                   width: position.width,
                   maxHeight: '52vh',
                   zIndex: 9999,
-                  background:
-                    'var(--card)',
-                  border:
-                    '1px solid var(--border)',
+                  background: 'var(--card)',
+                  border: '1px solid var(--border)',
                 }}
               >
                 {children}
@@ -460,7 +296,7 @@ function FilterChip({
           ref={buttonRef}
           type="button"
           onClick={onToggle}
-          className="flex items-center gap-1.5 h-9 px-3 rounded-xl"
+          className="flex h-9 items-center gap-1.5 rounded-xl px-3"
           style={{
             background: open
               ? 'var(--liquid-chip-on-bg)'
@@ -476,16 +312,12 @@ function FilterChip({
           }}
         >
           {label}
-
           <ChevronDown
             size={14}
             style={{
               opacity: 0.65,
-              transform: open
-                ? 'rotate(180deg)'
-                : undefined,
-              transition:
-                'transform 150ms ease',
+              transform: open ? 'rotate(180deg)' : undefined,
+              transition: 'transform 150ms ease',
             }}
           />
         </button>
@@ -495,10 +327,6 @@ function FilterChip({
     </>
   );
 }
-
-/* -------------------------------------------------------------------------- */
-/* Date filter sheet                                                          */
-/* -------------------------------------------------------------------------- */
 
 function DateFilterSheet({
   open,
@@ -513,20 +341,11 @@ function DateFilterSheet({
   customFrom: string;
   customTo: string;
   onClose: () => void;
-  onApply: (
-    range: RangeFilter,
-    from: string,
-    to: string,
-  ) => void;
+  onApply: (range: RangeFilter, from: string, to: string) => void;
 }) {
-  const [draftRange, setDraftRange] =
-    useState<RangeFilter>(range);
-
-  const [draftFrom, setDraftFrom] =
-    useState(customFrom);
-
-  const [draftTo, setDraftTo] =
-    useState(customTo);
+  const [draftRange, setDraftRange] = useState<RangeFilter>(range);
+  const [draftFrom, setDraftFrom] = useState(customFrom);
+  const [draftTo, setDraftTo] = useState(customTo);
 
   useEffect(() => {
     if (!open) return;
@@ -534,134 +353,84 @@ function DateFilterSheet({
     setDraftRange(range);
     setDraftFrom(customFrom);
     setDraftTo(customTo);
-  }, [
-    open,
-    range,
-    customFrom,
-    customTo,
-  ]);
+  }, [open, range, customFrom, customTo]);
 
   useEffect(() => {
     if (!open) return;
 
-    const previousOverflow =
-      document.body.style.overflow;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
 
-    document.body.style.overflow =
-      'hidden';
-
-    const handleKey = (
-      event: KeyboardEvent,
-    ) => {
+    const handleKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         onClose();
       }
     };
 
-    document.addEventListener(
-      'keydown',
-      handleKey,
-    );
+    document.addEventListener('keydown', handleKey);
 
     return () => {
-      document.body.style.overflow =
-        previousOverflow;
-
-      document.removeEventListener(
-        'keydown',
-        handleKey,
-      );
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', handleKey);
     };
   }, [open, onClose]);
 
-  if (
-    !open ||
-    typeof document === 'undefined'
-  ) {
+  if (!open || typeof document === 'undefined') {
     return null;
   }
 
   const customDatesValid =
     draftRange !== 'custom' ||
-    (!!draftFrom &&
-      !!draftTo &&
-      draftFrom <= draftTo);
+    (!!draftFrom && !!draftTo && draftFrom <= draftTo);
 
   return createPortal(
     <AnimatePresence>
       <motion.div
-        key="date-sheet"
         className="fixed inset-0 z-[120] flex items-end justify-center"
-        initial={{
-          opacity: 0,
-        }}
-        animate={{
-          opacity: 1,
-        }}
-        exit={{
-          opacity: 0,
-        }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
         style={{
           background:
             'color-mix(in oklab, var(--background) 72%, transparent)',
-          backdropFilter:
-            'blur(3px)',
+          backdropFilter: 'blur(3px)',
         }}
         onMouseDown={(event) => {
-          if (
-            event.target ===
-            event.currentTarget
-          ) {
+          if (event.target === event.currentTarget) {
             onClose();
           }
         }}
       >
         <motion.div
-          initial={{
-            y: '100%',
-          }}
-          animate={{
-            y: 0,
-          }}
-          exit={{
-            y: '100%',
-          }}
+          initial={{ y: '100%' }}
+          animate={{ y: 0 }}
+          exit={{ y: '100%' }}
           transition={{
             type: 'spring',
             stiffness: 420,
             damping: 34,
           }}
-          className="w-full max-w-[520px] rounded-t-[28px] overflow-hidden"
+          className="w-full max-w-[520px] overflow-hidden rounded-t-[26px]"
           style={{
-            background:
-              'var(--card)',
-            borderTop:
-              '1px solid var(--border)',
+            background: 'var(--card)',
+            borderTop: '1px solid var(--border)',
             boxShadow:
               '0 -18px 50px color-mix(in oklab, var(--background) 35%, transparent)',
           }}
-          onMouseDown={(event) =>
-            event.stopPropagation()
-          }
+          onMouseDown={(event) => event.stopPropagation()}
         >
-          {/* Handle */}
-          <div className="flex justify-center pt-3">
+          <div className="flex justify-center pt-2.5">
             <div
-              className="w-10 h-1 rounded-full"
-              style={{
-                background:
-                  'var(--border)',
-              }}
+              className="h-1 w-9 rounded-full"
+              style={{ background: 'var(--border)' }}
             />
           </div>
 
-          {/* Header */}
-          <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+          <div className="flex items-center justify-between px-5 pb-2 pt-3">
             <div>
               <h2
                 style={{
-                  color:
-                    'var(--foreground)',
+                  color: 'var(--foreground)',
                   fontSize: 17,
                   fontWeight: 800,
                   letterSpacing: -0.25,
@@ -669,144 +438,107 @@ function DateFilterSheet({
               >
                 Date
               </h2>
-
               <p
                 className="mt-0.5"
                 style={{
-                  color:
-                    'var(--muted-foreground)',
-                  fontSize: 11.5,
+                  color: 'var(--muted-foreground)',
+                  fontSize: 11,
                 }}
               >
-                Choose when to show transactions
+                Choose a date range
               </p>
             </div>
 
             <button
               type="button"
               onClick={onClose}
-              className="w-9 h-9 rounded-xl flex items-center justify-center"
+              className="flex h-8 w-8 items-center justify-center rounded-xl"
               style={{
-                background:
-                  'var(--muted)',
-                border:
-                  '1px solid var(--border)',
+                background: 'var(--muted)',
+                border: '1px solid var(--border)',
               }}
             >
               <X
-                size={17}
-                style={{
-                  color:
-                    'var(--muted-foreground)',
-                }}
+                size={16}
+                style={{ color: 'var(--muted-foreground)' }}
               />
             </button>
           </div>
 
-          {/* Quick date options */}
-          <div className="px-5 pb-2">
-            {QUICK_DATE_OPTIONS.map(
-              (option) => {
-                const active =
-                  draftRange ===
-                  option.id;
+          <div className="px-5">
+            {QUICK_DATE_OPTIONS.map((option) => {
+              const active = draftRange === option.id;
 
-                return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() =>
-                      setDraftRange(
-                        option.id,
-                      )
-                    }
-                    className="w-full flex items-center text-left py-3.5"
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => setDraftRange(option.id)}
+                  className="flex w-full items-center py-3"
+                  style={{
+                    borderBottom:
+                      '1px solid color-mix(in oklab, var(--border) 65%, transparent)',
+                  }}
+                >
+                  <div
+                    className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl"
                     style={{
-                      borderBottom:
-                        '1px solid color-mix(in oklab, var(--border) 65%, transparent)',
+                      background: active
+                        ? 'var(--liquid-chip-on-bg)'
+                        : 'var(--muted)',
                     }}
                   >
-                    <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                    <CalendarDays
+                      size={16}
                       style={{
-                        background:
-                          active
-                            ? 'var(--liquid-chip-on-bg)'
-                            : 'var(--muted)',
+                        color: active
+                          ? 'var(--liquid-chip-on-text)'
+                          : 'var(--muted-foreground)',
+                      }}
+                    />
+                  </div>
+
+                  <div className="ml-3 min-w-0 flex-1 text-left">
+                    <div
+                      style={{
+                        color: 'var(--foreground)',
+                        fontSize: 13,
+                        fontWeight: active ? 750 : 650,
                       }}
                     >
-                      <CalendarDays
-                        size={16}
-                        style={{
-                          color:
-                            active
-                              ? 'var(--liquid-chip-on-text)'
-                              : 'var(--muted-foreground)',
-                        }}
-                      />
+                      {option.label}
                     </div>
-
-                    <div className="ml-3 flex-1 min-w-0">
-                      <div
-                        style={{
-                          color:
-                            'var(--foreground)',
-                          fontSize: 13,
-                          fontWeight:
-                            active
-                              ? 750
-                              : 650,
-                        }}
-                      >
-                        {
-                          option.label
-                        }
-                      </div>
-
-                      <div
-                        className="mt-0.5"
-                        style={{
-                          color:
-                            'var(--muted-foreground)',
-                          fontSize: 10.5,
-                        }}
-                      >
-                        {
-                          option.description
-                        }
-                      </div>
+                    <div
+                      className="mt-0.5"
+                      style={{
+                        color: 'var(--muted-foreground)',
+                        fontSize: 10.5,
+                      }}
+                    >
+                      {option.description}
                     </div>
+                  </div>
 
-                    {active && (
-                      <Check
-                        size={17}
-                        style={{
-                          color:
-                            'var(--primary)',
-                        }}
-                      />
-                    )}
-                  </button>
-                );
-              },
-            )}
+                  {active && (
+                    <Check
+                      size={17}
+                      style={{ color: 'var(--primary)' }}
+                    />
+                  )}
+                </button>
+              );
+            })}
 
-            {/* Custom range */}
             <button
               type="button"
-              onClick={() =>
-                setDraftRange(
-                  'custom',
-                )
-              }
-              className="w-full flex items-center text-left py-3.5"
+              onClick={() => setDraftRange('custom')}
+              className="flex w-full items-center py-3"
             >
               <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl"
                 style={{
                   background:
-                    draftRange ===
-                    'custom'
+                    draftRange === 'custom'
                       ? 'var(--liquid-chip-on-bg)'
                       : 'var(--muted)',
                 }}
@@ -815,35 +547,27 @@ function DateFilterSheet({
                   size={16}
                   style={{
                     color:
-                      draftRange ===
-                      'custom'
+                      draftRange === 'custom'
                         ? 'var(--liquid-chip-on-text)'
                         : 'var(--muted-foreground)',
                   }}
                 />
               </div>
 
-              <div className="ml-3 flex-1">
+              <div className="ml-3 flex-1 text-left">
                 <div
                   style={{
-                    color:
-                      'var(--foreground)',
+                    color: 'var(--foreground)',
                     fontSize: 13,
-                    fontWeight:
-                      draftRange ===
-                      'custom'
-                        ? 750
-                        : 650,
+                    fontWeight: draftRange === 'custom' ? 750 : 650,
                   }}
                 >
                   Custom range
                 </div>
-
                 <div
                   className="mt-0.5"
                   style={{
-                    color:
-                      'var(--muted-foreground)',
+                    color: 'var(--muted-foreground)',
                     fontSize: 10.5,
                   }}
                 >
@@ -851,63 +575,41 @@ function DateFilterSheet({
                 </div>
               </div>
 
-              {draftRange ===
-              'custom' ? (
+              {draftRange === 'custom' ? (
                 <Check
                   size={17}
-                  style={{
-                    color:
-                      'var(--primary)',
-                  }}
+                  style={{ color: 'var(--primary)' }}
                 />
               ) : (
                 <ChevronRight
                   size={16}
-                  style={{
-                    color:
-                      'var(--muted-foreground)',
-                  }}
+                  style={{ color: 'var(--muted-foreground)' }}
                 />
               )}
             </button>
           </div>
 
-          {/* Custom date fields */}
           <AnimatePresence initial={false}>
-            {draftRange ===
-              'custom' && (
+            {draftRange === 'custom' && (
               <motion.div
-                initial={{
-                  height: 0,
-                  opacity: 0,
-                }}
-                animate={{
-                  height: 'auto',
-                  opacity: 1,
-                }}
-                exit={{
-                  height: 0,
-                  opacity: 0,
-                }}
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
                 className="overflow-hidden"
               >
                 <div
-                  className="mx-5 p-3.5 rounded-2xl"
+                  className="mx-5 rounded-2xl p-3"
                   style={{
-                    background:
-                      'var(--muted)',
-                    border:
-                      '1px solid var(--border)',
+                    background: 'var(--muted)',
+                    border: '1px solid var(--border)',
                   }}
                 >
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* From */}
+                  <div className="grid grid-cols-2 gap-2.5">
                     <label>
                       <span
-                        className="block mb-1.5"
+                        className="mb-1 block"
                         style={{
-                          color:
-                            'var(--muted-foreground)',
+                          color: 'var(--muted-foreground)',
                           fontSize: 10.5,
                           fontWeight: 650,
                         }}
@@ -917,40 +619,26 @@ function DateFilterSheet({
 
                       <input
                         type="date"
-                        value={
-                          draftFrom
-                        }
-                        max={
-                          draftTo ||
-                          undefined
-                        }
+                        value={draftFrom}
+                        max={draftTo || undefined}
                         onChange={(event) =>
-                          setDraftFrom(
-                            event
-                              .target
-                              .value,
-                          )
+                          setDraftFrom(event.target.value)
                         }
-                        className="w-full h-10 px-3 rounded-xl outline-none"
+                        className="h-9 w-full rounded-xl px-2.5 outline-none"
                         style={{
-                          color:
-                            'var(--foreground)',
-                          background:
-                            'var(--card)',
-                          border:
-                            '1px solid var(--border)',
-                          fontSize: 11.5,
+                          color: 'var(--foreground)',
+                          background: 'var(--card)',
+                          border: '1px solid var(--border)',
+                          fontSize: 11,
                         }}
                       />
                     </label>
 
-                    {/* To */}
                     <label>
                       <span
-                        className="block mb-1.5"
+                        className="mb-1 block"
                         style={{
-                          color:
-                            'var(--muted-foreground)',
+                          color: 'var(--muted-foreground)',
                           fontSize: 10.5,
                           fontWeight: 650,
                         }}
@@ -960,29 +648,17 @@ function DateFilterSheet({
 
                       <input
                         type="date"
-                        value={
-                          draftTo
-                        }
-                        min={
-                          draftFrom ||
-                          undefined
-                        }
+                        value={draftTo}
+                        min={draftFrom || undefined}
                         onChange={(event) =>
-                          setDraftTo(
-                            event
-                              .target
-                              .value,
-                          )
+                          setDraftTo(event.target.value)
                         }
-                        className="w-full h-10 px-3 rounded-xl outline-none"
+                        className="h-9 w-full rounded-xl px-2.5 outline-none"
                         style={{
-                          color:
-                            'var(--foreground)',
-                          background:
-                            'var(--card)',
-                          border:
-                            '1px solid var(--border)',
-                          fontSize: 11.5,
+                          color: 'var(--foreground)',
+                          background: 'var(--card)',
+                          border: '1px solid var(--border)',
+                          fontSize: 11,
                         }}
                       />
                     </label>
@@ -990,18 +666,15 @@ function DateFilterSheet({
 
                   {draftFrom &&
                     draftTo &&
-                    draftFrom >
-                      draftTo && (
+                    draftFrom > draftTo && (
                       <p
                         className="mt-2"
                         style={{
-                          color:
-                            'var(--destructive)',
+                          color: 'var(--destructive)',
                           fontSize: 10.5,
                         }}
                       >
-                        The start date must be
-                        before the end date.
+                        The start date must be before the end date.
                       </p>
                     )}
                 </div>
@@ -1009,48 +682,31 @@ function DateFilterSheet({
             )}
           </AnimatePresence>
 
-          {/* Apply */}
           <div
-            className="px-5 pt-4 pb-5"
+            className="px-5 pb-4 pt-3"
             style={{
-              paddingBottom:
-                'max(20px, env(safe-area-inset-bottom))',
+              paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
             }}
           >
             <button
               type="button"
-              disabled={
-                !customDatesValid
-              }
+              disabled={!customDatesValid}
               onClick={() => {
-                if (
-                  !customDatesValid
-                ) {
-                  return;
-                }
+                if (!customDatesValid) return;
 
-                onApply(
-                  draftRange,
-                  draftFrom,
-                  draftTo,
-                );
+                onApply(draftRange, draftFrom, draftTo);
               }}
-              className="w-full h-11 rounded-xl transition-opacity"
+              className="h-10 w-full rounded-xl"
               style={{
-                background:
-                  customDatesValid
-                    ? 'var(--primary)'
-                    : 'var(--muted)',
-                color:
-                  customDatesValid
-                    ? 'var(--primary-foreground)'
-                    : 'var(--muted-foreground)',
-                fontSize: 12.5,
+                background: customDatesValid
+                  ? 'var(--primary)'
+                  : 'var(--muted)',
+                color: customDatesValid
+                  ? 'var(--primary-foreground)'
+                  : 'var(--muted-foreground)',
+                fontSize: 12,
                 fontWeight: 750,
-                opacity:
-                  customDatesValid
-                    ? 1
-                    : 0.6,
+                opacity: customDatesValid ? 1 : 0.6,
               }}
             >
               Apply date filter
@@ -1062,10 +718,6 @@ function DateFilterSheet({
     document.body,
   );
 }
-
-/* -------------------------------------------------------------------------- */
-/* Transaction row                                                            */
-/* -------------------------------------------------------------------------- */
 
 function TransactionRow({
   tx,
@@ -1083,144 +735,112 @@ function TransactionRow({
 
   const amountPrimary =
     tx.type === 'swap'
-      ? `${formatTokenAmount(
-          tx.amount,
-        )} ${tx.asset || ''}`
-      : `${m.sign}${formatTokenAmount(
-          tx.amount,
-        )} ${tx.asset || ''}`;
+      ? `${formatTokenAmount(tx.amount)} ${tx.asset || ''}`
+      : `${m.sign}${formatTokenAmount(tx.amount)} ${tx.asset || ''}`;
 
   const amountSecondary =
     tx.type === 'swap'
-      ? `→ ${formatTokenAmount(
-          tx.amountTo,
-        )} ${tx.assetTo || ''}`
+      ? `→ ${formatTokenAmount(tx.amountTo)} ${tx.assetTo || ''}`
       : tx.valueUSD > 0
         ? format(tx.valueUSD)
         : null;
 
   const amountTone =
-    m.sign === '+'
-      ? 'var(--positive)'
-      : 'var(--foreground)';
+    m.sign === '+' ? 'var(--positive)' : 'var(--foreground)';
 
   return (
     <motion.button
       type="button"
-      whileTap={{
-        scale: 0.995,
-      }}
+      whileTap={{ scale: 0.995 }}
       onClick={onOpen}
-      className="w-full flex items-center text-left"
+      className="flex w-full items-center text-left"
       style={{
-        minHeight: 76,
+        minHeight: 68,
         borderBottom: isLast
           ? 'none'
           : '1px solid color-mix(in oklab, var(--border) 72%, transparent)',
       }}
     >
-      {/* Neutral icon */}
       <div
-        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+        className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl"
         style={{
-          background:
-            'var(--muted)',
+          background: 'var(--muted)',
           border:
             '1px solid color-mix(in oklab, var(--border) 80%, transparent)',
         }}
       >
         <Icon
-          size={17}
+          size={16}
           strokeWidth={2.2}
-          style={{
-            color:
-              'var(--muted-foreground)',
-          }}
+          style={{ color: 'var(--muted-foreground)' }}
         />
       </div>
 
-      {/* Main transaction information */}
-      <div className="flex-1 min-w-0 ml-3.5 pr-3">
+      <div className="ml-3 min-w-0 flex-1 pr-3">
         <div
           className="truncate"
           style={{
-            color:
-              'var(--foreground)',
+            color: 'var(--foreground)',
             fontWeight: 700,
-            fontSize: 13.5,
-            letterSpacing: -0.1,
+            fontSize: 13,
           }}
         >
           {tx.type === 'swap'
-            ? `${tx.asset || '—'} → ${
-                tx.assetTo || '—'
-              }`
+            ? `${tx.asset || '—'} → ${tx.assetTo || '—'}`
             : m.label}
         </div>
 
-        <div className="flex items-center gap-1.5 mt-1.5 min-w-0">
+        <div className="mt-1 flex min-w-0 items-center gap-1.5">
           <span
-            className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-            style={{
-              background:
-                statusColor(
-                  tx.status,
-                ),
-            }}
+            className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
+            style={{ background: statusColor(tx.status) }}
           />
 
           <span
             className="truncate"
             style={{
-              color:
-                'var(--muted-foreground)',
-              fontSize: 10.5,
+              color: 'var(--muted-foreground)',
+              fontSize: 10,
               fontWeight: 550,
-              textTransform:
-                'capitalize',
+              textTransform: 'capitalize',
             }}
           >
             {tx.status}
           </span>
 
-          {tx.asset &&
-            tx.type !== 'swap' && (
-              <>
-                <span
-                  style={{
-                    color:
-                      'var(--border)',
-                    fontSize: 10,
-                  }}
-                >
-                  •
-                </span>
+          {tx.asset && tx.type !== 'swap' && (
+            <>
+              <span
+                style={{
+                  color: 'var(--border)',
+                  fontSize: 10,
+                }}
+              >
+                •
+              </span>
 
-                <span
-                  className="truncate"
-                  style={{
-                    color:
-                      'var(--muted-foreground)',
-                    fontSize: 10.5,
-                    fontWeight: 600,
-                  }}
-                >
-                  {tx.asset}
-                </span>
-              </>
-            )}
+              <span
+                className="truncate"
+                style={{
+                  color: 'var(--muted-foreground)',
+                  fontSize: 10,
+                  fontWeight: 600,
+                }}
+              >
+                {tx.asset}
+              </span>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Amount */}
-      <div className="text-right flex-shrink-0 max-w-[43%]">
+      <div className="max-w-[43%] flex-shrink-0 text-right">
         <div
-          className="tabular-nums truncate"
+          className="truncate tabular-nums"
           style={{
             color: amountTone,
             fontWeight: 750,
-            fontSize: 13,
-            letterSpacing: -0.15,
+            fontSize: 12.5,
           }}
         >
           {amountPrimary}
@@ -1228,11 +848,10 @@ function TransactionRow({
 
         {amountSecondary && (
           <div
-            className="tabular-nums truncate mt-1"
+            className="mt-0.5 truncate tabular-nums"
             style={{
-              color:
-                'var(--muted-foreground)',
-              fontSize: 10.5,
+              color: 'var(--muted-foreground)',
+              fontSize: 10,
               fontWeight: 500,
             }}
           >
@@ -1244,57 +863,25 @@ function TransactionRow({
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Screen                                                                     */
-/* -------------------------------------------------------------------------- */
-
 interface Props {
   goBack: () => void;
 }
 
-export function HistoryScreen({
-  goBack,
-}: Props) {
-  const { format } =
-    useCurrency();
+export function HistoryScreen({ goBack }: Props) {
+  const { format } = useCurrency();
 
-  /*
-   * Default is now Last 30 days.
-   */
-  const [range, setRange] =
-    useState<RangeFilter>('30d');
-
-  const [customFrom, setCustomFrom] =
-    useState('');
-
-  const [customTo, setCustomTo] =
-    useState('');
-
-  const [dateOpen, setDateOpen] =
-    useState(false);
-
-  /* ------------------------------------------------------------------------ */
-  /* Date query                                                               */
-  /* ------------------------------------------------------------------------ */
+  const [range, setRange] = useState<RangeFilter>('30d');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
+  const [dateOpen, setDateOpen] = useState(false);
 
   const sinceIso = useMemo(() => {
-    if (range === 'all') {
-      return undefined;
-    }
+    if (range === 'all') return undefined;
 
-    if (
-      range === 'custom' &&
-      customFrom
-    ) {
-      const date = new Date(
-        `${customFrom}T00:00:00`,
-      );
+    if (range === 'custom' && customFrom) {
+      const date = new Date(`${customFrom}T00:00:00`);
 
-      if (
-        Number.isNaN(
-          date.getTime(),
-        )
-      ) {
+      if (Number.isNaN(date.getTime())) {
         return undefined;
       }
 
@@ -1302,20 +889,10 @@ export function HistoryScreen({
     }
 
     const date = new Date();
-
-    /*
-     * Default quick filter:
-     * Last 30 days.
-     */
-    date.setDate(
-      date.getDate() - 30,
-    );
+    date.setDate(date.getDate() - 30);
 
     return date.toISOString();
-  }, [
-    range,
-    customFrom,
-  ]);
+  }, [range, customFrom]);
 
   const {
     data: apiTxs,
@@ -1325,141 +902,77 @@ export function HistoryScreen({
     since: sinceIso,
   });
 
-  /* ------------------------------------------------------------------------ */
-  /* Filters                                                                  */
-  /* ------------------------------------------------------------------------ */
-
   const [typeFilter, setTypeFilter] =
     useState<TypeFilter>('all');
 
-  const [
-    statusFilter,
-    setStatusFilter,
-  ] =
+  const [statusFilter, setStatusFilter] =
     useState<StatusFilter>('all');
 
-  const [typeOpen, setTypeOpen] =
-    useState(false);
-
-  const [
-    statusOpen,
-    setStatusOpen,
-  ] = useState(false);
-
-  const [search, setSearch] =
-    useState('');
-
+  const [typeOpen, setTypeOpen] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [search, setSearch] = useState('');
   const [receiptTx, setReceiptTx] =
-    useState<Transaction | null>(
-      null,
-    );
-
-  /* ------------------------------------------------------------------------ */
-  /* Map + filter transactions                                                */
-  /* ------------------------------------------------------------------------ */
+    useState<Transaction | null>(null);
 
   const txs = useMemo(() => {
-    const mapped =
-      filterHistoryForUi(
-        (apiTxs || []).map(
-          apiTxToUi,
-        ),
-      );
-
-    const query =
-      search
-        .trim()
-        .toLowerCase();
-
-    return mapped.filter(
-      (tx) => {
-        if (
-          typeFilter !== 'all' &&
-          tx.type !== typeFilter
-        ) {
-          return false;
-        }
-
-        if (
-          statusFilter !== 'all' &&
-          tx.status !==
-            statusFilter
-        ) {
-          return false;
-        }
-
-        if (query) {
-          const haystack = [
-            tx.type,
-            tx.status,
-            tx.asset,
-            tx.assetTo,
-            tx.id,
-            tx.time,
-            String(tx.amount),
-            String(tx.amountTo),
-          ]
-            .filter(Boolean)
-            .join(' ')
-            .toLowerCase();
-
-          if (
-            !haystack.includes(
-              query,
-            )
-          ) {
-            return false;
-          }
-        }
-
-        return true;
-      },
+    const mapped = filterHistoryForUi(
+      (apiTxs || []).map(apiTxToUi),
     );
-  }, [
-    apiTxs,
-    typeFilter,
-    statusFilter,
-    search,
-  ]);
 
-  const groups = useMemo(
-    () => groupByDay(txs),
-    [txs],
-  );
+    const query = search.trim().toLowerCase();
 
-  /* ------------------------------------------------------------------------ */
-  /* Labels                                                                   */
-  /* ------------------------------------------------------------------------ */
+    return mapped.filter((tx) => {
+      if (typeFilter !== 'all' && tx.type !== typeFilter) {
+        return false;
+      }
+
+      if (statusFilter !== 'all' && tx.status !== statusFilter) {
+        return false;
+      }
+
+      if (query) {
+        const haystack = [
+          tx.type,
+          tx.status,
+          tx.asset,
+          tx.assetTo,
+          tx.id,
+          tx.time,
+          String(tx.amount),
+          String(tx.amountTo),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+
+        if (!haystack.includes(query)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [apiTxs, typeFilter, statusFilter, search]);
+
+  const groups = useMemo(() => groupByDay(txs), [txs]);
 
   const typeLabel =
-    TYPE_OPTIONS.find(
-      (option) =>
-        option.id ===
-        typeFilter,
-    )?.label ||
+    TYPE_OPTIONS.find((option) => option.id === typeFilter)?.label ||
     'All activity';
 
   const statusLabel =
     STATUS_OPTIONS.find(
-      (option) =>
-        option.id ===
-        statusFilter,
-    )?.label ||
-    'Any status';
+      (option) => option.id === statusFilter,
+    )?.label || 'Any status';
 
   const dateLabel =
     range === '30d'
       ? '30 days'
       : range === 'all'
         ? 'All time'
-        : customFrom &&
-            customTo
+        : customFrom && customTo
           ? `${customFrom} – ${customTo}`
-          : 'Custom range';
-
-  /* ------------------------------------------------------------------------ */
-  /* Active filters                                                           */
-  /* ------------------------------------------------------------------------ */
+          : 'Custom';
 
   const hasActiveFilters =
     typeFilter !== 'all' ||
@@ -1471,124 +984,68 @@ export function HistoryScreen({
     setTypeFilter('all');
     setStatusFilter('all');
     setSearch('');
-
-    /*
-     * Reset date to the default.
-     */
     setRange('30d');
     setCustomFrom('');
     setCustomTo('');
-
     setTypeOpen(false);
     setStatusOpen(false);
   };
 
   return (
     <div
-      className="flex flex-col h-full overflow-hidden"
-      style={{
-        background:
-          'var(--background)',
-      }}
+      className="flex h-full flex-col overflow-hidden"
+      style={{ background: 'var(--background)' }}
     >
       <PageTop />
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Header                                                             */}
-      {/* ------------------------------------------------------------------ */}
-
-      <div className="px-5 pt-1 pb-4">
+      <div className="px-5 pb-3 pt-0.5">
         <div className="flex items-center gap-3">
-          <BackButton
-            onClick={goBack}
-          />
+          <BackButton onClick={goBack} />
 
-          <div className="flex-1 min-w-0">
-            <h1
-              style={{
-                color:
-                  'var(--foreground)',
-                fontWeight: 800,
-                fontSize: 20,
-                letterSpacing: -0.45,
-              }}
-            >
-              Transactions
-            </h1>
+          <h1
+            style={{
+              color: 'var(--foreground)',
+              fontWeight: 800,
+              fontSize: 20,
+              letterSpacing: -0.45,
+            }}
+          >
+            Transactions
+          </h1>
 
-            {/* Transaction count intentionally retained */}
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span
-                style={{
-                  color:
-                    'var(--muted-foreground)',
-                  fontSize: 11.5,
-                }}
-              >
-                {loading &&
-                !txs.length
-                  ? 'Loading activity…'
-                  : isFetching
-                    ? 'Updating activity…'
-                    : `${txs.length} ${
-                        txs.length ===
-                        1
-                          ? 'transaction'
-                          : 'transactions'
-                      }`}
-              </span>
-
-              {isFetching && (
-                <span
-                  className="w-1.5 h-1.5 rounded-full animate-pulse"
-                  style={{
-                    background:
-                      'var(--primary)',
-                  }}
-                />
-              )}
-            </div>
-          </div>
+          {isFetching && (
+            <span
+              className="ml-auto h-1.5 w-1.5 animate-pulse rounded-full"
+              style={{ background: 'var(--primary)' }}
+            />
+          )}
         </div>
       </div>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Search                                                             */}
-      {/* ------------------------------------------------------------------ */}
-
-      <div className="px-5 pb-3">
+      <div className="px-5 pb-2.5">
         <div
-          className="h-11 rounded-2xl flex items-center gap-2.5 px-3.5"
+          className="flex h-10 items-center gap-2.5 rounded-2xl px-3"
           style={{
-            background:
-              'var(--card)',
-            border:
-              '1px solid var(--border)',
+            background: 'var(--card)',
+            border: '1px solid var(--border)',
           }}
         >
           <Search
-            size={17}
+            size={16}
             style={{
-              color:
-                'var(--muted-foreground)',
+              color: 'var(--muted-foreground)',
               flexShrink: 0,
             }}
           />
 
           <input
             value={search}
-            onChange={(event) =>
-              setSearch(
-                event.target
-                  .value,
-              )
-            }
+            onChange={(event) => setSearch(event.target.value)}
             placeholder="Search transactions"
-            className="flex-1 min-w-0 bg-transparent outline-none"
+            className="min-w-0 flex-1 bg-transparent text-sm outline-none"
             style={{
-              color:
-                'var(--foreground)',
-              fontSize: 12.5,
+              color: 'var(--foreground)',
+              fontSize: 12,
               fontWeight: 500,
             }}
           />
@@ -1596,164 +1053,104 @@ export function HistoryScreen({
           {search && (
             <button
               type="button"
-              onClick={() =>
-                setSearch('')
-              }
-              className="w-6 h-6 rounded-full flex items-center justify-center"
-              style={{
-                background:
-                  'var(--muted)',
-              }}
+              onClick={() => setSearch('')}
+              className="flex h-6 w-6 items-center justify-center rounded-full"
+              style={{ background: 'var(--muted)' }}
             >
               <X
                 size={13}
-                style={{
-                  color:
-                    'var(--muted-foreground)',
-                }}
+                style={{ color: 'var(--muted-foreground)' }}
               />
             </button>
           )}
         </div>
       </div>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Filters                                                            */}
-      {/* ------------------------------------------------------------------ */}
-
-      <div className="px-5 pb-4 relative z-30">
+      <div className="relative z-30 px-5 pb-3">
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-          {/* Type */}
           <FilterChip
             open={typeOpen}
             label={typeLabel}
             onToggle={() => {
-              setTypeOpen(
-                (open) =>
-                  !open,
-              );
-
-              setStatusOpen(
-                false,
-              );
+              setTypeOpen((open) => !open);
+              setStatusOpen(false);
             }}
           >
-            {TYPE_OPTIONS.map(
-              (option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => {
-                    setTypeFilter(
-                      option.id,
-                    );
+            {TYPE_OPTIONS.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => {
+                  setTypeFilter(option.id);
+                  setTypeOpen(false);
+                }}
+                className="flex w-full items-center justify-between px-3.5 py-2.5 text-left"
+                style={{
+                  background:
+                    typeFilter === option.id
+                      ? 'color-mix(in oklab, var(--primary) 11%, transparent)'
+                      : 'transparent',
+                  color: 'var(--foreground)',
+                  fontSize: 12.5,
+                  fontWeight: typeFilter === option.id ? 700 : 500,
+                }}
+              >
+                {option.label}
 
-                    setTypeOpen(
-                      false,
-                    );
-                  }}
-                  className="flex items-center justify-between w-full px-3.5 py-2.5 text-left"
-                  style={{
-                    background:
-                      typeFilter ===
-                      option.id
-                        ? 'color-mix(in oklab, var(--primary) 11%, transparent)'
-                        : 'transparent',
-                    color:
-                      'var(--foreground)',
-                    fontSize: 12.5,
-                    fontWeight:
-                      typeFilter ===
-                      option.id
-                        ? 700
-                        : 500,
-                  }}
-                >
-                  {option.label}
-
-                  {typeFilter ===
-                    option.id && (
-                    <Check
-                      size={14}
-                      style={{
-                        color:
-                          'var(--primary)',
-                      }}
-                    />
-                  )}
-                </button>
-              ),
-            )}
+                {typeFilter === option.id && (
+                  <Check
+                    size={14}
+                    style={{ color: 'var(--primary)' }}
+                  />
+                )}
+              </button>
+            ))}
           </FilterChip>
 
-          {/* Status */}
           <FilterChip
             open={statusOpen}
             label={statusLabel}
             onToggle={() => {
-              setStatusOpen(
-                (open) =>
-                  !open,
-              );
-
+              setStatusOpen((open) => !open);
               setTypeOpen(false);
             }}
           >
-            {STATUS_OPTIONS.map(
-              (option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => {
-                    setStatusFilter(
-                      option.id,
-                    );
+            {STATUS_OPTIONS.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => {
+                  setStatusFilter(option.id);
+                  setStatusOpen(false);
+                }}
+                className="flex w-full items-center justify-between px-3.5 py-2.5 text-left"
+                style={{
+                  background:
+                    statusFilter === option.id
+                      ? 'color-mix(in oklab, var(--primary) 11%, transparent)'
+                      : 'transparent',
+                  color: 'var(--foreground)',
+                  fontSize: 12.5,
+                  fontWeight:
+                    statusFilter === option.id ? 700 : 500,
+                }}
+              >
+                {option.label}
 
-                    setStatusOpen(
-                      false,
-                    );
-                  }}
-                  className="flex items-center justify-between w-full px-3.5 py-2.5 text-left"
-                  style={{
-                    background:
-                      statusFilter ===
-                      option.id
-                        ? 'color-mix(in oklab, var(--primary) 11%, transparent)'
-                        : 'transparent',
-                    color:
-                      'var(--foreground)',
-                    fontSize: 12.5,
-                    fontWeight:
-                      statusFilter ===
-                      option.id
-                        ? 700
-                        : 500,
-                  }}
-                >
-                  {option.label}
-
-                  {statusFilter ===
-                    option.id && (
-                    <Check
-                      size={14}
-                      style={{
-                        color:
-                          'var(--primary)',
-                      }}
-                    />
-                  )}
-                </button>
-              ),
-            )}
+                {statusFilter === option.id && (
+                  <Check
+                    size={14}
+                    style={{ color: 'var(--primary)' }}
+                  />
+                )}
+              </button>
+            ))}
           </FilterChip>
 
-          {/* Date */}
           <button
             type="button"
-            onClick={() =>
-              setDateOpen(true)
-            }
-            className="h-9 px-3 rounded-xl flex items-center gap-1.5 flex-shrink-0"
+            onClick={() => setDateOpen(true)}
+            className="flex h-9 flex-shrink-0 items-center gap-1.5 rounded-xl px-3"
             style={{
               background:
                 range !== '30d'
@@ -1771,38 +1168,18 @@ export function HistoryScreen({
               fontWeight: 650,
             }}
           >
-            <CalendarDays
-              size={14}
-              style={{
-                opacity: 0.75,
-              }}
-            />
-
-            <span className="max-w-[120px] truncate">
-              {dateLabel}
-            </span>
-
-            <ChevronDown
-              size={13}
-              style={{
-                opacity: 0.65,
-              }}
-            />
+            <CalendarDays size={14} style={{ opacity: 0.75 }} />
+            <span className="max-w-[110px] truncate">{dateLabel}</span>
+            <ChevronDown size={13} style={{ opacity: 0.65 }} />
           </button>
 
-          {/* Clear */}
           {hasActiveFilters && (
             <button
               type="button"
-              onClick={
-                clearFilters
-              }
-              className="h-9 px-3 rounded-xl flex items-center gap-1.5 flex-shrink-0"
+              onClick={clearFilters}
+              className="flex h-9 flex-shrink-0 items-center gap-1.5 rounded-xl px-2.5"
               style={{
-                color:
-                  'var(--muted-foreground)',
-                background:
-                  'transparent',
+                color: 'var(--muted-foreground)',
                 fontSize: 11.5,
                 fontWeight: 650,
               }}
@@ -1814,290 +1191,172 @@ export function HistoryScreen({
         </div>
       </div>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Transaction list                                                   */}
-      {/* ------------------------------------------------------------------ */}
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-7">
+        {loading && !txs.length && (
+          <div
+            className="overflow-hidden rounded-2xl"
+            style={{
+              background: 'var(--card)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            {[1, 2, 3, 4, 5].map((item) => (
+              <div
+                key={item}
+                className="mx-3 flex h-[68px] items-center gap-3 border-b last:border-b-0"
+                style={{ borderColor: 'var(--border)' }}
+              >
+                <div
+                  className="h-9 w-9 rounded-xl"
+                  style={{ background: 'var(--muted)' }}
+                />
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-10">
-        {/* Loading */}
-        {loading &&
-          !txs.length && (
+                <div className="flex-1 space-y-2">
+                  <div
+                    className="h-3 w-24 rounded"
+                    style={{ background: 'var(--muted)' }}
+                  />
+                  <div
+                    className="h-2.5 w-16 rounded"
+                    style={{ background: 'var(--muted)' }}
+                  />
+                </div>
+
+                <div
+                  className="h-3 w-20 rounded"
+                  style={{ background: 'var(--muted)' }}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!loading && txs.length === 0 && (
+          <div className="flex flex-col items-center justify-center px-8 pt-14 text-center">
             <div
-              className="overflow-hidden rounded-2xl"
+              className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl"
               style={{
-                background:
-                  'var(--card)',
-                border:
-                  '1px solid var(--border)',
+                background: 'var(--card)',
+                border: '1px solid var(--border)',
               }}
             >
-              {[
-                1, 2, 3, 4, 5, 6,
-              ].map((item) => (
-                <div
-                  key={item}
-                  className="h-[76px] mx-3 border-b last:border-b-0 animate-pulse"
-                  style={{
-                    borderColor:
-                      'var(--border)',
-                  }}
-                >
-                  <div className="flex items-center h-full gap-3">
-                    <div
-                      className="w-10 h-10 rounded-xl"
-                      style={{
-                        background:
-                          'var(--muted)',
-                      }}
-                    />
-
-                    <div className="flex-1 space-y-2">
-                      <div
-                        className="h-3.5 w-24 rounded"
-                        style={{
-                          background:
-                            'var(--muted)',
-                        }}
-                      />
-
-                      <div
-                        className="h-2.5 w-16 rounded"
-                        style={{
-                          background:
-                            'var(--muted)',
-                        }}
-                      />
-                    </div>
-
-                    <div
-                      className="h-3.5 w-20 rounded"
-                      style={{
-                        background:
-                          'var(--muted)',
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-        {/* Empty */}
-        {!loading &&
-          txs.length === 0 && (
-            <div className="flex flex-col items-center justify-center pt-16 px-8 text-center">
-              <div
-                className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
-                style={{
-                  background:
-                    'var(--card)',
-                  border:
-                    '1px solid var(--border)',
-                }}
-              >
-                {search ||
-                hasActiveFilters ? (
-                  <Search
-                    size={23}
-                    style={{
-                      color:
-                        'var(--muted-foreground)',
-                    }}
-                  />
-                ) : (
-                  <Inbox
-                    size={23}
-                    style={{
-                      color:
-                        'var(--muted-foreground)',
-                    }}
-                  />
-                )}
-              </div>
-
-              <p
-                style={{
-                  color:
-                    'var(--foreground)',
-                  fontWeight: 750,
-                  fontSize: 15,
-                }}
-              >
-                {search ||
-                hasActiveFilters
-                  ? 'No matching transactions'
-                  : 'No activity yet'}
-              </p>
-
-              <p
-                className="mt-1.5"
-                style={{
-                  color:
-                    'var(--muted-foreground)',
-                  fontSize: 12,
-                  lineHeight: 1.5,
-                  maxWidth: 270,
-                }}
-              >
-                {search ||
-                hasActiveFilters
-                  ? 'Try a different search or clear your filters.'
-                  : 'Deposits, swaps, transfers, and other wallet activity will appear here.'}
-              </p>
-
-              {(search ||
-                hasActiveFilters) && (
-                <button
-                  type="button"
-                  onClick={
-                    clearFilters
-                  }
-                  className="mt-4 h-9 px-4 rounded-xl"
-                  style={{
-                    background:
-                      'var(--muted)',
-                    border:
-                      '1px solid var(--border)',
-                    color:
-                      'var(--foreground)',
-                    fontSize: 12,
-                    fontWeight: 650,
-                  }}
-                >
-                  Clear filters
-                </button>
+              {search || hasActiveFilters ? (
+                <Search
+                  size={21}
+                  style={{ color: 'var(--muted-foreground)' }}
+                />
+              ) : (
+                <Inbox
+                  size={21}
+                  style={{ color: 'var(--muted-foreground)' }}
+                />
               )}
             </div>
-          )}
 
-        {/* Transaction groups */}
-        {!loading &&
-          groups.map(
-            (group) => (
-              <section
-                key={group.label}
-                className="mb-6"
+            <p
+              style={{
+                color: 'var(--foreground)',
+                fontWeight: 750,
+                fontSize: 14,
+              }}
+            >
+              {search || hasActiveFilters
+                ? 'No matching transactions'
+                : 'No activity yet'}
+            </p>
+
+            <p
+              className="mt-1 max-w-[260px]"
+              style={{
+                color: 'var(--muted-foreground)',
+                fontSize: 11.5,
+                lineHeight: 1.5,
+              }}
+            >
+              {search || hasActiveFilters
+                ? 'Try a different search or clear your filters.'
+                : 'Deposits, swaps, transfers, and other wallet activity will appear here.'}
+            </p>
+
+            {(search || hasActiveFilters) && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="mt-3 h-8 rounded-xl px-3.5"
+                style={{
+                  background: 'var(--muted)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--foreground)',
+                  fontSize: 11.5,
+                  fontWeight: 650,
+                }}
               >
-                {/* Date header + transaction count */}
-                <div className="flex items-center justify-between px-1 mb-2">
-                  <div className="flex items-center gap-2">
-                    <CalendarDays
-                      size={13}
-                      style={{
-                        color:
-                          'var(--muted-foreground)',
-                      }}
-                    />
+                Clear filters
+              </button>
+            )}
+          </div>
+        )}
 
-                    <span
-                      style={{
-                        color:
-                          'var(--foreground)',
-                        fontSize: 11,
-                        fontWeight: 750,
-                        letterSpacing: 0.25,
-                      }}
-                    >
-                      {group.label}
-                    </span>
-                  </div>
+        {!loading &&
+          groups.map((group) => (
+            <section key={group.label} className="mb-4">
+              <div className="mb-1.5 flex items-center gap-2 px-1">
+                <CalendarDays
+                  size={12}
+                  style={{ color: 'var(--muted-foreground)' }}
+                />
 
-                  {/* Count intentionally retained */}
-                  <span
-                    style={{
-                      color:
-                        'var(--muted-foreground)',
-                      fontSize: 10,
-                      fontWeight: 550,
-                    }}
-                  >
-                    {group.items.length}{' '}
-                    {group.items
-                      .length === 1
-                      ? 'transaction'
-                      : 'transactions'}
-                  </span>
-                </div>
-
-                {/* Ledger */}
-                <div
-                  className="px-3 rounded-2xl overflow-hidden"
+                <span
                   style={{
-                    background:
-                      'var(--card)',
-                    border:
-                      '1px solid var(--border)',
+                    color: 'var(--foreground)',
+                    fontSize: 10.5,
+                    fontWeight: 750,
+                    letterSpacing: 0.25,
                   }}
                 >
-                  {group.items.map(
-                    (
-                      tx,
-                      index,
-                    ) => (
-                      <TransactionRow
-                        key={tx.id}
-                        tx={tx}
-                        format={
-                          format
-                        }
-                        isLast={
-                          index ===
-                          group.items
-                            .length -
-                            1
-                        }
-                        onOpen={() =>
-                          setReceiptTx(
-                            tx,
-                          )
-                        }
-                      />
-                    ),
-                  )}
-                </div>
-              </section>
-            ),
-          )}
-      </div>
+                  {group.label}
+                </span>
+              </div>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Date filter                                                         */}
-      {/* ------------------------------------------------------------------ */}
+              <div
+                className="overflow-hidden rounded-2xl px-3"
+                style={{
+                  background: 'var(--card)',
+                  border: '1px solid var(--border)',
+                }}
+              >
+                {group.items.map((tx, index) => (
+                  <TransactionRow
+                    key={tx.id}
+                    tx={tx}
+                    format={format}
+                    isLast={index === group.items.length - 1}
+                    onOpen={() => setReceiptTx(tx)}
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
+      </div>
 
       <DateFilterSheet
         open={dateOpen}
         range={range}
-        customFrom={
-          customFrom
-        }
+        customFrom={customFrom}
         customTo={customTo}
-        onClose={() =>
-          setDateOpen(false)
-        }
-        onApply={(
-          nextRange,
-          from,
-          to,
-        ) => {
-          setRange(
-            nextRange,
-          );
+        onClose={() => setDateOpen(false)}
+        onApply={(nextRange, from, to) => {
+          setRange(nextRange);
           setCustomFrom(from);
           setCustomTo(to);
           setDateOpen(false);
         }}
       />
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Receipt                                                             */}
-      {/* ------------------------------------------------------------------ */}
-
       <TransactionReceipt
         tx={receiptTx}
         open={!!receiptTx}
-        onClose={() =>
-          setReceiptTx(null)
-        }
+        onClose={() => setReceiptTx(null)}
       />
     </div>
   );
