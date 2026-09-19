@@ -79,6 +79,7 @@ function useCountdown(expiresAt?: string | null) {
 
 /* ---------- Small Components ---------- */
 
+/** Compact Icon-only copy button placed right next to text */
 function CompactCopyIcon({ value, label }: { value: string; label: string }) {
   const { copied, copy } = useCopy();
   return (
@@ -104,7 +105,7 @@ function DetailRow({
   value,
   display,
   mono,
-  copyable = false,
+  copyable = false, // Copy disabled by default for details like Name
 }: {
   label: string;
   value?: string;
@@ -159,6 +160,36 @@ function ExpiryLive({ expiresAt }: { expiresAt?: string | null }) {
   );
 }
 
+function Progress({ active }: { active: 0 | 1 | 2 }) {
+  const items = ['Transfer', 'Confirm', 'Receive'];
+  return (
+    <div className="grid grid-cols-3 gap-1.5 mb-4" aria-label={`Step ${active + 1} of 3: ${items[active]}`}>
+      {items.map((t, i) => (
+        <div key={t}>
+          <div
+            style={{
+              height: 2.5,
+              borderRadius: 2,
+              background: i <= active ? 'var(--primary)' : 'var(--border)',
+              opacity: i < active ? 0.5 : 1,
+            }}
+          />
+          <p
+            style={{
+              marginTop: 4,
+              fontSize: 10,
+              fontWeight: 600,
+              color: i === active ? 'var(--foreground)' : 'var(--muted-foreground)',
+            }}
+          >
+            {t}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /* ---------- Main Screen Export ---------- */
 
 export function OnRampScreen(props: OnRampProcessingStepProps) {
@@ -193,19 +224,15 @@ export function OnRampProcessingStep({
 
   if (!hasVa) {
     return (
-      <motion.div
-        key="wait"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="min-h-[calc(100vh-80px)] flex flex-col justify-between pb-6"
-      >
-        <div className="flex items-center gap-2 mb-3 pt-4">
+      <motion.div key="wait" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-8">
+        <Progress active={0} />
+        <div className="flex items-center gap-2 mb-3">
           <Loader size={14} className="animate-spin" style={{ color: 'var(--muted-foreground)' }} />
           <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>Creating account…</p>
         </div>
         <div
-          className="animate-pulse rounded-[18px] flex-1 my-2"
-          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+          className="animate-pulse rounded-[18px]"
+          style={{ height: 260, background: 'var(--card)', border: '1px solid var(--border)' }}
         />
       </motion.div>
     );
@@ -218,12 +245,7 @@ export function OnRampProcessingStep({
   const expired = Boolean(countdown?.expired);
 
   return (
-    <motion.div
-      key="va"
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="min-h-[calc(100vh-80px)] flex flex-col justify-between pb-4 relative"
-    >
+    <motion.div key="va" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="pb-4 relative">
       <AnimatePresence>
         {toast && (
           <motion.div
@@ -260,109 +282,114 @@ export function OnRampProcessingStep({
         )}
       </AnimatePresence>
 
-      <div className="flex-1 flex flex-col pt-2">
-        {expired && (
-          <div
-            className="flex items-start gap-2 rounded-lg px-3 py-2 mb-3"
-            role="alert"
-            style={{
-              background: `color-mix(in oklab, ${DANGER} 10%, var(--card))`,
-              border: `1px solid color-mix(in oklab, ${DANGER} 28%, var(--border))`,
-            }}
-          >
-            <AlertTriangle size={13} className="mt-0.5 flex-shrink-0" style={{ color: DANGER }} />
-            <p style={{ color: 'var(--foreground)', fontSize: 11.5, lineHeight: 1.4 }}>
-              <strong>This account has expired.</strong> Start a new purchase.
-            </p>
-          </div>
-        )}
+      <Progress active={0} />
 
-        {/* Ticket Card */}
+      {expired && (
         <div
-          className="relative overflow-hidden rounded-[18px] my-auto"
-          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+          className="flex items-start gap-2 rounded-lg px-3 py-2 mb-3"
+          role="alert"
+          style={{
+            background: `color-mix(in oklab, ${DANGER} 10%, var(--card))`,
+            border: `1px solid color-mix(in oklab, ${DANGER} 28%, var(--border))`,
+          }}
         >
-          {/* Top: Amount */}
-          <div
-            className="px-3.5 pt-3.5 pb-3"
-            style={{
-              background: 'linear-gradient(180deg, color-mix(in oklab, var(--primary) 8%, var(--card)) 0%, var(--card) 100%)',
-            }}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <p style={LABEL}>Send exactly</p>
-              <ExpiryLive expiresAt={expiresAt} />
-            </div>
+          <AlertTriangle size={13} className="mt-0.5 flex-shrink-0" style={{ color: DANGER }} />
+          <p style={{ color: 'var(--foreground)', fontSize: 11.5, lineHeight: 1.4 }}>
+            <strong>This account has expired.</strong> Start a new purchase.
+          </p>
+        </div>
+      )}
 
-            <div className="flex items-center gap-1.5 mt-1">
-              <p className="tabular-nums" style={{ color: 'var(--foreground)', lineHeight: 1 }}>
-                <span style={{ fontSize: 22, fontWeight: 700, letterSpacing: -0.4 }}>{amtNum}</span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted-foreground)', marginLeft: 4 }}>
-                  {currency.code}
-                </span>
-              </p>
-              <CompactCopyIcon value={amtRaw} label="amount" />
-            </div>
+      {/* Ticket Card */}
+      <div
+        className="relative overflow-hidden rounded-[18px]"
+        style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+      >
+        {/* Top: Amount */}
+        <div
+          className="px-3.5 pt-3.5 pb-3"
+          style={{
+            background: 'linear-gradient(180deg, color-mix(in oklab, var(--primary) 8%, var(--card)) 0%, var(--card) 100%)',
+          }}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <p style={LABEL}>Send exactly</p>
+            <ExpiryLive expiresAt={expiresAt} />
+          </div>
 
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 11.5, marginTop: 6 }}>
-              You receive about{' '}
-              <span className="tabular-nums" style={{ color: 'var(--foreground)', fontWeight: 600 }}>
-                {receive}
+          <div className="flex items-center gap-1.5 mt-1">
+            <p className="tabular-nums" style={{ color: 'var(--foreground)', lineHeight: 1 }}>
+              <span style={{ fontSize: 22, fontWeight: 700, letterSpacing: -0.4 }}>{amtNum}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted-foreground)', marginLeft: 4 }}>
+                {currency.code}
               </span>
             </p>
+            <CompactCopyIcon value={amtRaw} label="amount" />
           </div>
 
-          {/* Perforation Line */}
-          <div className="relative" style={{ height: 1 }}>
-            <div style={{ borderTop: '1px dashed var(--border)', margin: '0 12px' }} />
-            {(['left', 'right'] as const).map((side) => (
-              <span
-                key={side}
-                aria-hidden
-                style={{
-                  position: 'absolute',
-                  top: -6,
-                  [side]: -6,
-                  width: 12,
-                  height: 12,
-                  borderRadius: 999,
-                  background: PAGE,
-                  border: '1px solid var(--border)',
-                }}
-              />
-            ))}
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 11.5, marginTop: 6 }}>
+            You receive about{' '}
+            <span className="tabular-nums" style={{ color: 'var(--foreground)', fontWeight: 600 }}>
+              {receive}
+            </span>
+          </p>
+        </div>
+
+        {/* Perforation Line */}
+        <div className="relative" style={{ height: 1 }}>
+          <div style={{ borderTop: '1px dashed var(--border)', margin: '0 12px' }} />
+          {(['left', 'right'] as const).map((side) => (
+            <span
+              key={side}
+              aria-hidden
+              style={{
+                position: 'absolute',
+                top: -6,
+                [side]: -6,
+                width: 12,
+                height: 12,
+                borderRadius: 999,
+                background: PAGE,
+                border: '1px solid var(--border)',
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Bottom: Account Details */}
+        <div className="px-3.5 pt-3 pb-2">
+          <p style={LABEL}>{bankName || 'Bank'}</p>
+          <div className="flex items-center gap-2 mt-1 mb-1">
+            <p
+              className="tabular-nums"
+              style={{ color: 'var(--foreground)', fontSize: 18, fontWeight: 700, letterSpacing: 0.5, lineHeight: 1 }}
+            >
+              {accountNumber}
+            </p>
+            <CompactCopyIcon value={accountNumber as string} label="account number" />
           </div>
 
-          {/* Bottom: Account Details */}
-          <div className="px-3.5 pt-3 pb-2">
-            <p style={LABEL}>{bankName || 'Bank'}</p>
-            <div className="flex items-center gap-2 mt-1 mb-1">
-              <p
-                className="tabular-nums"
-                style={{ color: 'var(--foreground)', fontSize: 18, fontWeight: 700, letterSpacing: 0.5, lineHeight: 1 }}
-              >
-                {accountNumber}
-              </p>
-              <CompactCopyIcon value={accountNumber as string} label="account number" />
-            </div>
-
-            <div className="mt-2" style={{ borderTop: '1px solid var(--border)' }}>
-              <DetailRow label="Account name" value={accountName || '—'} copyable={false} />
-              <div style={{ borderTop: '1px solid var(--border)' }} />
-              <DetailRow
-                label="Reference"
-                value={reference || '—'}
-                display={reference ? truncateMiddle(reference) : undefined}
-                mono
-                copyable
-              />
-            </div>
+          <div className="mt-2" style={{ borderTop: '1px solid var(--border)' }}>
+            {/* Account Name without Copy option */}
+            <DetailRow label="Account name" value={accountName || '—'} copyable={false} />
+            <div style={{ borderTop: '1px solid var(--border)' }} />
+            {/* Reference with compact copy option */}
+            <DetailRow
+              label="Reference"
+              value={reference || '—'}
+              display={reference ? truncateMiddle(reference) : undefined}
+              mono
+              copyable
+            />
           </div>
         </div>
       </div>
 
-      {/* Pushed to Bottom Action */}
-      <div className="mt-auto pt-4 pb-2">
+      {/* Sticky Bottom Action */}
+      <div
+        className="sticky bottom-0 pt-5 pb-2"
+        style={{ background: `linear-gradient(to top, ${PAGE} 70%, transparent)` }}
+      >
         <button
           type="button"
           disabled={!!checking}
@@ -401,38 +428,38 @@ export function OnRampDoneStep({ youGet, symbol, onDone }: { youGet: number; sym
       key="done"
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-between pt-8 pb-4 px-1 text-center"
+      className="flex flex-col items-center pt-6 px-1 text-center"
     >
-      <div className="flex-1 flex flex-col items-center justify-center">
-        <motion.div
-          initial={{ scale: 0.7, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-          className="w-14 h-14 rounded-full flex items-center justify-center mb-4"
-          style={{
-            background: 'color-mix(in oklab, var(--primary) 14%, var(--card))',
-            border: '1px solid color-mix(in oklab, var(--primary) 30%, var(--border))',
-          }}
-        >
-          <CheckCircle2 size={24} style={{ color: 'var(--primary)' }} />
-        </motion.div>
-        <p style={LABEL}>Payment confirmed</p>
-        <p
-          className="tabular-nums"
-          style={{ color: 'var(--foreground)', fontSize: 24, fontWeight: 700, letterSpacing: -0.4, marginTop: 6 }}
-        >
-          +{youGet.toLocaleString(undefined, { maximumFractionDigits: 6 })} {symbol}
-        </p>
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 4 }}>
-          Credited to your wallet.
-        </p>
+      <div className="w-full">
+        <Progress active={2} />
       </div>
-
+      <motion.div
+        initial={{ scale: 0.7, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+        className="w-12 h-12 rounded-full flex items-center justify-center mt-6 mb-4"
+        style={{
+          background: 'color-mix(in oklab, var(--primary) 14%, var(--card))',
+          border: '1px solid color-mix(in oklab, var(--primary) 30%, var(--border))',
+        }}
+      >
+        <CheckCircle2 size={22} style={{ color: 'var(--primary)' }} />
+      </motion.div>
+      <p style={LABEL}>Payment confirmed</p>
+      <p
+        className="tabular-nums"
+        style={{ color: 'var(--foreground)', fontSize: 22, fontWeight: 700, letterSpacing: -0.4, marginTop: 6 }}
+      >
+        +{youGet.toLocaleString(undefined, { maximumFractionDigits: 6 })} {symbol}
+      </p>
+      <p style={{ color: 'var(--muted-foreground)', fontSize: 11.5, marginTop: 4, marginBottom: 24 }}>
+        Credited to your wallet.
+      </p>
       <motion.button
         type="button"
         whileTap={{ scale: 0.98 }}
         onClick={onDone}
-        className="w-full rounded-full mt-auto"
+        className="w-full rounded-full"
         style={{
           height: 44,
           background: 'var(--primary)',
