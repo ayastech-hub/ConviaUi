@@ -22,6 +22,13 @@ import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { useLanguage } from '../../../shared/context/LanguageContext';
 import { PageTop } from '../../../shared/components/PageTop';
 import { PinBoxes } from '../../../shared/components/PinBoxes';
+import {
+  detectNgOperator,
+  AIRTIME_BILLER,
+  DATA_BILLER,
+  normalizeNgMobile,
+} from '../../../shared/utils/ngPhone';
+import { NetworkSheet } from '../components/NetworkSheet';
 
 interface ServicesScreenProps {
   navigate: (s: Screen) => void;
@@ -58,6 +65,7 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
   const [billerCurrency, setBillerCurrency] = useState('NGN');
   const [loadingBillers, setLoadingBillers] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [networkSheetOpen, setNetworkSheetOpen] = useState(false);
   const [pin, setPin] = useState<string[]>(Array(6).fill(''));
   const [pinError, setPinError] = useState('');
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
@@ -137,6 +145,7 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
 
   const customerRef = useMemo(() => {
     if (activeService === 'electricity' || activeService === 'bills') return meterNumber.trim();
+    if (activeService === 'data' || activeService === 'airtime') return normalizeNgMobile(phoneNumber);
     return phoneNumber.trim();
   }, [activeService, meterNumber, phoneNumber]);
 
@@ -164,6 +173,25 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
       clearTimeout(tmr);
     };
   }, [step, activeService, selectedBillerCode, customerRef, country]);
+
+
+  // Data & airtime: land on form immediately; auto-pick provider from NCC prefix
+  useEffect(() => {
+    if (step !== 'detail') return;
+    if (activeService !== 'data' && activeService !== 'airtime') return;
+    const op = detectNgOperator(phoneNumber);
+    if (!op) return;
+    const map = activeService === 'data' ? DATA_BILLER : AIRTIME_BILLER;
+    const b = map[op];
+    if (!b) return;
+    if (selectedBillerCode === b.code) return;
+    setSelectedBillerCode(b.code);
+    setSelectedProvider(b.name);
+    setProviderImage(getCachedLogo(b.code) || null);
+    setProductCode(null);
+    setSelectedAmount(null);
+    setCustomAmount('');
+  }, [phoneNumber, activeService, step, selectedBillerCode]);
 
   const canPay = () => {
     if (!(localAmountNum > 0 && selectedProvider && selectedBillerCode && customerRef && !paying)) return false;
@@ -318,13 +346,15 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
 
         {step === 'detail' && activeItem && (
           <div className="flex flex-col gap-4">
-            {loadingBillers ? (
+            {loadingBillers && activeService !== 'data' && activeService !== 'airtime' && !selectedProvider ? (
               <div className="flex justify-center py-10">
                 <Loader className="animate-spin" size={22} style={{ color: 'var(--muted-foreground)' }} />
               </div>
             ) : (
               <>
-                {!selectedProvider && (
+                {!selectedProvider &&
+                  activeService !== 'data' &&
+                  activeService !== 'airtime' && (
                   <ProviderSelector
                     serviceId={activeService || ''}
                     billers={billers}
@@ -338,7 +368,7 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
                   />
                 )}
 
-                {selectedProvider && activeService && (
+                {(selectedProvider || activeService === 'data' || activeService === 'airtime') && activeService && (
                   <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-5">
                     <ServiceAmountInput
                       serviceId={activeService}
@@ -363,7 +393,12 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
                       setContactPhone={setContactPhone}
                       loadingVariations={loadingVariations}
                       onChangeProvider={() => {
+                        if (activeService === 'data' || activeService === 'airtime') {
+                          setNetworkSheetOpen(true);
+                          return;
+                        }
                         setSelectedProvider(null);
+                        setProviderImage(null);
                         setSelectedBillerCode(null);
                         setSelectedAmount(null);
                         setCustomAmount('');

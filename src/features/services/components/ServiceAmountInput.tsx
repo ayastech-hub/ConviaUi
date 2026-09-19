@@ -6,6 +6,7 @@ import { localAirtimeAmounts, localQuickAmounts } from '../../../shared/rates/fx
 import { ProviderIcon } from '../../../shared/icons/ProviderIcon';
 import { EnterprisePlanGrid } from './EnterprisePlanGrid';
 import { ContactsSheet } from './ContactsSheet';
+import { normalizeNgMobile, formatNgMobileDisplay } from '../../../shared/utils/ngPhone';
 
 interface ServiceAmountInputProps {
   serviceId: string;
@@ -30,12 +31,6 @@ interface ServiceAmountInputProps {
   setContactPhone?: (v: string) => void;
   loadingVariations?: boolean;
   minLocalAmount?: number | null;
-}
-
-function formatPhoneDisplay(digits: string) {
-  const d = digits.replace(/\D/g, '').slice(0, 11);
-  const parts = [d.slice(0, 4), d.slice(4, 7), d.slice(7, 11)].filter(Boolean);
-  return parts.join(' ');
 }
 
 /**
@@ -94,8 +89,7 @@ export function ServiceAmountInput({
   };
 
   const applyPhone = (raw: string) => {
-    const next = raw.replace(/\D/g, '').slice(0, 11);
-    setPhoneNumber(next);
+    setPhoneNumber(normalizeNgMobile(raw));
   };
 
   return (
@@ -160,7 +154,7 @@ export function ServiceAmountInput({
             inputMode={needsPhone || needsMeter ? 'numeric' : 'text'}
             value={
               needsPhone
-                ? formatPhoneDisplay(phoneNumber)
+                ? formatNgMobileDisplay(phoneNumber)
                 : needsMeter || needsAccount
                   ? meterNumber
                   : phoneNumber
@@ -216,7 +210,7 @@ export function ServiceAmountInput({
           <input
             type="tel"
             inputMode="numeric"
-            value={formatPhoneDisplay(contactPhone || '')}
+            value={formatNgMobileDisplay(contactPhone || '')}
             onChange={(e) => setContactPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
             placeholder="Contact phone"
             className="flex-1 bg-transparent outline-none"
