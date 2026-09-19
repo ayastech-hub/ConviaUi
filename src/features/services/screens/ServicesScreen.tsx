@@ -203,9 +203,9 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
   };
 
   return (
-    <div className="flex flex-col min-h-full" style={{ background: 'var(--background)' }}>
+    <div className="flex flex-col h-full min-h-0 overflow-hidden" style={{ background: 'var(--background)' }}>
       <PageTop />
-      <div className="px-4 pt-2 pb-3 flex items-center gap-3">
+      <div className="px-4 pt-2 pb-3 flex items-center gap-3 shrink-0">
         {step !== 'hub' && (
           <button
             type="button"
@@ -236,11 +236,11 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
         </div>
       )}
 
-      <div className="px-4 flex-1">
+      <div className="px-4 flex-1 min-h-0 overflow-y-auto overscroll-contain pb-6">
         {step === 'hub' && (
           <>
             <WalletFeatureBanner feature="bills" />
-            <ServiceHub onSelect={handleServiceClick} />
+            <ServiceHub onSelectService={handleServiceClick} />
           </>
         )}
 
@@ -356,7 +356,6 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
         )}
       </div>
 
-      <div style={{ height: 100 }} />
     </div>
   );
 }

@@ -22,7 +22,7 @@ export function ServiceHub({ onSelectService }: { onSelectService: (item: Servic
   }, [q]);
 
   return (
-    <div className="px-5 pb-10">
+    <div className="pb-8">
       <div
         className="flex items-center gap-2.5 px-3.5 h-11 rounded-2xl mb-5"
         style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
