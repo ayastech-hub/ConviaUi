@@ -65,6 +65,7 @@ export function payBill(body: {
   localAmount: string;
   localCurrency: string;
   productCode?: string;
+  contactPhone?: string;
 }) {
   return api.post<BillPaymentResult>('/bills/pay', body, { idempotent: true });
 }

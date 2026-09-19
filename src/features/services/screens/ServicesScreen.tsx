@@ -38,6 +38,11 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
   const [activeService, setActiveService] = useState<string | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [selectedBillerCode, setSelectedBillerCode] = useState<string | null>(null);
+  const [productCode, setProductCode] = useState<string | null>(null);
+  const [meterType, setMeterType] = useState<'prepaid' | 'postpaid'>('prepaid');
+  const [contactPhone, setContactPhone] = useState('');
+  const [liveVariations, setLiveVariations] = useState<Array<{ code: string; name: string; amount?: string }>>([]);
+  const [loadingVariations, setLoadingVariations] = useState(false);
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState('');
   const [meterNumber, setMeterNumber] = useState('');
@@ -107,13 +112,41 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
     };
   }, [step, activeService, country]);
 
+
+  useEffect(() => {
+    if (step !== 'detail' || activeService !== 'data' || !selectedBillerCode) {
+      setLiveVariations([]);
+      return;
+    }
+    let cancelled = false;
+    setLoadingVariations(true);
+    billsApi
+      .listVariations(selectedBillerCode, country || 'NG')
+      .then((res) => {
+        if (!cancelled) setLiveVariations(res.variations || []);
+      })
+      .catch(() => {
+        if (!cancelled) setLiveVariations([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingVariations(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [step, activeService, selectedBillerCode, country]);
+
   const customerRef = useMemo(() => {
     if (activeService === 'electricity' || activeService === 'bills') return meterNumber.trim();
     return phoneNumber.trim();
   }, [activeService, meterNumber, phoneNumber]);
 
-  const canPay = () =>
-    !!(localAmountNum > 0 && selectedProvider && selectedBillerCode && customerRef && !paying);
+  const canPay = () => {
+    if (!(localAmountNum > 0 && selectedProvider && selectedBillerCode && customerRef && !paying)) return false;
+    if (activeService === 'data' && !productCode) return false;
+    if (activeService === 'electricity' && contactPhone.replace(/\D/g, '').length < 10) return false;
+    return true;
+  };
 
   const goConfirm = () => {
     if (!canPay()) return;
@@ -147,10 +180,15 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
         category: toCategory(activeService),
         billerCode: selectedBillerCode,
         customerRef,
-        amount: '0', // server overwrites from local
+        amount: '0',
         asset: 'USDT',
         localAmount: localAmountStr,
         localCurrency,
+        productCode:
+          activeService === 'electricity'
+            ? meterType
+            : productCode || undefined,
+        contactPhone: activeService === 'electricity' ? contactPhone : undefined,
       });
 
       const st = String(res.status || '').toLowerCase();
@@ -192,6 +230,10 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
     setActiveService(null);
     setSelectedProvider(null);
     setSelectedBillerCode(null);
+    setProductCode(null);
+    setMeterType('prepaid');
+    setContactPhone('');
+    setLiveVariations([]);
     setSuccessInfo(null);
     setApiError(null);
     setPin(Array(6).fill(''));
@@ -277,11 +319,21 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
                       setCustomAmount={setCustomAmount}
                       amountCurrency={localCurrency}
                       provider={selectedProvider}
+                      liveVariations={liveVariations}
+                      productCode={productCode}
+                      onProductCode={setProductCode}
+                      meterType={meterType}
+                      onMeterType={setMeterType}
+                      contactPhone={contactPhone}
+                      setContactPhone={setContactPhone}
+                      loadingVariations={loadingVariations}
                       onChangeProvider={() => {
                         setSelectedProvider(null);
                         setSelectedBillerCode(null);
                         setSelectedAmount(null);
                         setCustomAmount('');
+                        setProductCode(null);
+                        setLiveVariations([]);
                       }}
                     />
                     <PaymentSummaryCard
