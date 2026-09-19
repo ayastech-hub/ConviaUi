@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { Loader, CheckCircle2, Copy, Check, Clock, AlertTriangle } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import type { Currency } from '../../../../shared/context/CurrencyContext';
 
 interface OnRampProcessingStepProps {
@@ -26,7 +26,7 @@ const DANGER = 'var(--destructive, #ef4444)';
 const PAGE = 'var(--background, #0e0e10)';
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
 
-const LABEL: React.CSSProperties = {
+const LABEL: CSSProperties = {
   color: 'var(--muted-foreground)',
   fontSize: 11,
   fontWeight: 600,
