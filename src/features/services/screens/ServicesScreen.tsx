@@ -60,7 +60,7 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
 
   const activeItem = SERVICE_GROUPS.flatMap((g) => g.items).find((i) => i.id === activeService);
   const localCurrency = (billerCurrency || currency.code || 'NGN').toUpperCase();
-  const localAmountNum = selectedAmount ?? parseFloat(customAmount) || 0;
+  const localAmountNum = (selectedAmount ?? parseFloat(customAmount)) || 0;
   const localAmountStr = String(localAmountNum);
 
   const handleServiceClick = (item: ServiceItem) => {
