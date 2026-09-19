@@ -85,7 +85,7 @@ async function openFlutterwave(input: InlineCheckoutInput): Promise<InlineChecko
       tx_ref: input.action.clientReference,
       amount,
       currency: (input.currency || input.action.currency || 'NGN').toUpperCase(),
-      payment_options: 'card',
+      payment_options: 'card', // card only — no bank transfer / USSD
       customer: {
         email: input.email,
         name: input.customerName || 'Convia user',
@@ -148,8 +148,9 @@ async function openMonnify(input: InlineCheckoutInput): Promise<InlineCheckoutRe
       apiKey: input.action.publicKey,
       contractCode,
       paymentDescription: input.description || 'Convia wallet top-up',
+      // Card only — hide Transfer / USSD method picker
+      paymentMethods: ['CARD'],
       metadata: { source: 'convia_inline' },
-      // Brand alignment (SDK supports limited styling)
       incomeSplitConfig: undefined,
       onComplete: (response: {
         paymentStatus?: string;
