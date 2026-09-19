@@ -12,7 +12,7 @@ interface PinBoxesProps {
  * Continuous PIN entry — type digits without tapping each box.
  * Supports paste of full code and backspace across cells.
  */
-export function PinBoxes({ length = 4, value, onChange, error, autoFocus = true }: PinBoxesProps) {
+export function PinBoxes({ length = 6, value, onChange, error, autoFocus = true }: PinBoxesProps) {
   const refs = useRef<(HTMLInputElement | null)[]>([]);
   const pin = Array.from({ length }, (_, i) => value[i] || '');
 

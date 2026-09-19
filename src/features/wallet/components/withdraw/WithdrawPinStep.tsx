@@ -12,7 +12,7 @@ interface WithdrawPinStepProps {
   onCancel: () => void;
 }
 
-/** Confirm withdrawal with 4-digit PIN — continuous typing supported. */
+/** Confirm withdrawal with 6-digit PIN — continuous typing supported. */
 export function WithdrawPinStep({ pin, onPinChange, onPinUpdate, error, onCancel }: WithdrawPinStepProps) {
   const handleUpdate = (next: string[]) => {
     if (onPinUpdate) {
@@ -38,7 +38,7 @@ export function WithdrawPinStep({ pin, onPinChange, onPinUpdate, error, onCancel
           Confirm withdrawal
         </h2>
         <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginBottom: 28 }}>
-          Enter your 4-digit PIN
+          Enter your 6-digit PIN
         </p>
         <PinBoxes value={pin} onChange={handleUpdate} error={error} />
         <motion.button

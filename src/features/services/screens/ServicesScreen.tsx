@@ -48,7 +48,7 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
   const [billerCurrency, setBillerCurrency] = useState('NGN');
   const [loadingBillers, setLoadingBillers] = useState(false);
   const [paying, setPaying] = useState(false);
-  const [pin, setPin] = useState<string[]>(['', '', '', '']);
+  const [pin, setPin] = useState<string[]>(Array(6).fill(''));
   const [pinError, setPinError] = useState('');
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
   const { countries: marketCountries } = useSupportedCountries();
@@ -73,7 +73,7 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
       setMeterNumber('');
       setPhoneNumber('');
       setApiError(null);
-      setPin(['', '', '', '']);
+      setPin(Array(6).fill(''));
       setPinError('');
       setStep('detail');
     } else {
@@ -122,15 +122,15 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
       return;
     }
     setApiError(null);
-    setPin(['', '', '', '']);
+    setPin(Array(6).fill(''));
     setPinError('');
     setStep('confirm');
   };
 
   const submitPay = async () => {
     const pinStr = pin.join('');
-    if (pinStr.length < 4) {
-      setPinError('Enter your 4-digit PIN');
+    if (pinStr.length < 6) {
+      setPinError('Enter your 6-digit PIN');
       return;
     }
     if (!userId || !selectedBillerCode || !activeService) return;
@@ -194,7 +194,7 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
     setSelectedBillerCode(null);
     setSuccessInfo(null);
     setApiError(null);
-    setPin(['', '', '', '']);
+    setPin(Array(6).fill(''));
     setPinError('');
     setSelectedAmount(null);
     setCustomAmount('');
@@ -328,16 +328,16 @@ export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
             <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginBottom: 24 }}>
               To {customerRef} · debited from USDT balance
             </p>
-            <PinBoxes value={pin} onChange={setPin} error={pinError} length={4} />
+            <PinBoxes value={pin} onChange={setPin} error={pinError} length={6} />
             <motion.button
               type="button"
               whileTap={{ scale: paying ? 1 : 0.98 }}
-              disabled={paying || pin.join('').length < 4}
+              disabled={paying || pin.join('').length < 6}
               onClick={() => void submitPay()}
               className="w-full max-w-sm mt-8 py-4 rounded-full"
               style={{
-                background: paying || pin.join('').length < 4 ? 'var(--muted)' : 'var(--primary)',
-                color: paying || pin.join('').length < 4 ? 'var(--muted-foreground)' : 'var(--primary-foreground, #fff)',
+                background: paying || pin.join('').length < 6 ? 'var(--muted)' : 'var(--primary)',
+                color: paying || pin.join('').length < 6 ? 'var(--muted-foreground)' : 'var(--primary-foreground, #fff)',
                 fontWeight: 700,
                 fontSize: 16,
               }}
