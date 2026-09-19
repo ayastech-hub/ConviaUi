@@ -1,9 +1,9 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Loader, CheckCircle2, Copy, Check, Clock, AlertTriangle } from 'lucide-react';
+import { Loader, CheckCircle2, Copy, Check, Clock, Landmark, AlertTriangle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { Currency } from '../../../../shared/context/CurrencyContext';
 
-export interface OnRampProcessingStepProps {
+interface OnRampProcessingStepProps {
   currency: Currency;
   amount: string;
   youGet: number;
@@ -19,24 +19,12 @@ export interface OnRampProcessingStepProps {
   onConfirmPaid?: () => void;
 }
 
-/* ---------- Tokens ---------- */
+/* ---------- helpers ---------- */
 
 const WARN = 'var(--warning, #f59e0b)';
 const DANGER = 'var(--destructive, #ef4444)';
-const PAGE = 'var(--background, #0e0e10)';
-const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
 
-const LABEL: React.CSSProperties = {
-  color: 'var(--muted-foreground)',
-  fontSize: 10,
-  fontWeight: 600,
-  letterSpacing: '0.05em',
-  textTransform: 'uppercase',
-};
-
-/* ---------- Helpers ---------- */
-
-const truncateMiddle = (s: string, head = 8, tail = 6) =>
+const truncateMiddle = (s: string, head = 12, tail = 8) =>
   s.length <= head + tail + 1 ? s : `${s.slice(0, head)}…${s.slice(-tail)}`;
 
 function useCopy() {
@@ -53,7 +41,7 @@ function useCopy() {
   return { copied, copy };
 }
 
-/** Live countdown to expiresAt */
+/** Live countdown to expiresAt. Returns null when there is no usable date. */
 function useCountdown(expiresAt?: string | null) {
   const target = expiresAt ? new Date(expiresAt).getTime() : NaN;
   const [now, setNow] = useState(() => Date.now());
@@ -77,25 +65,31 @@ function useCountdown(expiresAt?: string | null) {
   return { expired: ms === 0, urgent: ms < 10 * 60 * 1000, label };
 }
 
-/* ---------- Small Components ---------- */
+/* ---------- small pieces ---------- */
 
-/** Compact Icon-only copy button placed right next to text */
-function CompactCopyIcon({ value, label }: { value: string; label: string }) {
+function CopyPill({ value, label, big }: { value: string; label: string; big?: boolean }) {
   const { copied, copy } = useCopy();
   return (
     <button
       type="button"
       onClick={() => copy(value)}
       aria-label={`Copy ${label}`}
-      className="inline-flex items-center justify-center rounded-md flex-shrink-0 transition-colors"
+      className="flex items-center gap-1.5 rounded-full flex-shrink-0"
       style={{
-        width: 22,
-        height: 22,
-        color: copied ? 'var(--primary)' : 'var(--muted-foreground)',
-        background: copied ? 'color-mix(in oklab, var(--primary) 12%, transparent)' : 'transparent',
+        height: big ? 40 : 32,
+        padding: big ? '0 16px' : '0 12px',
+        fontSize: 13,
+        fontWeight: 650,
+        color: copied ? 'var(--primary)' : 'var(--foreground)',
+        background: copied
+          ? 'color-mix(in oklab, var(--primary) 14%, var(--card))'
+          : 'var(--liquid-chip-off-bg, var(--muted))',
+        border: `1px solid ${copied ? 'color-mix(in oklab, var(--primary) 35%, var(--border))' : 'var(--border)'}`,
+        transition: 'background .15s, color .15s, border-color .15s',
       }}
     >
-      {copied ? <Check size={12} strokeWidth={2.5} /> : <Copy size={12} />}
+      {copied ? <Check size={14} /> : <Copy size={14} />}
+      <span aria-live="polite">{copied ? 'Copied' : 'Copy'}</span>
     </button>
   );
 }
@@ -105,98 +99,77 @@ function DetailRow({
   value,
   display,
   mono,
-  copyable = false, // Copy disabled by default for details like Name
 }: {
   label: string;
   value?: string;
   display?: string;
   mono?: boolean;
-  copyable?: boolean;
 }) {
   const has = Boolean(value) && value !== '—';
   return (
-    <div className="flex items-center justify-between gap-2 py-2" style={{ minHeight: 36 }}>
-      <p style={{ color: 'var(--muted-foreground)', fontSize: 11.5, flexShrink: 0 }}>{label}</p>
-      <div className="flex items-center gap-1 min-w-0">
+    <div
+      className="flex items-center justify-between gap-3 py-3.5"
+      style={{ borderTop: '1px solid var(--border)' }}
+    >
+      <div className="min-w-0">
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }}>{label}</p>
         <p
           title={value}
-          className="truncate text-right"
+          className="truncate"
           style={{
             color: has ? 'var(--foreground)' : 'var(--muted-foreground)',
-            fontSize: mono ? 11.5 : 12.5,
-            fontWeight: 600,
-            fontFamily: mono ? MONO : undefined,
+            fontSize: mono ? 13.5 : 15,
+            fontWeight: 650,
+            marginTop: 2,
+            fontFamily: mono ? 'ui-monospace, SFMono-Regular, Menlo, monospace' : undefined,
           }}
         >
           {has ? display ?? value : '—'}
         </p>
-        {has && copyable && <CompactCopyIcon value={value as string} label={label} />}
       </div>
+      {has && <CopyPill value={value as string} label={label} />}
     </div>
   );
 }
 
-function ExpiryLive({ expiresAt }: { expiresAt?: string | null }) {
+function TimerPill({ expiresAt }: { expiresAt?: string | null }) {
   const cd = useCountdown(expiresAt);
   if (!expiresAt) return null;
+
+  // Unparseable date: show whatever the server sent
   if (!cd) {
-    return <span style={{ color: 'var(--muted-foreground)', fontSize: 10.5 }}>Expires {String(expiresAt)}</span>;
+    return (
+      <span style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }}>
+        Expires {String(expiresAt)}
+      </span>
+    );
   }
+
   const tone = cd.expired ? DANGER : cd.urgent ? WARN : 'var(--muted-foreground)';
   return (
-    <span className="flex items-center gap-1.5 tabular-nums" style={{ color: tone, fontSize: 10.5, fontWeight: 600 }}>
-      <span
-        className={cd.expired ? '' : 'animate-pulse'}
-        style={{ width: 5, height: 5, borderRadius: 999, background: tone, display: 'inline-block' }}
-      />
-      {cd.expired ? (
-        'Expired'
-      ) : (
+    <span
+      className="flex items-center gap-1.5 rounded-full tabular-nums"
+      style={{
+        height: 30,
+        padding: '0 12px',
+        fontSize: 12.5,
+        fontWeight: 650,
+        color: tone,
+        background: `color-mix(in oklab, ${tone} 10%, var(--card))`,
+        border: `1px solid color-mix(in oklab, ${tone} 28%, var(--border))`,
+      }}
+    >
+      <Clock size={13} />
+      {cd.expired ? 'Expired' : (
         <>
-          Expires in <span style={{ color: cd.urgent ? tone : 'var(--foreground)' }}>{cd.label}</span>
+          Expires in <strong style={{ color: cd.urgent ? tone : 'var(--foreground)' }}>{cd.label}</strong>
         </>
       )}
     </span>
   );
 }
 
-function Progress({ active }: { active: 0 | 1 | 2 }) {
-  const items = ['Transfer', 'Confirm', 'Receive'];
-  return (
-    <div className="grid grid-cols-3 gap-1.5 mb-4" aria-label={`Step ${active + 1} of 3: ${items[active]}`}>
-      {items.map((t, i) => (
-        <div key={t}>
-          <div
-            style={{
-              height: 2.5,
-              borderRadius: 2,
-              background: i <= active ? 'var(--primary)' : 'var(--border)',
-              opacity: i < active ? 0.5 : 1,
-            }}
-          />
-          <p
-            style={{
-              marginTop: 4,
-              fontSize: 10,
-              fontWeight: 600,
-              color: i === active ? 'var(--foreground)' : 'var(--muted-foreground)',
-            }}
-          >
-            {t}
-          </p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/* ---------- Main Screen Export ---------- */
-
-export function OnRampScreen(props: OnRampProcessingStepProps) {
-  return <OnRampProcessingStep {...props} />;
-}
-
-/* ---------- Step 1: Bank Transfer ---------- */
+/* ---------- step 1: bank transfer ---------- */
 
 export function OnRampProcessingStep({
   currency,
@@ -222,58 +195,84 @@ export function OnRampProcessingStep({
     return () => clearTimeout(t);
   }, [toast, onDismissToast]);
 
+  const expiryText = (() => {
+    if (!expiresAt) return null;
+    const d = new Date(expiresAt);
+    if (Number.isNaN(d.getTime())) return String(expiresAt);
+    return d.toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  })();
+
+  /* creating account: skeleton of the real layout */
   if (!hasVa) {
     return (
-      <motion.div key="wait" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-8">
-        <Progress active={0} />
-        <div className="flex items-center gap-2 mb-3">
-          <Loader size={14} className="animate-spin" style={{ color: 'var(--muted-foreground)' }} />
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>Creating account…</p>
+      <motion.div key="wait" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-10">
+        <div className="flex items-center gap-3 mb-6">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+          >
+            <Loader size={18} className="animate-spin" style={{ color: 'var(--foreground)' }} />
+          </div>
+          <div>
+            <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 15 }}>Creating your account…</p>
+            <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Usually a few seconds</p>
+          </div>
         </div>
-        <div
-          className="animate-pulse rounded-[18px]"
-          style={{ height: 260, background: 'var(--card)', border: '1px solid var(--border)' }}
-        />
+        {[112, 208].map((h) => (
+          <div
+            key={h}
+            className="animate-pulse rounded-[24px] mb-3"
+            style={{ height: h, background: 'var(--card)', border: '1px solid var(--border)' }}
+          />
+        ))}
       </motion.div>
     );
   }
 
   const amountNumber = Number(amount);
-  const amtNum = amountNumber.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  const amt = `${amountNumber.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${currency.code}`;
+  // Copy the plain number so it pastes cleanly into a bank app
   const amtRaw = Number.isFinite(amountNumber) ? String(amountNumber) : amount;
   const receive = `${youGet.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${symbol}`;
   const expired = Boolean(countdown?.expired);
 
+  const steps = [
+    'Open your bank app',
+    `Send exactly ${amt} to the account below`,
+    "Come back here and tap I've paid",
+  ];
+
   return (
-    <motion.div key="va" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="pb-4 relative">
+    <motion.div key="va" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="pb-6 relative">
+      {/* Bottom toast */}
       <AnimatePresence>
         {toast && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 12 }}
+            exit={{ opacity: 0, y: 16 }}
             className="fixed left-4 right-4 z-50 mx-auto"
-            style={{ bottom: 'max(80px, env(safe-area-inset-bottom))', maxWidth: 420 }}
+            style={{ bottom: 'max(96px, env(safe-area-inset-bottom))', maxWidth: 420 }}
           >
             <div
-              className="rounded-xl px-3 py-2.5 flex items-start gap-2"
+              className="rounded-2xl px-4 py-3.5 flex items-start gap-3"
               style={{
                 background: 'var(--card)',
                 border: '1px solid var(--border)',
-                boxShadow: '0 12px 30px rgba(0,0,0,0.3)',
+                boxShadow: '0 12px 40px rgba(0,0,0,0.35)',
               }}
             >
-              <Clock size={15} className="mt-0.5 flex-shrink-0" style={{ color: WARN }} />
+              <Clock size={18} className="mt-0.5 flex-shrink-0" style={{ color: WARN }} />
               <div className="min-w-0 flex-1">
-                <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 12 }}>Not confirmed yet</p>
-                <p style={{ color: 'var(--muted-foreground)', fontSize: 11, marginTop: 1, lineHeight: 1.35 }}>
+                <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 13 }}>Not confirmed yet</p>
+                <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 2, lineHeight: 1.4 }}>
                   {toast}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={onDismissToast}
-                style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 600 }}
+                style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }}
               >
                 OK
               </button>
@@ -282,122 +281,133 @@ export function OnRampProcessingStep({
         )}
       </AnimatePresence>
 
-      <Progress active={0} />
+      {/* Status row */}
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 13, fontWeight: 600 }}>Bank transfer</p>
+        <TimerPill expiresAt={expiresAt} />
+      </div>
 
       {expired && (
         <div
-          className="flex items-start gap-2 rounded-lg px-3 py-2 mb-3"
+          className="flex items-start gap-2.5 rounded-2xl px-3.5 py-3 mb-4"
           role="alert"
           style={{
             background: `color-mix(in oklab, ${DANGER} 10%, var(--card))`,
-            border: `1px solid color-mix(in oklab, ${DANGER} 28%, var(--border))`,
+            border: `1px solid color-mix(in oklab, ${DANGER} 30%, var(--border))`,
           }}
         >
-          <AlertTriangle size={13} className="mt-0.5 flex-shrink-0" style={{ color: DANGER }} />
-          <p style={{ color: 'var(--foreground)', fontSize: 11.5, lineHeight: 1.4 }}>
-            <strong>This account has expired.</strong> Start a new purchase.
+          <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" style={{ color: DANGER }} />
+          <p style={{ color: 'var(--foreground)', fontSize: 13, lineHeight: 1.45 }}>
+            <strong>This account has expired.</strong> Don&apos;t send money to it. Go back and start a new
+            purchase. If you already paid, tap I&apos;ve paid.
           </p>
         </div>
       )}
 
-      {/* Ticket Card */}
+      {/* Amount hero */}
       <div
-        className="relative overflow-hidden rounded-[18px]"
+        className="rounded-[24px] px-5 py-5 mb-3"
+        style={{
+          background: 'color-mix(in oklab, var(--primary) 9%, var(--card))',
+          border: '1px solid color-mix(in oklab, var(--primary) 24%, var(--border))',
+        }}
+      >
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 13, fontWeight: 600 }}>Send exactly</p>
+        <div className="flex items-center justify-between gap-3 mt-1.5">
+          <p
+            className="tabular-nums"
+            style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 34, letterSpacing: -0.8, lineHeight: 1.1 }}
+          >
+            {amt}
+          </p>
+          <CopyPill value={amtRaw} label="amount" big />
+        </div>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 13.5, marginTop: 10 }}>
+          You&apos;ll receive about{' '}
+          <span className="tabular-nums" style={{ color: 'var(--foreground)', fontWeight: 700 }}>
+            {receive}
+          </span>
+        </p>
+      </div>
+
+      {/* Account details */}
+      <div
+        className="rounded-[24px] px-5 pt-5 mb-4"
         style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
       >
-        {/* Top: Amount */}
-        <div
-          className="px-3.5 pt-3.5 pb-3"
-          style={{
-            background: 'linear-gradient(180deg, color-mix(in oklab, var(--primary) 8%, var(--card)) 0%, var(--card) 100%)',
-          }}
-        >
-          <div className="flex items-center justify-between gap-2">
-            <p style={LABEL}>Send exactly</p>
-            <ExpiryLive expiresAt={expiresAt} />
+        <div className="flex items-center gap-3">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+          >
+            <Landmark size={18} style={{ color: 'var(--muted-foreground)' }} />
           </div>
-
-          <div className="flex items-center gap-1.5 mt-1">
-            <p className="tabular-nums" style={{ color: 'var(--foreground)', lineHeight: 1 }}>
-              <span style={{ fontSize: 22, fontWeight: 700, letterSpacing: -0.4 }}>{amtNum}</span>
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted-foreground)', marginLeft: 4 }}>
-                {currency.code}
-              </span>
+          <div className="min-w-0">
+            <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }}>Transfer to</p>
+            <p className="truncate" style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 16 }}>
+              {bankName || '—'}
             </p>
-            <CompactCopyIcon value={amtRaw} label="amount" />
           </div>
-
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 11.5, marginTop: 6 }}>
-            You receive about{' '}
-            <span className="tabular-nums" style={{ color: 'var(--foreground)', fontWeight: 600 }}>
-              {receive}
-            </span>
-          </p>
         </div>
 
-        {/* Perforation Line */}
-        <div className="relative" style={{ height: 1 }}>
-          <div style={{ borderTop: '1px dashed var(--border)', margin: '0 12px' }} />
-          {(['left', 'right'] as const).map((side) => (
-            <span
-              key={side}
-              aria-hidden
-              style={{
-                position: 'absolute',
-                top: -6,
-                [side]: -6,
-                width: 12,
-                height: 12,
-                borderRadius: 999,
-                background: PAGE,
-                border: '1px solid var(--border)',
-              }}
-            />
-          ))}
-        </div>
-
-        {/* Bottom: Account Details */}
-        <div className="px-3.5 pt-3 pb-2">
-          <p style={LABEL}>{bankName || 'Bank'}</p>
-          <div className="flex items-center gap-2 mt-1 mb-1">
+        <div className="flex items-center justify-between gap-3 pt-4 pb-5">
+          <div className="min-w-0">
+            <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }}>Account number</p>
             <p
               className="tabular-nums"
-              style={{ color: 'var(--foreground)', fontSize: 18, fontWeight: 700, letterSpacing: 0.5, lineHeight: 1 }}
+              style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 30, letterSpacing: 1, marginTop: 2 }}
             >
               {accountNumber}
             </p>
-            <CompactCopyIcon value={accountNumber as string} label="account number" />
           </div>
-
-          <div className="mt-2" style={{ borderTop: '1px solid var(--border)' }}>
-            {/* Account Name without Copy option */}
-            <DetailRow label="Account name" value={accountName || '—'} copyable={false} />
-            <div style={{ borderTop: '1px solid var(--border)' }} />
-            {/* Reference with compact copy option */}
-            <DetailRow
-              label="Reference"
-              value={reference || '—'}
-              display={reference ? truncateMiddle(reference) : undefined}
-              mono
-              copyable
-            />
-          </div>
+          <CopyPill value={accountNumber as string} label="account number" big />
         </div>
+
+        <DetailRow label="Account name" value={accountName || '—'} />
+        <DetailRow
+          label="Reference"
+          value={reference || '—'}
+          display={reference ? truncateMiddle(reference) : undefined}
+          mono
+        />
       </div>
 
-      {/* Sticky Bottom Action */}
+      {/* How it works */}
+      <ol className="flex flex-col gap-2.5 px-1 mb-2">
+        {steps.map((text, i) => (
+          <li key={text} className="flex items-start gap-3">
+            <span
+              className="flex items-center justify-center flex-shrink-0 rounded-full tabular-nums"
+              style={{
+                width: 22,
+                height: 22,
+                fontSize: 12,
+                fontWeight: 700,
+                color: 'var(--foreground)',
+                background: 'var(--muted)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              {i + 1}
+            </span>
+            <span style={{ color: 'var(--muted-foreground)', fontSize: 13.5, lineHeight: 1.45, paddingTop: 1 }}>
+              {text}
+            </span>
+          </li>
+        ))}
+      </ol>
+
+      {/* Sticky action */}
       <div
-        className="sticky bottom-0 pt-5 pb-2"
-        style={{ background: `linear-gradient(to top, ${PAGE} 70%, transparent)` }}
+        className="sticky bottom-0 pt-8 pb-4"
+        style={{ background: 'linear-gradient(to top, var(--background, transparent) 65%, transparent)' }}
       >
         <button
           type="button"
           disabled={!!checking}
           onClick={onConfirmPaid}
-          className="w-full rounded-full font-semibold flex items-center justify-center gap-1.5 transition-opacity"
+          className="w-full py-4 rounded-full font-bold text-[15px] flex items-center justify-center gap-2"
           style={{
-            height: 44,
-            fontSize: 13.5,
             background: 'var(--primary)',
             color: 'var(--primary-foreground, #fff)',
             opacity: checking ? 0.8 : 1,
@@ -405,67 +415,73 @@ export function OnRampProcessingStep({
         >
           {checking ? (
             <>
-              <Loader size={14} className="animate-spin" />
+              <Loader size={16} className="animate-spin" />
               Checking payment…
             </>
           ) : (
             "I've paid"
           )}
         </button>
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 11, textAlign: 'center', marginTop: 8, lineHeight: 1.35 }}>
-          Pay from your bank app, then tap once completed.
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 12, textAlign: 'center', marginTop: 10, lineHeight: 1.4 }}>
+          Tap once your transfer has gone through. We credit your {symbol} when the payment is confirmed.
+          {!countdown && expiryText ? ` Account expires ${expiryText}.` : ''}
         </p>
       </div>
     </motion.div>
   );
 }
 
-/* ---------- Step 2: Done ---------- */
+/* ---------- step 2: done ---------- */
 
-export function OnRampDoneStep({ youGet, symbol, onDone }: { youGet: number; symbol: string; onDone: () => void }) {
+interface OnRampDoneStepProps {
+  youGet: number;
+  symbol: string;
+  onDone: () => void;
+}
+
+export function OnRampDoneStep({ youGet, symbol, onDone }: OnRampDoneStepProps) {
   return (
     <motion.div
       key="done"
-      initial={{ opacity: 0, y: 6 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col items-center pt-6 px-1 text-center"
+      className="flex flex-col items-center py-16 px-1 text-center"
     >
-      <div className="w-full">
-        <Progress active={2} />
-      </div>
       <motion.div
-        initial={{ scale: 0.7, opacity: 0 }}
+        initial={{ scale: 0.6, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-        className="w-12 h-12 rounded-full flex items-center justify-center mt-6 mb-4"
+        transition={{ type: 'spring', stiffness: 260, damping: 16 }}
+        className="w-20 h-20 rounded-full flex items-center justify-center mb-6"
         style={{
           background: 'color-mix(in oklab, var(--primary) 14%, var(--card))',
           border: '1px solid color-mix(in oklab, var(--primary) 30%, var(--border))',
+          boxShadow: '0 0 0 10px color-mix(in oklab, var(--primary) 6%, transparent)',
         }}
       >
-        <CheckCircle2 size={22} style={{ color: 'var(--primary)' }} />
+        <CheckCircle2 size={38} style={{ color: 'var(--primary)' }} />
       </motion.div>
-      <p style={LABEL}>Payment confirmed</p>
+      <p style={{ color: 'var(--muted-foreground)', fontSize: 14, fontWeight: 600, marginBottom: 6 }}>
+        Payment confirmed
+      </p>
       <p
         className="tabular-nums"
-        style={{ color: 'var(--foreground)', fontSize: 22, fontWeight: 700, letterSpacing: -0.4, marginTop: 6 }}
+        style={{ color: 'var(--foreground)', fontSize: 32, fontWeight: 800, letterSpacing: -0.8 }}
       >
         +{youGet.toLocaleString(undefined, { maximumFractionDigits: 6 })} {symbol}
       </p>
-      <p style={{ color: 'var(--muted-foreground)', fontSize: 11.5, marginTop: 4, marginBottom: 24 }}>
-        Credited to your wallet.
+      <p style={{ color: 'var(--muted-foreground)', fontSize: 13.5, marginTop: 8, marginBottom: 32 }}>
+        It&apos;s in your wallet now.
       </p>
       <motion.button
         type="button"
         whileTap={{ scale: 0.98 }}
         onClick={onDone}
-        className="w-full rounded-full"
+        className="w-full py-4 rounded-full"
         style={{
-          height: 44,
           background: 'var(--primary)',
           color: 'var(--primary-foreground, #fff)',
-          fontWeight: 600,
-          fontSize: 13.5,
+          fontWeight: 700,
+          fontSize: 16,
         }}
       >
         Done
