@@ -28,7 +28,8 @@ interface ReceiveScreenProps {
 
 export function ReceiveScreen({ goBack }: ReceiveScreenProps) {
   const { format } = useCurrency();
-  const { assets: tokenList, loading: regLoading, chainKeysForSymbol } = useWalletAssets();
+  const { assets: tokenList, loading: regLoading } = useWalletAssets();
+  const { chainKeysForSymbol } = useTokenRegistry();
   const { chains } = useTokenRegistry();
   const { userId, status } = useAuth();
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);

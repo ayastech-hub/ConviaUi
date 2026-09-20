@@ -35,10 +35,10 @@ export function listMoneyRequests(role: 'incoming' | 'outgoing' | 'all' = 'incom
   return api.get<{ items: MoneyRequestItem[] }>(`/payments/requests?role=${role}`);
 }
 
-export function payMoneyRequest(id: string) {
+export function payMoneyRequest(id: string, pin: string) {
   return api.post<{ id: string; status: string; ledgerTransactionId?: string }>(
     `/payments/requests/${id}/pay`,
-    {},
+    { pin },
     { idempotent: true },
   );
 }

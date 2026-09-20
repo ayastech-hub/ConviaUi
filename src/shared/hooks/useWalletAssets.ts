@@ -198,5 +198,6 @@ export function useWalletAssets() {
     pricesLoading: pricesQ.isFetching && !pricesReady,
     pricesReady,
     registrySource: registry.source,
+    chainKeysForSymbol: registry.chainKeysForSymbol,
   };
 }

@@ -31,8 +31,8 @@ interface WithdrawScreenProps {
 }
 
 export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScreenProps) {
-  const { assets: cryptoAssets, loading: registryLoading, chainKeysForSymbol } = useWalletAssets();
-  const { chains } = useTokenRegistry();
+  const { assets: cryptoAssets, loading: registryLoading } = useWalletAssets();
+  const { chains, chainKeysForSymbol } = useTokenRegistry();
   const { userId } = useAuth();
   const gates = useAccountGates();
   const { data: portfolioData } = usePortfolio();
@@ -64,9 +64,15 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
 
   const withdrawChainKeys = useMemo(() => {
     if (!selectedAsset) return [] as string[];
-    const keys = chainKeysForSymbol(selectedAsset.symbol, 'withdraw');
-    if (keys.length) return keys;
-    // fallback labels from asset.chains → resolve to keys
+    try {
+      const keys =
+        typeof chainKeysForSymbol === 'function'
+          ? chainKeysForSymbol(selectedAsset.symbol, 'withdraw') || []
+          : [];
+      if (keys.length) return keys;
+    } catch {
+      /* fall through */
+    }
     return (selectedAsset.chains || []).map((c) => resolveChain(c).chainKey);
   }, [selectedAsset, chainKeysForSymbol]);
 
@@ -80,7 +86,10 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
       setSelectedAsset(asset);
       let keys: string[] = [];
       try {
-        keys = chainKeysForSymbol(asset.symbol, 'withdraw') || [];
+        keys =
+          typeof chainKeysForSymbol === 'function'
+            ? chainKeysForSymbol(asset.symbol, 'withdraw') || []
+            : [];
       } catch {
         keys = [];
       }
