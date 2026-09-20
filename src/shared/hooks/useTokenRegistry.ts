@@ -16,12 +16,18 @@ import { queryKeys } from '../query/queryClient';
 export const CANONICAL_ASSETS: Array<{ symbol: string; name: string }> = [
   { symbol: 'USDT', name: 'Tether USD' },
   { symbol: 'USDC', name: 'USD Coin' },
+  { symbol: 'USD', name: 'US Dollar' },
   { symbol: 'BTC', name: 'Bitcoin' },
   { symbol: 'ETH', name: 'Ethereum' },
   { symbol: 'SOL', name: 'Solana' },
   { symbol: 'TRX', name: 'TRON' },
   { symbol: 'POL', name: 'Polygon' },
   { symbol: 'BNB', name: 'BNB' },
+  { symbol: 'TON', name: 'Toncoin' },
+  { symbol: 'NOT', name: 'Notcoin' },
+  { symbol: 'JUP', name: 'Jupiter' },
+  { symbol: 'AERO', name: 'Aerodrome' },
+  { symbol: 'GRAM', name: 'Gram' },
 ];
 
 function seedAsset(symbol: string, name: string): Asset {
