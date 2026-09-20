@@ -4,7 +4,7 @@ import { Zap, AlertTriangle } from 'lucide-react';
 import { type Asset } from '../../../shared/data/mockData';
 import { AssetPicker } from '../../../shared/components/AssetPicker';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
-import { STABLE_SYMBOLS, decimalsFor } from '../components/swap/utils';
+import { STABLE_SYMBOLS, decimalsFor, exactAmountString } from '../components/swap/utils';
 import { SwapAssetCard } from '../components/swap/SwapAssetCard';
 import { SwapDirectionButton } from '../components/swap/SwapDirectionButton';
 import { SwapRateRow, PriceImpactRow } from '../components/swap/SwapRateRow';
@@ -206,7 +206,8 @@ export function SwapScreen({ goBack, navigate, presetSymbol }: SwapScreenProps) 
   const toUSD = useMemo(() => toAmount * toAsset.price, [toAmount, toAsset]);
 
   const sameAsset = fromAsset.id === toAsset.id;
-  const insufficientBalance = fromNum > fromAsset.balance;
+  // Float tolerance so MAX never falsely flags insufficient
+  const insufficientBalance = fromNum > fromAsset.balance + 1e-10;
   const hasInput = fromNum > 0;
   const canSwap = hasInput && !sameAsset && !insufficientBalance && !error;
 
@@ -216,16 +217,21 @@ export function SwapScreen({ goBack, navigate, presetSymbol }: SwapScreenProps) 
     const n = Number(cleaned);
     if (cleaned && (!Number.isFinite(n) || n < 0)) { setError('Enter a valid amount'); return; }
     if (sameAsset) { setError('Cannot swap to the same asset'); return; }
-    if (n > fromAsset.balance) {
-      setError(`Insufficient balance. Max ${fromAsset.balance.toLocaleString('en', { maximumFractionDigits: decimalsFor(fromAsset.symbol) })} ${fromAsset.symbol}`);
+    if (n > fromAsset.balance + 1e-10) {
+      setError(`Insufficient balance. Max ${exactAmountString(fromAsset.balance)} ${fromAsset.symbol}`);
       return;
     }
     setError('');
   }, [fromAsset, sameAsset]);
 
   const setPercentage = useCallback((pct: number) => {
-    const amount = (fromAsset.balance * pct).toFixed(decimalsFor(fromAsset.symbol, 8));
-    handleFromAmount(String(parseFloat(amount)));
+    const bal = Number(fromAsset.balance) || 0;
+    if (pct >= 0.999) {
+      // Full balance — exact string, no toFixed rounding
+      handleFromAmount(exactAmountString(bal));
+      return;
+    }
+    handleFromAmount(exactAmountString(bal * pct));
   }, [fromAsset, handleFromAmount]);
 
   const flipAssets = useCallback(() => {

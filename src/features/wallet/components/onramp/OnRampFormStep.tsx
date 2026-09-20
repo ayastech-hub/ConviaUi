@@ -224,14 +224,6 @@ export function OnRampFormStep({
                 </span>
               </div>
             )}
-            <div className="flex justify-between">
-              <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Fee</span>
-              <span className="tabular-nums" style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: 600 }}>
-                {fee > 0
-                  ? `${Number(fee).toLocaleString(undefined, { maximumFractionDigits: 6 })} ${selectedAsset.symbol}`
-                  : '—'}
-              </span>
-            </div>
             <div className="flex justify-between pt-2" style={{ borderTop: '1px solid var(--border)' }}>
               <span style={{ color: 'var(--foreground)', fontSize: 14, fontWeight: 700 }}>You receive</span>
               <span className="tabular-nums" style={{ color: 'var(--primary)', fontSize: 15, fontWeight: 800 }}>

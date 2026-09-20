@@ -90,12 +90,6 @@ export function OnRampReviewStep({
             {youGet.toLocaleString(undefined, { maximumFractionDigits: 6 })} {selectedAsset.symbol}
           </span>
         </div>
-        <div className="flex justify-between mt-2">
-          <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Fee</span>
-          <span className="tabular-nums" style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13 }}>
-            {fee > 0 ? `${Number(fee).toLocaleString(undefined, { maximumFractionDigits: 6 })} ${selectedAsset.symbol}` : '—'}
-          </span>
-        </div>
       </div>
 
       {/* Bank details */}

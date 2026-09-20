@@ -256,12 +256,6 @@ export function OffRampFormStep({
         className="rounded-[20px] px-4 py-3.5 mb-4 space-y-2.5"
         style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
       >
-        <div className="flex justify-between">
-          <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Fee</span>
-          <span className="tabular-nums" style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: 600 }}>
-            {fee > 0 ? format(fee) : '—'}
-          </span>
-        </div>
         <div className="flex justify-between pt-2" style={{ borderTop: '1px solid var(--border)' }}>
           <span style={{ color: 'var(--foreground)', fontSize: 14, fontWeight: 700 }}>You receive</span>
           <span className="tabular-nums" style={{ color: 'var(--primary)', fontSize: 15, fontWeight: 800 }}>

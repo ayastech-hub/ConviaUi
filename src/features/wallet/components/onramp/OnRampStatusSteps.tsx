@@ -976,7 +976,7 @@ export function OnRampDoneStep({
             marginTop: 5,
           }}
         >
-          The funds have been credited to your wallet.
+          In your wallet now
         </p>
       </div>
 

@@ -197,7 +197,7 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
           )}
 
           {step === 'done' && (
-            <OffRampDoneStep currency={currency} youGet={youGet} bankName={selectedAccount?.bankName} onDone={goBack} />
+            <OffRampDoneStep currency={currency} youGet={youGet} bankName={selectedAccount?.bankName} amount={amount} symbol={selectedAsset.symbol} onDone={goBack} />
           )}
         </AnimatePresence>
       </div>

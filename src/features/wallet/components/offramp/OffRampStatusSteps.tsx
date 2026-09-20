@@ -12,17 +12,16 @@ interface OffRampReviewStepProps {
   selectedAsset: Asset;
   youGet: number;
   selectedAccount?: BankAccount;
-  fee: number;
+  fee?: number;
   onConfirm: () => void;
 }
 
 /** Off-Ramp step 2: review the conversion and payout account before confirming. */
-export function OffRampReviewStep({ currency, format, amount, selectedAsset, youGet, selectedAccount, fee, onConfirm }: OffRampReviewStepProps) {
+export function OffRampReviewStep({ currency, format, amount, selectedAsset, youGet, selectedAccount, onConfirm }: OffRampReviewStepProps) {
   const { t } = useLanguage();
   const rows = [
     { l: 'Account', v: selectedAccount ? `${selectedAccount.bankName} · ${selectedAccount.accountNumber}` : '' },
     { l: 'Account Holder', v: selectedAccount?.accountName ?? '' },
-    { l: 'Fee', v: format(fee) },
     { l: 'Settlement', v: '~ 5 minutes' },
   ];
 
@@ -63,15 +62,41 @@ interface OffRampProcessingStepProps {
 }
 
 /** Off-Ramp step 3: brief "converting" spinner. */
+
 export function OffRampProcessingStep({ amount, symbol, currency, youGet }: OffRampProcessingStepProps) {
   return (
-    <motion.div key="processing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-20">
-      <div className="w-24 h-24 rounded-full flex items-center justify-center" style={{ background: 'var(--muted)' }}>
-        <Loader size={44} style={{ color: 'var(--foreground)' }} className="animate-spin" />
+    <motion.div
+      key="processing"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="flex flex-col items-center justify-center min-h-[60vh] px-5 text-center"
+    >
+      <div
+        className="w-16 h-16 rounded-full flex items-center justify-center mb-5"
+        style={{
+          background: 'color-mix(in oklab, var(--primary) 14%, var(--card))',
+          border: '1px solid color-mix(in oklab, var(--primary) 28%, var(--border))',
+        }}
+      >
+        <Loader size={26} className="animate-spin" style={{ color: 'var(--primary)' }} />
       </div>
-      <h3 style={{ color: 'var(--foreground)', fontWeight: 700, marginBottom: 8, marginTop: 24 }}>Processing...</h3>
-      <p style={{ color: 'var(--muted-foreground)', fontSize: 13, textAlign: 'center' }}>
-        Converting {amount} {symbol} to {currency.symbol}{youGet.toLocaleString('en', { maximumFractionDigits: 0 })} {currency.code}
+      <p
+        style={{
+          color: 'var(--muted-foreground)',
+          fontSize: 11,
+          fontWeight: 650,
+          letterSpacing: '0.07em',
+          textTransform: 'uppercase',
+        }}
+      >
+        Processing
+      </p>
+      <p style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20, marginTop: 8 }}>
+        Selling {amount} {symbol}
+      </p>
+      <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginTop: 6 }}>
+        Preparing {currency.symbol}
+        {youGet.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currency.code}
       </p>
     </motion.div>
   );
@@ -81,26 +106,89 @@ interface OffRampDoneStepProps {
   currency: Currency;
   youGet: number;
   bankName?: string;
+  amount?: string;
+  symbol?: string;
   onDone: () => void;
 }
 
-/** Off-Ramp step 4: final success confirmation. */
-export function OffRampDoneStep({ currency, youGet, bankName, onDone }: OffRampDoneStepProps) {
+/** Success — aligned with swap complete layout. */
+export function OffRampDoneStep({ currency, youGet, bankName, amount, symbol, onDone }: OffRampDoneStepProps) {
   return (
-    <motion.div key="done" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center py-12 text-center">
-      <div className="w-24 h-24 rounded-full flex items-center justify-center mb-6" style={{ background: 'var(--muted)' }}>
-        <CheckCircle2 size={52} style={{ color: 'var(--positive)' }} />
+    <div className="flex flex-col h-full min-h-[70vh]" style={{ background: 'var(--background)' }}>
+      <div className="flex-1 flex flex-col items-center justify-center px-5 pb-6">
+        <motion.div
+          initial={{ scale: 0.85, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 280, damping: 20 }}
+          className="w-16 h-16 rounded-full mb-5 flex items-center justify-center"
+          style={{
+            background: 'color-mix(in oklab, var(--positive) 16%, var(--card))',
+            border: '1px solid color-mix(in oklab, var(--positive) 35%, var(--border))',
+          }}
+        >
+          <CheckCircle2 size={28} strokeWidth={2.5} style={{ color: 'var(--positive)' }} />
+        </motion.div>
+
+        <p
+          style={{
+            color: 'var(--muted-foreground)',
+            fontSize: 11,
+            fontWeight: 600,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+          }}
+        >
+          Sale complete
+        </p>
+        <p
+          className="tabular-nums mt-2"
+          style={{ color: 'var(--foreground)', fontSize: 26, fontWeight: 800, letterSpacing: -0.5 }}
+        >
+          {currency.symbol}
+          {youGet.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 0 })}
+        </p>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginTop: 6 }}>
+          {bankName ? `On the way to ${bankName}` : 'Payout submitted'}
+        </p>
+
+        <div
+          className="w-full max-w-sm mt-7 rounded-[22px] overflow-hidden text-left"
+          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+        >
+          {amount && symbol && (
+            <div className="flex justify-between px-4 py-3.5" style={{ borderBottom: '1px solid var(--border)' }}>
+              <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>You sold</span>
+              <span className="tabular-nums" style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14 }}>
+                {amount} {symbol}
+              </span>
+            </div>
+          )}
+          <div className="flex justify-between px-4 py-3.5">
+            <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>You receive</span>
+            <span className="tabular-nums" style={{ color: 'var(--positive)', fontWeight: 800, fontSize: 14 }}>
+              {currency.symbol}
+              {youGet.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            </span>
+          </div>
+          {bankName && (
+            <div className="flex justify-between px-4 py-3.5" style={{ borderTop: '1px solid var(--border)' }}>
+              <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Bank</span>
+              <span style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13 }}>{bankName}</span>
+            </div>
+          )}
+        </div>
       </div>
-      <h2 style={{ color: 'var(--foreground)', fontWeight: 800, marginBottom: 8 }}>{t('offramp.success')}</h2>
-      <p style={{ color: 'var(--foreground)', fontSize: 28, fontWeight: 800, marginBottom: 4 }}>{currency.symbol}{youGet.toLocaleString('en', { maximumFractionDigits: 0 })}</p>
-      <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginBottom: 6 }}>Sent to {bankName}</p>
-      <div className="flex items-center gap-1.5 mb-10 px-3 py-1.5 rounded-full" style={{ background: 'var(--muted)' }}>
-        <Clock size={12} style={{ color: 'var(--foreground)' }} />
-        <span style={{ color: 'var(--foreground)', fontSize: 12, fontWeight: 600 }}>Expected in 2-5 minutes</span>
+
+      <div className="px-5 pb-8 shrink-0">
+        <button
+          type="button"
+          onClick={onDone}
+          className="w-full h-12 rounded-full font-semibold text-[15px]"
+          style={{ background: 'var(--primary)', color: 'var(--primary-foreground, #fff)' }}
+        >
+          Done
+        </button>
       </div>
-      <motion.button whileTap={{ scale: 0.97 }} onClick={onDone} className="w-full py-3.5 rounded-[16px] text-white" style={{ background: 'var(--primary)', fontWeight: 700, fontSize: 15 }}>
-        Done
-      </motion.button>
-    </motion.div>
+    </div>
   );
 }

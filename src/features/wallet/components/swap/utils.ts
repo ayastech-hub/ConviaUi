@@ -15,8 +15,27 @@ export function formatRate(n: number): string {
 }
 
 export function formatAmount(n: number, symbol: string): string {
-  const d = decimalsFor(symbol);
-  return n.toLocaleString('en', { minimumFractionDigits: 0, maximumFractionDigits: d });
+  if (!Number.isFinite(n)) return '0';
+  const d = Math.max(decimalsFor(symbol, 8), 8);
+  // Avoid forced trailing zeros; trim insignificant fraction digits
+  let s = n.toLocaleString('en', { useGrouping: false, maximumFractionDigits: d, minimumFractionDigits: 0 });
+  if (s.includes('.')) s = s.replace(/\.?0+$/, '');
+  // Add grouping for readability on integer part
+  const [intPart, frac] = s.split('.');
+  const grouped = Number(intPart).toLocaleString('en');
+  return frac != null && frac.length ? `${grouped}.${frac}` : grouped;
+}
+
+/** Full-precision amount string for MAX — no rounding that triggers insufficient. */
+export function exactAmountString(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return '0';
+  // Prefer full precision without scientific notation
+  let s = n.toLocaleString('en', { useGrouping: false, maximumFractionDigits: 18, minimumFractionDigits: 0 });
+  if (/e/i.test(String(n))) {
+    s = n.toFixed(18);
+  }
+  if (s.includes('.')) s = s.replace(/\.?0+$/, '');
+  return s || '0';
 }
 
 export const PRESET_SLIPPAGE = ['0.5%', '1.0%', '3.0%'];
