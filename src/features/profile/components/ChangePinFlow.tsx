@@ -30,7 +30,7 @@ if (!userId) return;
 securityApi
 .getTransactionPinStatus(userId)
 .then((s) => {
-const hp = Boolean(s.hasPin ?? (s as { set?: boolean }).set);
+const hp = Boolean(s.hasPin ?? s.isSet ?? (s as { set?: boolean }).set);
 setHasPin(hp);
 if (!hp) setStep('new');
 })

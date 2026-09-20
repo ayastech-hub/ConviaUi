@@ -83,7 +83,21 @@ export function SetTransactionPinSheet({
       }, 600);
     } catch (e) {
       if (e instanceof ApiError) {
-        setError(String(e.body?.message || e.message || 'Could not save PIN'));
+        const msg = String(e.body?.message || e.message || 'Could not save PIN');
+        const code = String(e.code || e.body?.code || '');
+        // Status cache was wrong — PIN already exists; treat as configured
+        if (/already set|already_set|pin_already/i.test(msg + code)) {
+          markPinConfigured(userId);
+          invalidatePinStatusCache();
+          markPinConfigured(userId);
+          setPhase('done');
+          setTimeout(() => {
+            reset();
+            onComplete();
+          }, 400);
+          return;
+        }
+        setError(msg);
       } else {
         setError('Could not save PIN');
       }

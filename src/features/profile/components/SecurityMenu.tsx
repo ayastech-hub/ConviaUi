@@ -47,7 +47,7 @@ export function SecurityMenu({
     securityApi.getAntiPhishingCode(userId).then((r) => setAntiPhishing(r.code)).catch(() => {});
     securityApi
       .getTransactionPinStatus(userId)
-      .then((s) => setHasPin(Boolean(s.hasPin ?? (s as { set?: boolean }).set)))
+      .then((s) => setHasPin(Boolean(s.hasPin ?? s.isSet ?? (s as { set?: boolean }).set)))
       .catch(() => {});
   }, [userId]);
 

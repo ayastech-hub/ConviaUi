@@ -28,7 +28,7 @@ export function revealRecoveryPhrase(userId: string, transactionPin: string, mfa
 }
 
 export function getTransactionPinStatus(userId: string) {
-  return api.get<{ hasPin?: boolean; [k: string]: unknown }>(`/security/${userId}/transaction-pin/status`);
+  return api.get<{ hasPin?: boolean; isSet?: boolean; set?: boolean; setAt?: string; [k: string]: unknown }>(`/security/${userId}/transaction-pin/status`);
 }
 
 export function setTransactionPin(userId: string, pin: string) {

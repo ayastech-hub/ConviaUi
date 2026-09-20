@@ -27,7 +27,11 @@ export async function ensureTransactionPin(userId: string | null | undefined): P
   }
   try {
     const s = await securityApi.getTransactionPinStatus(userId);
-    const hasPin = Boolean(s.hasPin ?? (s as { set?: boolean }).set);
+    const hasPin = Boolean(
+      (s as { hasPin?: boolean }).hasPin
+      ?? (s as { isSet?: boolean }).isSet
+      ?? (s as { set?: boolean }).set
+    );
     cache = { userId, hasPin, at: Date.now() };
     if (hasPin) return { ok: true, hasPin: true };
     return {
