@@ -14,8 +14,13 @@ export function useNotifications(limit = 30) {
     queryKey: queryKeys.notifications(userId || '_', limit),
     queryFn: async () => {
       const list = await fetchNotifications(userId!, limit);
-      cacheSet(cacheKey, list, { persist: 'local' });
-      return list;
+      const rows = Array.isArray(list) ? list : Array.isArray((list as { items?: unknown })?.items)
+        ? (list as { items: NotificationRow[] }).items
+        : Array.isArray((list as { notifications?: unknown })?.notifications)
+          ? (list as { notifications: NotificationRow[] }).notifications
+          : [];
+      cacheSet(cacheKey, rows, { persist: 'local' });
+      return rows;
     },
     enabled,
     staleTime: 15_000,
@@ -24,10 +29,11 @@ export function useNotifications(limit = 30) {
       undefined,
   });
 
-  const unread = (q.data || []).filter((n) => !n.readAt && !(n as { read?: boolean }).read).length;
+  const data = Array.isArray(q.data) ? q.data : [];
+  const unread = data.filter((n) => !n.readAt && !(n as { read?: boolean }).read).length;
 
   return {
-    data: (q.data as NotificationRow[] | undefined) ?? [],
+    data,
     unread,
     loading: enabled && q.isLoading && !q.data,
     isFetching: q.isFetching,

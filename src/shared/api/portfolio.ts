@@ -1,6 +1,6 @@
 import { api } from './client';
 
-/** Actual shape from portfolioService.getSummary (src/services/portfolio-service.ts). */
+/** Actual shape from portfolioService.getSummary */
 export type HoldingView = {
   asset: string;
   quantity: string;
@@ -13,6 +13,13 @@ export type PortfolioSummary = {
   holdings: HoldingView[];
 };
 
-export function fetchPortfolio(userId: string) {
-  return api.get<PortfolioSummary>(`/portfolio/${userId}`);
+export async function fetchPortfolio(userId: string): Promise<PortfolioSummary> {
+  const raw = await api.get<PortfolioSummary | { holdings?: HoldingView[]; totalValueUsd?: string }>(
+    `/portfolio/${userId}`,
+  );
+  const holdings = Array.isArray(raw?.holdings) ? raw.holdings : [];
+  return {
+    totalValueUsd: String(raw?.totalValueUsd ?? '0'),
+    holdings,
+  };
 }

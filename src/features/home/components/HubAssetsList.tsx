@@ -17,9 +17,10 @@ interface Props {
 /** Asset rows: name, price + 24h %, qty, USD — Crypto-Bot list structure. */
 export function HubAssetsList({ assets, loading, hideSmall, balanceVisible = true, onToggleHide, onSelect }: Props) {
   const { format } = useCurrency();
+  const safe = Array.isArray(assets) ? assets : [];
   const list = hideSmall
-    ? assets.filter((a) => Number(a.valueUSD) >= 1 || Number(a.balance) > 0)
-    : assets;
+    ? safe.filter((a) => Number(a.valueUSD) >= 1 || Number(a.balance) > 0)
+    : safe;
 
   return (
     <div className="px-5 pb-28">

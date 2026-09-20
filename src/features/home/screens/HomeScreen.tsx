@@ -50,7 +50,8 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
   }, []);
   const [hideSmall, setHideSmall] = useState(false);
     const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);
-  const { assets, loading } = useWalletAssets();
+  const { assets: assetsRaw, loading } = useWalletAssets();
+  const assets = Array.isArray(assetsRaw) ? assetsRaw : [];
   useEffect(() => {
     const syms = assets.map((a) => a.symbol).filter(Boolean);
     if (syms.length) prefetchMarketPrices(syms);

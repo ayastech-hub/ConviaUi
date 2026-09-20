@@ -25,7 +25,6 @@ import { WalletFeatureBanner } from '../../../shared/components/WalletFeatureBan
 import { executeSwap, getSwapQuote } from '../../../shared/api/swap';
 import { ApiError } from '../../../shared/api/types';
 import { PageTop } from '../../../shared/components/PageTop';
-import { ensureTransactionPin } from '../../../shared/security/ensureTransactionPin';
 
 interface SwapScreenProps {
   goBack: () => void;
@@ -262,9 +261,6 @@ export function SwapScreen({ goBack, navigate, presetSymbol }: SwapScreenProps) 
   const [quoteFee, setQuoteFee] = useState<string | null>(null);
   const [quoteFeeBps, setQuoteFeeBps] = useState<number | null>(null);
   const [quoteId, setQuoteId] = useState<string | null>(null);
-  const [pinChallenge, setPinChallenge] = useState(false);
-  const [challengePin, setChallengePin] = useState('');
-  const [pendingSwapPin, setPendingSwapPin] = useState<string | undefined>(undefined);
   const [quoteLoading, setQuoteLoading] = useState(false);
 
 
@@ -327,19 +323,13 @@ export function SwapScreen({ goBack, navigate, presetSymbol }: SwapScreenProps) 
     if (canConfirmSwap) setPhase('review');
   }, [canConfirmSwap]);
 
-  const confirmSwap = useCallback(async (pinOverride?: string) => {
+  const confirmSwap = useCallback(async () => {
     setApiBlock(null);
-    setPinChallenge(false);
     setPhase('swapping');
     try {
       if (!userId) throw new ApiError(401, { code: 'unauthorized', message: 'Sign in required' });
-      const pinGate = await ensureTransactionPin(userId);
-      if (!pinGate.ok) {
-        throw new ApiError(403, { code: 'pin_not_set', message: pinGate.message });
-      }
       if (!quoteId) throw new ApiError(400, { code: 'no_quote', message: 'Get a fresh quote first' });
-      const pinToSend = pinOverride || pendingSwapPin;
-      const res = await executeSwap({ userId, quoteId, ...(pinToSend ? { pin: pinToSend } : {}) });
+      const res = await executeSwap({ userId, quoteId });
       const amountIn = Number(res.fromAmount ?? fromNum) || fromNum;
       const amountOut = Number(res.toAmount ?? quoteOut ?? receiveAmount) || 0;
       const apiRate = Number(res.rate ?? quoteRate) || 0;
@@ -367,7 +357,6 @@ export function SwapScreen({ goBack, navigate, presetSymbol }: SwapScreenProps) 
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         hash: res.transactionId || 'internal',
       });
-      // Success immediately — do not block UI on portfolio refetch (was ~20s)
       setPhase('success');
       if (userId) {
         queryClient.setQueryData(queryKeys.portfolio(userId), (prev: unknown) => {
@@ -376,7 +365,7 @@ export function SwapScreen({ goBack, navigate, presetSymbol }: SwapScreenProps) 
             totalValueUsd?: string;
             holdings?: Array<{ asset: string; quantity: string; priceUsd: string; valueUsd: string }>;
           };
-          const holdings = [...(p.holdings || [])];
+          const holdings = [...(Array.isArray(p.holdings) ? p.holdings : [])];
           const bump = (sym: string, delta: number) => {
             const i = holdings.findIndex((h) => h.asset.toUpperCase() === sym.toUpperCase());
             if (i >= 0) {
@@ -397,23 +386,12 @@ export function SwapScreen({ goBack, navigate, presetSymbol }: SwapScreenProps) 
     } catch (err) {
       setPhase('idle');
       if (err instanceof ApiError) {
-        const code = String(err.code || '');
-        if (code === 'pin_required') {
-          setPinChallenge(true);
-          setApiBlock(null);
-          return;
-        }
-        let msg = err.body.message || err.message;
-        if (code === 'pin_invalid') {
-          msg = 'Incorrect PIN. Try again.';
-          setPinChallenge(true);
-        }
-        setApiBlock({ code: err.code, message: msg });
+        setApiBlock({ code: err.code, message: err.body.message || err.message });
       } else {
         setApiBlock({ message: 'Swap failed. Please try again.' });
       }
     }
-  }, [fromAsset, toAsset, fromNum, toAmount, fromUSD, userId, quoteId, quoteOut, receiveAmount, quoteRate, quoteFee, quoteFeeBps, pendingSwapPin]);
+  }, [fromAsset, toAsset, fromNum, toAmount, userId, quoteId, quoteOut, receiveAmount, quoteRate, quoteFee, quoteFeeBps]);
 
   const resetSwap = useCallback(() => {
     setPhase('idle');
@@ -459,8 +437,8 @@ export function SwapScreen({ goBack, navigate, presetSymbol }: SwapScreenProps) 
             reason={mapApiCodeToReason(apiBlock.code)}
             message={apiBlock.message}
             detail={apiBlock.code}
-            onAction={apiBlock.code === 'pin_not_set' && navigate ? () => navigate('security') : undefined}
-            actionLabel={apiBlock.code === 'pin_not_set' ? 'Set PIN' : 'Continue'}
+            onAction={undefined}
+            actionLabel="Continue"
           />
         )}
       </div>
@@ -574,43 +552,7 @@ export function SwapScreen({ goBack, navigate, presetSymbol }: SwapScreenProps) 
       </AnimatePresence>
 
       <AnimatePresence>
-        {pinChallenge && (
-          <>
-            <div className="absolute inset-0 z-[70]" style={{ background: 'rgba(0,0,0,0.65)' }} onClick={() => setPinChallenge(false)} />
-            <div
-              className="absolute bottom-0 left-0 right-0 z-[80] rounded-t-[24px] px-5 pt-4 pb-8"
-              style={{ background: 'var(--card)', borderTop: '1px solid var(--border)' }}
-            >
-              <p style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 17, marginBottom: 6 }}>Confirm with PIN</p>
-              <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginBottom: 14 }}>
-                Enter your transaction PIN to complete this swap.
-              </p>
-              <input
-                type="password"
-                inputMode="numeric"
-                maxLength={12}
-                value={challengePin}
-                onChange={(e) => setChallengePin(e.target.value.replace(/\D/g, ''))}
-                placeholder="Transaction PIN"
-                className="w-full px-4 py-3 rounded-2xl mb-3 outline-none tabular-nums text-center"
-                style={{ background: 'var(--muted)', border: '1px solid var(--border)', color: 'var(--foreground)', fontSize: 18, letterSpacing: 6 }}
-              />
-              <button
-                type="button"
-                disabled={challengePin.length < 4}
-                onClick={() => {
-                  setPendingSwapPin(challengePin);
-                  void confirmSwap(challengePin);
-                }}
-                className="w-full py-3.5 rounded-full font-bold"
-                style={{ background: 'var(--primary)', color: 'var(--primary-foreground, #fff)', opacity: challengePin.length < 4 ? 0.5 : 1 }}
-              >
-                Complete swap
-              </button>
-            </div>
-          </>
-        )}
-        {phase === 'swapping' && (
+                {phase === 'swapping' && (
           <SwapProcessingOverlay fromSymbol={fromAsset.symbol} toSymbol={toAsset.symbol} chainName={fromAsset.chains[0]} />
         )}
       </AnimatePresence>

@@ -29,17 +29,8 @@ export function getSwapQuote(params: {
   });
 }
 
-export function executeSwap(body: {
-  userId: string;
-  quoteId: string;
-  /** Optional — only needed while production still runs an older PIN-gated build */
-  pin?: string;
-}) {
-  const payload: Record<string, string> = {
-    userId: body.userId,
-    quoteId: body.quoteId,
-  };
-  if (body.pin) payload.pin = body.pin;
+/** Internal omnibus swap — no PIN. */
+export function executeSwap(body: { userId: string; quoteId: string }) {
   return api.post<{
     transactionId: string;
     quoteId: string;
@@ -51,5 +42,9 @@ export function executeSwap(body: {
     feeBps: number;
     rate: string;
     status: string;
-  }>('/swap/execute', payload, { idempotent: true });
+  }>(
+    '/swap/execute',
+    { userId: body.userId, quoteId: body.quoteId },
+    { idempotent: true },
+  );
 }
