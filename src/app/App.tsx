@@ -143,15 +143,24 @@ export default function App() {
     [switchTabRaw, userId],
   );
 
-  // Deep link: ?pay=CODE → payment page (persist for post-auth return)
+  // Deep link: ?pay=CODE | /pay/CODE | #/pay/CODE → payment page (persist for post-auth)
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
-      const pay = params.get('pay') || params.get('claim');
+      let pay = params.get('pay') || params.get('claim') || '';
+      if (!pay) {
+        const path = window.location.pathname || '';
+        const m = path.match(/\/pay\/([A-Za-z0-9_-]+)/i);
+        if (m) pay = m[1];
+      }
+      if (!pay && window.location.hash) {
+        const hm = window.location.hash.match(/pay[=/]([A-Za-z0-9_-]+)/i);
+        if (hm) pay = hm[1];
+      }
       if (pay) {
         sessionStorage.setItem('convia.pendingPay', pay);
         navigate('pay', pay);
-        window.history.replaceState({}, '', window.location.pathname);
+        window.history.replaceState({}, '', window.location.pathname || '/');
       }
     } catch {
       /* ignore */

@@ -32,13 +32,30 @@ export function PayScreen({ code, goBack, navigate }: Props) {
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
 
+  const resolvedCode = (() => {
+    const c = (code || '').trim();
+    if (c) return c;
+    try {
+      return sessionStorage.getItem('convia.pendingPay') || '';
+    } catch {
+      return '';
+    }
+  })();
+
   useEffect(() => {
     let cancelled = false;
 
     setLoading(true);
     setLoadError('');
 
-    void getRequest(code)
+    if (!resolvedCode) {
+      setReq(null);
+      setLoadError('Missing payment code.');
+      setLoading(false);
+      return;
+    }
+
+    void getRequest(resolvedCode)
       .then((result) => {
         if (cancelled) return;
         setReq(result);
@@ -56,7 +73,7 @@ export function PayScreen({ code, goBack, navigate }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [code]);
+  }, [resolvedCode]);
 
   const authenticated = status === 'authenticated' && !!userId;
 
@@ -144,7 +161,7 @@ export function PayScreen({ code, goBack, navigate }: Props) {
     setError('');
 
     try {
-      const result = await payRequest(req.code, userId);
+      const result = await payRequest(req.code || resolvedCode, userId);
 
       if (!result.ok) {
         setError(result.error || 'Payment could not be completed.');
@@ -161,7 +178,7 @@ export function PayScreen({ code, goBack, navigate }: Props) {
 
   const goAuth = (screen: 'signup' | 'login') => {
     try {
-      sessionStorage.setItem('convia.pendingPay', code);
+      sessionStorage.setItem('convia.pendingPay', resolvedCode);
     } catch {
       return;
     }

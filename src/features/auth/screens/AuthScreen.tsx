@@ -19,7 +19,7 @@ import { countryFromIso, type PhoneCountry } from '../components/phoneCountries'
 
 interface AuthScreenProps {
   mode: 'login' | 'signup' | 'forgot-password';
-  navigate: (s: Screen) => void;
+  navigate: (s: Screen, param?: string) => void;
   goBack: () => void;
   switchTab: (s: Screen) => void;
 }
@@ -27,6 +27,21 @@ interface AuthScreenProps {
 type Step = 'credentials' | 'otp';
 
 export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProps) {
+
+  /** After login/signup: resume payment deep link if present */
+  const finishAuth = () => {
+    try {
+      const pending = sessionStorage.getItem('convia.pendingPay');
+      if (pending) {
+        sessionStorage.removeItem('convia.pendingPay');
+        navigate('pay', pending);
+        return;
+      }
+    } catch {
+      /* ignore */
+    }
+    switchTab('home');
+  };
   const { t } = useLanguage();
   const { login, register } = useAuth();
   const [email, setEmail] = useState('');
@@ -101,7 +116,7 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
     setTimeout(() => {
       setLoading(false);
       setSuccess(true);
-      setTimeout(() => switchTab('home'), 1500);
+      setTimeout(() => finishAuth(), 1500);
     }, delay);
   };
 
@@ -165,7 +180,7 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
     try {
       await login(email, password);
       setSuccess(true);
-      setTimeout(() => switchTab('home'), 800);
+      setTimeout(() => finishAuth(), 800);
     } catch (err) {
       // Never reveal whether email or password was wrong; never surface infra messages
       if (err instanceof ApiError) {
@@ -203,7 +218,7 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
       void phoneE164; // stored for profile phone update after register when API supports it
       await register(email, password, username.trim() || undefined, referralCode.trim() || undefined);
       setSuccess(true);
-      setTimeout(() => switchTab('home'), 800);
+      setTimeout(() => finishAuth(), 800);
     } catch (err) {
       if (err instanceof ApiError) {
         const code = String(err.code || err.body?.code || '').toLowerCase();

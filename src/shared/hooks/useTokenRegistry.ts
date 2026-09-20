@@ -1,203 +1,203 @@
-import { useMemo, useRef } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { Asset } from '../data/mockData';
-import { useTokenRegistry } from './useTokenRegistry';
-import { usePortfolio } from './usePortfolio';
-import { fetchTokensInfo, type TokenMarketInfo } from '../api/tokens';
+import {
+  fetchTokenCatalog,
+  fetchChainCatalog,
+  type RegistryToken,
+  type RegistryChain,
+} from '../api/registry';
 import { queryKeys } from '../query/queryClient';
-import { cacheGet, cacheSet } from '../cache/queryCache';
-
-const PRICE_CACHE_KEY = 'token-market-prices';
-const TOTAL_CACHE_KEY = 'wallet-total-usd';
-const PRICE_CACHE_MAX_AGE = 24 * 60 * 60_000;
-
-type MarketRow = { price: number; change24h: number; image?: string };
-type MarketMap = Record<string, MarketRow>;
-
-function rowsFromTokens(tokens: TokenMarketInfo[]): MarketMap {
-  const m: MarketMap = {};
-  for (const t of tokens || []) {
-    const sym = String(t.symbol || '').toUpperCase();
-    if (!sym) continue;
-    const price = Number(t.currentPriceUsd ?? t.priceUsd ?? 0) || 0;
-    const change24h = Number(t.priceChange24hPct ?? t.change24h ?? 0) || 0;
-    const image = typeof t.image === 'string' ? t.image : undefined;
-    if (price > 0 || change24h !== 0 || image) {
-      m[sym] = { price, change24h, image };
-    }
-  }
-  return m;
-}
-
-function mergeMarketMaps(base: MarketMap, overlay: MarketMap): MarketMap {
-  const out = { ...base };
-  for (const [sym, row] of Object.entries(overlay)) {
-    const prev = out[sym];
-    out[sym] = {
-      price: row.price > 0 ? row.price : prev?.price || 0,
-      change24h: row.price > 0 || row.change24h !== 0 ? row.change24h : prev?.change24h || 0,
-      image: row.image || prev?.image,
-    };
-  }
-  return out;
-}
 
 /**
- * Registry ∪ holdings with unified prices.
- * Cached market prices paint immediately so total balance does not flash $0.
+ * Always-shown canonical assets (omnibus ledger is symbol-based).
+ * Registry overlays real names/chains/flags when the API responds.
  */
-export function useWalletAssets() {
-  const registry = useTokenRegistry();
-  const portfolio = usePortfolio();
-  const lastGoodTotal = useRef(
-    Number(cacheGet<number>(TOTAL_CACHE_KEY, PRICE_CACHE_MAX_AGE, { allowStale: true, preferLocal: true })) || 0,
-  );
+export const CANONICAL_ASSETS: Array<{ symbol: string; name: string }> = [
+  { symbol: 'USDT', name: 'Tether USD' },
+  { symbol: 'USDC', name: 'USD Coin' },
+  { symbol: 'BTC', name: 'Bitcoin' },
+  { symbol: 'ETH', name: 'Ethereum' },
+  { symbol: 'SOL', name: 'Solana' },
+  { symbol: 'TRX', name: 'TRON' },
+  { symbol: 'POL', name: 'Polygon' },
+  { symbol: 'BNB', name: 'BNB' },
+];
 
-  const symbols = useMemo(() => {
-    const set = new Set<string>();
-    for (const a of registry.assets || []) set.add(a.symbol.toUpperCase());
-    for (const h of Array.isArray(portfolio.data?.holdings) ? portfolio.data!.holdings : []) {
-      const s = String(h.asset || '').toUpperCase();
-      if (s) set.add(s);
-    }
-    return Array.from(set).sort();
-  }, [registry.assets, portfolio.data?.holdings]);
+function seedAsset(symbol: string, name: string): Asset {
+  return {
+    id: symbol.toLowerCase(),
+    symbol: symbol.toUpperCase(),
+    name,
+    price: 0,
+    change24h: 0,
+    balance: 0,
+    valueUSD: 0,
+    color: 'var(--foreground)',
+    bgColor: 'var(--muted)',
+    chains: [],
+    sparkline: [],
+  };
+}
 
-  const cachedMarket = useMemo(
-    () => cacheGet<MarketMap>(PRICE_CACHE_KEY, PRICE_CACHE_MAX_AGE, { allowStale: true, preferLocal: true }) || {},
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [symbols.join(',')],
-  );
+function tokenToAsset(t: RegistryToken): Asset {
+  const chainLabels = (t.chains || [])
+    .map((c) => c.chainName || c.name || c.chainKey || c.key || '')
+    .filter(Boolean);
+  const keys = (t.chains || []).map((c) => c.chainKey || c.key || '').filter(Boolean);
+  return {
+    id: t.symbol.toLowerCase(),
+    symbol: t.symbol.toUpperCase(),
+    name: t.name,
+    price: 0,
+    change24h: 0,
+    balance: 0,
+    valueUSD: 0,
+    color: 'var(--foreground)',
+    bgColor: 'var(--muted)',
+    chains: chainLabels.length ? chainLabels : keys,
+    sparkline: [],
+  };
+}
 
-  const pricesQ = useQuery({
-    queryKey: queryKeys.tokenMarket(symbols.join(',')),
+export type RegistryMeta = {
+  swapEnabled?: boolean;
+  rampEnabled?: boolean;
+  billsEnabled?: boolean;
+  isStablecoin?: boolean;
+};
+
+/**
+ * Live token catalog = canonical seeds ∪ backend /tokens registry.
+ * Zero-balance assets still appear so deposit/receive/swap pickers are complete.
+ */
+export function useTokenRegistry() {
+  const tokensQ = useQuery({
+    queryKey: queryKeys.tokens(),
     queryFn: async () => {
-      if (!symbols.length) return { tokens: [] as TokenMarketInfo[] };
-      const res = await fetchTokensInfo(symbols);
-      const tokenRows = Array.isArray(res?.tokens) ? res.tokens : [];
-      const next = mergeMarketMaps(cachedMarket, rowsFromTokens(tokenRows));
-      cacheSet(PRICE_CACHE_KEY, next, { persist: 'local' });
-      return res;
+      const res = await fetchTokenCatalog();
+      return Array.isArray(res?.tokens) ? res.tokens : [];
     },
-    enabled: symbols.length > 0,
-    staleTime: 60_000,
-    gcTime: 30 * 60_000,
-    placeholderData: () => {
-      const tokens = Object.entries(cachedMarket).map(([symbol, row]) => ({
-        symbol,
-        priceUsd: row.price,
-        currentPriceUsd: row.price,
-        change24h: row.change24h,
-        priceChange24hPct: row.change24h,
-        image: row.image,
-      }));
-      return { tokens };
-    },
-    retry: 2,
-    refetchOnWindowFocus: false,
+    staleTime: 5 * 60_000,
   });
 
-  const marketBySymbol = useMemo(() => {
-    const fromLive = rowsFromTokens(pricesQ.data?.tokens || []);
-    return new Map(Object.entries(mergeMarketMaps(cachedMarket, fromLive)));
-  }, [pricesQ.data, cachedMarket]);
+  const chainsQ = useQuery({
+    queryKey: queryKeys.chains(),
+    queryFn: async () => {
+      try {
+        const res = await fetchChainCatalog();
+        return Array.isArray(res?.chains) ? res.chains : [];
+      } catch {
+        return [] as RegistryChain[];
+      }
+    },
+    staleTime: 5 * 60_000,
+  });
 
-  const assets = useMemo(() => {
-    const bal = new Map<string, { qty: number; ledgerValue: number; ledgerPrice: number }>();
-    for (const h of Array.isArray(portfolio.data?.holdings) ? portfolio.data!.holdings : []) {
-      const sym = String(h.asset || '').toUpperCase();
-      if (!sym) continue;
-      const qty = Number(h.quantity) || 0;
-      const ledgerValue = Number(h.valueUsd) || 0;
-      const ledgerPrice = Number(h.priceUsd) || (qty > 0 && ledgerValue > 0 ? ledgerValue / qty : 0);
-      bal.set(sym, { qty, ledgerValue, ledgerPrice });
-    }
+  const tokens = Array.isArray(tokensQ.data) ? tokensQ.data : [];
+  const chains = Array.isArray(chainsQ.data) ? chainsQ.data : [];
 
-    const priceFor = (sym: string, fallback = 0) => {
-      const mkt = marketBySymbol.get(sym);
-      if (mkt && mkt.price > 0) return mkt.price;
-      const b = bal.get(sym);
-      if (b && b.ledgerPrice > 0) return b.ledgerPrice;
-      return fallback;
-    };
-
-    const valueFor = (sym: string, qty: number, ledgerValue: number, price: number) => {
-      // Always prefer qty × known price so list + total stay in sync
-      if (qty > 0 && price > 0) return qty * price;
-      if (ledgerValue > 0) return ledgerValue;
-      return 0;
-    };
-
-    const merged: Asset[] = (registry.assets || []).map((a) => {
-      const b = bal.get(a.symbol);
-      const qty = b?.qty ?? 0;
-      const price = priceFor(a.symbol, a.price || 0);
-      const change24h = marketBySymbol.get(a.symbol)?.change24h ?? a.change24h ?? 0;
-      const valueUSD = valueFor(a.symbol, qty, b?.ledgerValue ?? 0, price);
-      return { ...a, balance: qty, valueUSD, price, change24h };
-    });
-
-    for (const [sym, b] of bal) {
-      if (merged.some((a) => a.symbol === sym)) continue;
-      const price = priceFor(sym, b.ledgerPrice);
-      const valueUSD = valueFor(sym, b.qty, b.ledgerValue, price);
-      merged.push({
-        id: sym.toLowerCase(),
-        symbol: sym,
-        name: sym,
-        price,
-        change24h: marketBySymbol.get(sym)?.change24h ?? 0,
-        balance: b.qty,
-        valueUSD,
-        color: 'var(--foreground)',
-        bgColor: 'var(--muted)',
-        chains: [],
-        sparkline: [],
+  const metaBySymbol = useMemo(() => {
+    const m = new Map<string, RegistryMeta & { chains: RegistryChain[] }>();
+    for (const t of tokens) {
+      m.set(t.symbol.toUpperCase(), {
+        swapEnabled: t.swapEnabled,
+        rampEnabled: t.rampEnabled,
+        billsEnabled: t.billsEnabled,
+        isStablecoin: t.isStablecoin,
+        chains: t.chains || [],
       });
     }
+    return m;
+  }, [tokens]);
 
-    return merged.sort((a, b) => {
-      if (a.balance > 0 && b.balance <= 0) return -1;
-      if (b.balance > 0 && a.balance <= 0) return 1;
-      return (b.valueUSD || 0) - (a.valueUSD || 0);
+  const assets = useMemo(() => {
+    const bySym = new Map<string, Asset>();
+
+    for (const s of CANONICAL_ASSETS) {
+      bySym.set(s.symbol, seedAsset(s.symbol, s.name));
+    }
+
+    for (const t of tokens) {
+      const a = tokenToAsset(t);
+      const prev = bySym.get(a.symbol);
+      bySym.set(a.symbol, prev ? { ...prev, ...a, balance: prev.balance, valueUSD: prev.valueUSD } : a);
+    }
+
+    // Prefer stable first, then by symbol
+    const order = CANONICAL_ASSETS.map((c) => c.symbol);
+    return Array.from(bySym.values()).sort((a, b) => {
+      const ia = order.indexOf(a.symbol);
+      const ib = order.indexOf(b.symbol);
+      if (ia >= 0 && ib >= 0) return ia - ib;
+      if (ia >= 0) return -1;
+      if (ib >= 0) return 1;
+      return a.symbol.localeCompare(b.symbol);
     });
-  }, [registry.assets, portfolio.data, marketBySymbol]);
+  }, [tokens]);
 
-  const computedTotal = useMemo(
-    () => assets.reduce((s, a) => s + (Number(a.valueUSD) || 0), 0),
+  /** Assets eligible for internal omnibus swap. */
+  const swapAssets = useMemo(() => {
+    if (!tokens.length) return assets;
+    const enabled = assets.filter((a) => {
+      const meta = metaBySymbol.get(a.symbol);
+      // If flag missing, allow (admin may not have set swapEnabled yet)
+      if (meta && meta.swapEnabled === false) return false;
+      return true;
+    });
+    return enabled.length ? enabled : assets;
+  }, [assets, tokens.length, metaBySymbol]);
+
+  const getAsset = useCallback(
+    (symbol: string) =>
+      assets.find((a) => a.symbol.toUpperCase() === symbol.toUpperCase()) || assets[0],
     [assets],
   );
 
-  // Stable total: never drop to 0 while holdings exist but prices still hydrating
-  const totalValueUsd = useMemo(() => {
-    const hasQty = assets.some((a) => (a.balance || 0) > 0);
-    if (computedTotal > 0) {
-      lastGoodTotal.current = computedTotal;
-      cacheSet(TOTAL_CACHE_KEY, computedTotal, { persist: 'local' });
-      return computedTotal;
-    }
-    if (hasQty && lastGoodTotal.current > 0) return lastGoodTotal.current;
-    if (hasQty && portfolio.data?.totalValueUsd != null) {
-      const server = Number(portfolio.data.totalValueUsd) || 0;
-      if (server > 0) return server;
-    }
-    return computedTotal;
-  }, [computedTotal, assets, portfolio.data]);
-
-  const pricesReady = marketBySymbol.size > 0 || Object.keys(cachedMarket).length > 0;
+  const chainKeysForSymbol = useCallback(
+    (symbol: string, direction?: 'deposit' | 'withdraw') => {
+      const tok = tokens.find((t) => t.symbol.toUpperCase() === symbol.toUpperCase());
+      if (!tok) {
+        // No registry variant yet — empty; deposit UI will show empty chain state
+        return [] as string[];
+      }
+      return (tok.chains || [])
+        .filter((c) => {
+          if (direction === 'deposit') return c.depositsEnabled !== false;
+          if (direction === 'withdraw') return c.withdrawalsEnabled !== false;
+          return true;
+        })
+        .map((c) => (c.chainKey || c.key || '').toLowerCase())
+        .filter(Boolean);
+    },
+    [tokens],
+  );
 
   return {
+    tokens,
+    chains,
     assets,
-    swapAssets: registry.swapAssets.map((a) => {
-      const live = assets.find((x) => x.symbol === a.symbol);
-      return live
-        ? { ...a, balance: live.balance, valueUSD: live.valueUSD, price: live.price, change24h: live.change24h }
-        : a;
-    }),
-    totalValueUsd,
-    loading: (registry.loading || portfolio.loading) && !portfolio.data,
-    pricesLoading: pricesQ.isFetching && !pricesReady,
-    pricesReady,
-    registrySource: registry.source,
+    swapAssets,
+    metaBySymbol,
+    loading: tokensQ.isLoading,
+    error: tokensQ.error ? 'registry_unavailable' : null,
+    source: tokens.length ? ('live' as const) : ('seed' as const),
+    isFetching: tokensQ.isFetching || chainsQ.isFetching,
+    refresh: async () => {
+      await Promise.all([tokensQ.refetch(), chainsQ.refetch()]);
+    },
+    getAsset,
+    chainKeysForSymbol,
   };
+}
+
+export function chainLabelToKey(label: string, chains: RegistryChain[]): string {
+  const n = label.toLowerCase().replace(/\s+/g, '');
+  const hit = chains.find((c) => {
+    const key = (c.key || c.chainKey || '').toLowerCase();
+    const name = (c.name || c.chainName || '').toLowerCase().replace(/\s+/g, '');
+    return key === n || name === n || name.includes(n) || n.includes(key);
+  });
+  if (hit) return hit.key || hit.chainKey || label.toLowerCase();
+  return label.toLowerCase().replace(/\s+/g, '');
 }
