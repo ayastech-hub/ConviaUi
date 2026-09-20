@@ -24,7 +24,7 @@ export interface Asset {
 
 export interface Transaction {
   id: string;
-  type: 'send' | 'receive' | 'swap' | 'buy' | 'sell' | 'offramp' | 'onramp' | 'deposit' | 'withdraw' | 'vault_in' | 'vault_out';
+  type: 'send' | 'receive' | 'swap' | 'buy' | 'sell' | 'offramp' | 'onramp' | 'deposit' | 'withdraw' | 'vault_in' | 'vault_out' | 'airtime' | 'data' | 'electricity' | 'cable' | 'betting' | 'bill' | 'giveaway' | 'request' | 'reward';
   asset: string;
   assetTo?: string;
   amount: number;
@@ -48,6 +48,8 @@ export interface Transaction {
   fiatCurrency?: string;
   counterparty?: string;
   rawType?: string;
+  /** Server-provided display title when more specific than type */
+  title?: string;
 }
 
 export interface ChatContact {

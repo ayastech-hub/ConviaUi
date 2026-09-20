@@ -39,23 +39,52 @@ export function holdingToAsset(h: HoldingView): Asset {
   };
 }
 
+function mapBillCategory(t: ApiTransaction): Transaction['type'] | null {
+  const meta = (t.metadata || {}) as Record<string, unknown>;
+  const cat = String(
+    t.category || meta.category || meta.service || meta.serviceLabel || '',
+  ).toLowerCase();
+  const ref = String(meta.billRef || '');
+  const fromRef = ref.includes(':') ? ref.split(':')[0].toLowerCase() : '';
+  const c = cat || fromRef;
+  const title = String(t.title || '').toLowerCase();
+  if (c === 'airtime' || title.includes('airtime')) return 'airtime';
+  if (c === 'data' || title.includes('mobile data') || title.includes('data')) return 'data';
+  if (c === 'electricity' || c === 'power' || title.includes('electric')) return 'electricity';
+  if (c === 'cable' || c === 'tv' || c === 'bills' || title.includes('cable') || title.includes('tv')) return 'cable';
+  if (c === 'betting' || title.includes('betting')) return 'betting';
+  if (String(t.type || '').includes('bill') || title.includes('bill')) return 'bill';
+  return null;
+}
+
 function mapType(t: ApiTransaction): Transaction['type'] {
   const raw = `${t.type || ''} ${t.title || ''} ${t.kind || ''}`.toLowerCase();
-  if (raw.includes('network_fee') || raw.includes('network fee')) return 'withdraw'; // should be filtered server-side
+  if (raw.includes('network_fee') || raw.includes('network fee')) return 'withdraw';
   if (raw.includes('swap')) return 'swap';
+  if (raw.includes('giveaway')) return 'giveaway';
+  if (raw.includes('money_request') || raw.includes('request_link') || raw.includes('request')) return 'request';
+  if (raw.includes('reward') || raw.includes('referral')) return 'reward';
   if (raw.includes('withdraw') || raw.includes('withdrawal') || t.kind === 'withdrawal') return 'withdraw';
-  // On-ramp credits are deposits (not "Bought") — one label in the wallet
+
+  // Bills / utilities — never map to sell
+  const bill = mapBillCategory(t);
+  if (bill) return bill;
+  if (String(t.type || '') === 'bill_payment') return 'bill';
+
+  // On-ramp = Buy; crypto deposit stays Deposit
+  if (raw.includes('fiat_onramp') || (raw.includes('onramp') && !raw.includes('offramp')) || raw === 'buy')
+    return 'buy';
   if (
-    raw.includes('fiat_onramp') ||
     raw.includes('deposit') ||
     t.type === 'deposit_request' ||
-    t.kind === 'deposit' ||
-    raw === 'credit'
+    t.kind === 'deposit'
   )
     return 'deposit';
-  if (raw.includes('onramp') || raw === 'buy') return 'deposit';
-  if (raw.includes('offramp') || raw === 'sell') return 'sell';
-  if (raw.includes('bill')) return 'sell';
+
+  // Off-ramp only = Sell
+  if (raw.includes('offramp') || raw.includes('cash out') || (raw === 'sell' && !raw.includes('bill')))
+    return 'sell';
+
   if (t.direction === 'credit') return 'receive';
   if (t.direction === 'debit') return 'send';
   return 'send';
@@ -107,6 +136,7 @@ export function apiTxToUi(t: ApiTransaction): Transaction {
   return {
     id: t.id,
     type: mapped,
+    title: t.title || undefined,
     asset: t.asset || '—',
     assetTo: isSwap ? assetTo || undefined : assetTo,
     amount,

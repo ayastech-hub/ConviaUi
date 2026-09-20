@@ -21,6 +21,15 @@ const txMeta: Record<string, { label: string; icon: typeof ArrowUpRight; color: 
   swap: { label: 'Swap', icon: RefreshCw, color: 'var(--primary)', sign: '' },
   buy: { label: 'Buy', icon: Plus, color: 'var(--positive)', sign: '+' },
   sell: { label: 'Sell', icon: Minus, color: 'var(--foreground)', sign: '−' },
+  airtime: { label: 'Airtime', icon: Minus, color: 'var(--foreground)', sign: '−' },
+  data: { label: 'Mobile data', icon: Minus, color: 'var(--foreground)', sign: '−' },
+  electricity: { label: 'Electricity', icon: Minus, color: 'var(--foreground)', sign: '−' },
+  cable: { label: 'TV & cable', icon: Minus, color: 'var(--foreground)', sign: '−' },
+  betting: { label: 'Betting', icon: Minus, color: 'var(--foreground)', sign: '−' },
+  bill: { label: 'Bill payment', icon: Minus, color: 'var(--foreground)', sign: '−' },
+  giveaway: { label: 'Giveaway', icon: Plus, color: 'var(--positive)', sign: '' },
+  request: { label: 'Payment request', icon: ArrowUpRight, color: 'var(--foreground)', sign: '' },
+  reward: { label: 'Reward', icon: Plus, color: 'var(--positive)', sign: '+' },
   offramp: { label: 'Cash out', icon: TrendingDown, color: 'var(--foreground)', sign: '−' },
   onramp: { label: 'Buy with fiat', icon: TrendingUp, color: 'var(--positive)', sign: '+' },
   deposit: { label: 'Deposit', icon: ArrowDownLeft, color: 'var(--positive)', sign: '+' },
@@ -125,7 +134,7 @@ export function TransactionReceipt({ tx, open, onClose }: TransactionReceiptProp
     if (!tx) return [] as { label: string; value: string; mono?: boolean; copyable?: boolean }[];
     const rows: { label: string; value: string; mono?: boolean; copyable?: boolean }[] = [];
 
-    rows.push({ label: 'Type', value: meta.label });
+    rows.push({ label: 'Type', value: (tx as { title?: string }).title || meta.label });
     rows.push({ label: 'Status', value: status.label });
     rows.push({ label: 'Date', value: formatTimestamp(tx.time, tx.createdAt) });
 

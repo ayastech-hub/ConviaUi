@@ -47,7 +47,13 @@ type TypeFilter =
   | 'deposit'
   | 'withdraw'
   | 'onramp'
-  | 'offramp';
+  | 'offramp'
+  | 'airtime'
+  | 'data'
+  | 'electricity'
+  | 'cable'
+  | 'betting'
+  | 'giveaway';
 
 type StatusFilter =
   | 'all'
@@ -68,6 +74,12 @@ const TYPE_OPTIONS: { id: TypeFilter; label: string }[] = [
   { id: 'sell', label: 'Sells' },
   { id: 'onramp', label: 'Buy fiat' },
   { id: 'offramp', label: 'Cash out' },
+  { id: 'airtime', label: 'Airtime' },
+  { id: 'data', label: 'Mobile data' },
+  { id: 'electricity', label: 'Electricity' },
+  { id: 'cable', label: 'TV & cable' },
+  { id: 'betting', label: 'Betting' },
+  { id: 'giveaway', label: 'Giveaways' },
 ];
 
 const STATUS_OPTIONS: { id: StatusFilter; label: string }[] = [
@@ -146,6 +158,51 @@ const TX_META: Record<
     label: 'Withdraw',
     Icon: ArrowUpRight,
     sign: '−',
+  },
+  airtime: {
+    label: 'Airtime',
+    Icon: Minus,
+    sign: '−',
+  },
+  data: {
+    label: 'Mobile data',
+    Icon: Minus,
+    sign: '−',
+  },
+  electricity: {
+    label: 'Electricity',
+    Icon: Minus,
+    sign: '−',
+  },
+  cable: {
+    label: 'TV & cable',
+    Icon: Minus,
+    sign: '−',
+  },
+  betting: {
+    label: 'Betting',
+    Icon: Minus,
+    sign: '−',
+  },
+  bill: {
+    label: 'Bill payment',
+    Icon: Minus,
+    sign: '−',
+  },
+  giveaway: {
+    label: 'Giveaway',
+    Icon: Plus,
+    sign: '',
+  },
+  request: {
+    label: 'Payment request',
+    Icon: ArrowUpRight,
+    sign: '',
+  },
+  reward: {
+    label: 'Reward',
+    Icon: Plus,
+    sign: '+',
   },
 };
 
@@ -731,6 +788,7 @@ function TransactionRow({
   format: (value: number) => string;
 }) {
   const m = meta(tx.type);
+  const displayLabel = (tx as { title?: string }).title || m.label;
   const Icon = m.Icon;
 
   const amountPrimary =
