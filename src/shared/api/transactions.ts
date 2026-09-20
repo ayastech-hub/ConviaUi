@@ -6,6 +6,7 @@ export type ApiTransaction = {
   kind: 'ledger' | 'fiat' | 'withdrawal' | 'deposit' | string;
   type: string;
   title?: string;
+  category?: string | null;
   status: string;
   createdAt: string;
   asset: string | null;
@@ -13,7 +14,6 @@ export type ApiTransaction = {
   assetTo?: string | null;
   amountTo?: string | null;
   direction: 'credit' | 'debit' | string | null;
-  title?: string;
   txHash: string | null;
   chainKey: string | null;
   metadata?: Record<string, unknown>;
