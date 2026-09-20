@@ -7,9 +7,17 @@ interface DepositInfoAndHistoryProps {
   netInfo: NetworkInfo;
 }
 
-/** Compact network facts under the address card. */
+function fmtMin(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return '—';
+  if (n >= 1) return n.toLocaleString(undefined, { maximumFractionDigits: 4 });
+  return n.toLocaleString(undefined, { maximumFractionDigits: 8 });
+}
+
+/** Network facts under the address card — min deposit from live backend when available. */
 export function DepositInfoAndHistory({ asset, netInfo }: DepositInfoAndHistoryProps) {
   const { format } = useCurrency();
+  const min = Number(netInfo.minDeposit) || 0;
+  const usd = min > 0 && asset.price > 0 ? min * asset.price : netInfo.minDepositUsd || 0;
 
   return (
     <div
@@ -18,15 +26,26 @@ export function DepositInfoAndHistory({ asset, netInfo }: DepositInfoAndHistoryP
     >
       <div className="flex justify-between px-4 py-3.5" style={{ borderBottom: '1px solid var(--border)' }}>
         <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Min deposit</span>
-        <span className="tabular-nums" style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13 }}>
-          {netInfo.minDeposit} {asset.symbol}
-          <span style={{ color: 'var(--muted-foreground)', fontWeight: 500 }}> · {format(netInfo.minDeposit * asset.price)}</span>
+        <span className="tabular-nums text-right" style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13 }}>
+          {min > 0 ? (
+            <>
+              {fmtMin(min)} {asset.symbol}
+              {usd > 0 && (
+                <span style={{ color: 'var(--muted-foreground)', fontWeight: 500 }}> · {format(usd)}</span>
+              )}
+            </>
+          ) : usd > 0 ? (
+            <>≈ {format(usd)}</>
+          ) : (
+            '—'
+          )}
         </span>
       </div>
       <div className="flex justify-between px-4 py-3.5">
         <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Confirmations</span>
         <span style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13 }}>
-          {netInfo.confirmations} · {netInfo.estTime}
+          {netInfo.confirmations}
+          {netInfo.estTime ? ` · ${netInfo.estTime}` : ''}
         </span>
       </div>
     </div>

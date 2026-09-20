@@ -5,8 +5,14 @@ export type WalletAddress = { chainFamily: string; address: string };
 export type DepositInfo = {
   address: string;
   chainName: string;
+  chainKey?: string;
   requiredConfirmations: number;
   contractAddress: string | null;
+  /** Native units of the asset (from fee economics + live price) */
+  minimumDeposit?: string | number | null;
+  minimumDepositUsd?: number | null;
+  depositRouteDisabled?: boolean;
+  minWithdrawal?: string | null;
 };
 
 /** Actual shape from GET /wallets/:userId/balances (src/routes/wallet-info.ts). */

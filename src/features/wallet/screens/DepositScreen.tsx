@@ -1,9 +1,8 @@
-import { useState, useCallback, useEffect } from 'react';
-import { motion } from 'motion/react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Loader, Coins, CreditCard, HandCoins, Link2 } from 'lucide-react';
 import { MethodOptionRow, MethodOrDivider } from '../components/MethodOptionRow';
-import { type Asset } from '../../../shared/data/mockData';
-import { NETWORKS } from '../components/deposit/types';
+import { type Asset, type Screen } from '../../../shared/data/mockData';
+import { NETWORKS, type NetworkInfo } from '../components/deposit/types';
 import { AssetDropdown } from '../components/deposit/AssetDropdown';
 import { NetworkDropdown } from '../components/deposit/NetworkDropdown';
 import { TokenSelectionList } from '../components/deposit/TokenSelectionList';
@@ -16,45 +15,76 @@ import { fetchDepositInfo, fetchAddresses } from '../../../shared/api/wallet';
 import { resolveChain } from '../../../shared/utils/chains';
 import { ApiError } from '../../../shared/api/types';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
-import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
-import { useLanguage } from '../../../shared/context/LanguageContext';
 import { PageTop } from '../../../shared/components/PageTop';
 import { BackButton } from '../../../shared/components/BackButton';
 
 interface DepositScreenProps {
   goBack: () => void;
-  navigate?: (s: import('../../../shared/data/mockData').Screen) => void;
+  navigate: (s: Screen, param?: string) => void;
   presetSymbol?: string;
+}
+
+function estTimeForConfirmations(n: number): string {
+  if (n <= 1) return '~1 min';
+  if (n <= 3) return '2–5 min';
+  if (n <= 12) return '3–8 min';
+  if (n <= 20) return '5–15 min';
+  return '10–30 min';
 }
 
 /** Deposit hub → crypto address flow or buy / request. */
 export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenProps) {
-  const { t } = useLanguage();
-  const { assets: cryptoAssets, loading: registryLoading, chainKeysForSymbol } = useWalletAssets();
-  const { chains } = useTokenRegistry();
+  const { assets: cryptoAssets } = useWalletAssets();
   const { userId, status } = useAuth();
   const [asset, setAsset] = useState<Asset | null>(null);
   const [network, setNetwork] = useState<string>('');
   const [assetOpen, setAssetOpen] = useState(false);
   const [networkOpen, setNetworkOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [shared, setShared] = useState(false);
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<{ code?: string; message?: string } | null>(null);
-  /** hub = method picker; crypto = existing deposit address flow */
   const [mode, setMode] = useState<'hub' | 'crypto'>(presetSymbol ? 'crypto' : 'hub');
+  const [liveMin, setLiveMin] = useState<{ native: number; usd: number; conf: number } | null>(null);
 
-  const netInfo = NETWORKS[network] || NETWORKS.Ethereum;
+  const fallbackNet = NETWORKS[network] || NETWORKS.Ethereum || Object.values(NETWORKS)[0];
+
+  const netInfo: NetworkInfo = useMemo(() => {
+    const base = fallbackNet || {
+      name: network || 'Network',
+      label: network || '—',
+      color: 'var(--muted-foreground)',
+      confirmations: 12,
+      estTime: '3–5 min',
+      minDeposit: 0,
+      explorer: '',
+    };
+    if (!liveMin) return base;
+    return {
+      ...base,
+      confirmations: liveMin.conf || base.confirmations,
+      estTime: estTimeForConfirmations(liveMin.conf || base.confirmations),
+      minDeposit: liveMin.native > 0 ? liveMin.native : base.minDeposit,
+      minDepositUsd: liveMin.usd > 0 ? liveMin.usd : base.minDepositUsd,
+    };
+  }, [fallbackNet, liveMin, network]);
 
   const loadAddress = useCallback(async () => {
     if (!userId || !asset) return;
     setLoading(true);
     setError(null);
+    setLiveMin(null);
     const { chainKey, chainFamily } = resolveChain(network || asset.chains[0] || 'Ethereum');
     try {
       const info = await fetchDepositInfo(userId, asset.symbol, chainKey);
       setAddress(info.address);
+      const native = Number(info.minimumDeposit);
+      const usd = Number(info.minimumDepositUsd);
+      setLiveMin({
+        native: Number.isFinite(native) && native > 0 ? native : 0,
+        usd: Number.isFinite(usd) && usd > 0 ? usd : 0,
+        conf: Number(info.requiredConfirmations) || 0,
+      });
     } catch (err) {
       try {
         const addrs = await fetchAddresses(userId);
@@ -82,6 +112,7 @@ export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenP
   const handleAssetSelect = (a: Asset) => {
     setAsset(a);
     setNetwork(a.chains[0] || 'Ethereum');
+    setMode('crypto');
   };
 
   useEffect(() => {
@@ -89,14 +120,14 @@ export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenP
     const hit = cryptoAssets.find((a) => a.symbol.toUpperCase() === presetSymbol.toUpperCase());
     if (hit && (!asset || asset.symbol !== hit.symbol)) {
       handleAssetSelect(hit);
-      setMode('crypto');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [presetSymbol, cryptoAssets]);
 
   const handleCopy = useCallback(() => {
     if (!address) return;
     try {
-      navigator.clipboard?.writeText(address);
+      void navigator.clipboard?.writeText(address);
     } catch {
       /* ignore */
     }
@@ -104,51 +135,50 @@ export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenP
     setTimeout(() => setCopied(false), 2000);
   }, [address]);
 
-  const handleShare = useCallback(() => {
-    if (!address || !asset) return;
-    setShared(true);
+  const go = (screen: Screen) => {
     try {
-      navigator.share?.({ title: `Convia ${asset.symbol} address`, text: address });
+      navigate(screen);
     } catch {
-      /* ignore */
+      goBack();
     }
-    setTimeout(() => setShared(false), 2000);
-  }, [address, asset]);
+  };
 
-
-  if (mode === 'hub') {
+  if (mode === 'hub' && !presetSymbol) {
     return (
-      <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
+      <div className="flex flex-col h-full min-h-0" style={{ background: 'var(--background)' }}>
         <PageTop />
         <div className="flex items-center gap-3 px-5 mb-2">
           <BackButton onClick={goBack} />
-          <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22 }}>Deposit</h2>
+          <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20 }}>Deposit</h2>
         </div>
-        <div className="flex-1 overflow-y-auto px-5 pt-2 pb-8">
+        <div className="flex-1 overflow-y-auto px-5 pb-10 pt-2">
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginBottom: 16 }}>
+            Choose how you want to add funds
+          </p>
           <MethodOptionRow
-            title="Crypto address"
-            subtitle="Receive on-chain"
+            title="Crypto deposit"
+            subtitle="Receive on-chain to your Convia address"
             Icon={Coins}
             onClick={() => setMode('crypto')}
           />
+          <MethodOptionRow
+            title="Buy with fiat"
+            subtitle="Bank transfer or card"
+            Icon={CreditCard}
+            onClick={() => go('onramp')}
+          />
           <MethodOrDivider />
           <MethodOptionRow
-            title="Buy"
-            subtitle="Card or bank"
-            Icon={CreditCard}
-            onClick={() => navigate?.('onramp') ?? setMode('crypto')}
-          />
-          <MethodOptionRow
             title="Request"
-            subtitle="From a contact"
+            subtitle="Ask someone to send you crypto"
             Icon={HandCoins}
-            onClick={() => navigate?.('request') ?? goBack()}
+            onClick={() => go('request')}
           />
           <MethodOptionRow
             title="Request link"
             subtitle="Share a payment link"
             Icon={Link2}
-            onClick={() => navigate?.('request-link') ?? goBack()}
+            onClick={() => go('request-link')}
           />
         </div>
       </div>
@@ -163,7 +193,13 @@ export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenP
         </div>
       );
     }
-    return <TokenSelectionList assets={cryptoAssets.length ? cryptoAssets : []} goBack={() => setMode('hub')} onSelect={handleAssetSelect} />;
+    return (
+      <TokenSelectionList
+        assets={cryptoAssets.length ? cryptoAssets : []}
+        goBack={() => setMode('hub')}
+        onSelect={handleAssetSelect}
+      />
+    );
   }
 
   return (
@@ -173,14 +209,14 @@ export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenP
         {status === 'anonymous' && (
           <FeatureAlert reason="generic" message="Sign in to show your deposit address." />
         )}
-        {error && <FeatureAlert reason={mapApiCodeToReason(error.code)} message={error.message} detail={error.code} />}
+        {error && (
+          <FeatureAlert reason={mapApiCodeToReason(error.code)} message={error.message} detail={error.code} />
+        )}
       </div>
 
       <div className="flex items-center gap-3 px-5 mb-4">
         <BackButton onClick={() => (presetSymbol ? goBack() : setAsset(null))} />
-        <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20 }}>
-          {asset.symbol}
-        </h2>
+        <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20 }}>{asset.symbol}</h2>
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 pb-6">
@@ -204,9 +240,7 @@ export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenP
               netInfo={netInfo}
               address={address || '—'}
               copied={copied}
-              shared={shared}
               onCopy={handleCopy}
-              onShare={handleShare}
             />
             <DepositInfoAndHistory asset={asset} netInfo={netInfo} />
           </>

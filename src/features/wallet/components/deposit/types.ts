@@ -7,6 +7,7 @@ export interface NetworkInfo {
   confirmations: number;
   estTime: string;
   minDeposit: number;
+  minDepositUsd?: number;
   explorer: string;
 }
 
