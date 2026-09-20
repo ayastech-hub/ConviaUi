@@ -32,6 +32,46 @@ interface WithdrawScreenProps {
   presetSymbol?: string;
 }
 
+function friendlyWithdrawError(code: string, raw: string): string {
+  const c = (code || '').toLowerCase();
+  const m = (raw || '').toLowerCase();
+  if (c.includes('idempoten') || m.includes('idempotency')) {
+    return 'Something went wrong with this request. Please try again.';
+  }
+  if (c.includes('pin_invalid') || c.includes('pin_incorrect') || m.includes('invalid pin') || m.includes('wrong pin')) {
+    return 'Incorrect PIN. Please try again.';
+  }
+  if (c.includes('pin_required') || c.includes('pin_not_set')) {
+    return 'Set your transaction PIN to continue.';
+  }
+  if (c.includes('insufficient') || m.includes('insufficient')) {
+    return 'Insufficient balance for this withdrawal.';
+  }
+  if (c.includes('below_minimum') || m.includes('minimum')) {
+    return 'Amount is below the minimum withdrawal.';
+  }
+  if (c.includes('whitelist') || m.includes('whitelist')) {
+    return 'This address is not on your withdrawal whitelist.';
+  }
+  if (c.includes('kyc') || m.includes('kyc')) {
+    return 'Complete identity verification to withdraw.';
+  }
+  if (c.includes('frozen')) {
+    return 'Your account is restricted. Contact support.';
+  }
+  if (c.includes('network') || c.includes('chain')) {
+    return 'This network is not available right now. Try another or retry later.';
+  }
+  // Never surface raw infra / header messages
+  if (m.includes('idempotency-key') || m.includes('request body') || m.includes('payload')) {
+    return 'Something went wrong. Please try again.';
+  }
+  if (raw && raw.length < 120 && !/[{}\[\]]/.test(raw) && !raw.includes('Idempotency')) {
+    return raw;
+  }
+  return 'Withdrawal failed. Please try again.';
+}
+
 export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScreenProps) {
   const { assets: cryptoAssets, loading: registryLoading } = useWalletAssets();
   const { chains, chainKeysForSymbol } = useTokenRegistry();
@@ -176,7 +216,8 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
     setApiError(null);
     try {
       const resolved = resolveChain(selectedChain || withdrawChainKeys[0] || 'ethereum');
-      if (!idempotencyRef.current) idempotencyRef.current = newIdempotencyKey();
+      // One key per attempt. Never reuse after a failed body (amount/pin change).
+      idempotencyRef.current = newIdempotencyKey();
       const res = (await withdrawCrypto({
         userId,
         destinationAddress: address.trim(),
@@ -220,15 +261,18 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
       setStep('success');
     } catch (err) {
       submittingRef.current = false;
+      idempotencyRef.current = null; // next try must use a fresh key
       if (err instanceof ApiError) {
-        const msg = err.body.message || err.message || err.code;
-        setApiError({ code: err.code, message: msg });
+        const raw = String(err.body?.message || err.message || err.code || '');
+        const code = String(err.code || err.body?.code || '');
+        const msg = friendlyWithdrawError(code, raw);
+        setApiError({ code: code || 'withdraw_failed', message: msg });
         setError(msg);
-        const pinRelated = /pin/i.test(String(err.code) + String(msg));
+        const pinRelated = /pin/i.test(code + raw);
         setStep(pinRelated ? 'pin' : 'form');
       } else {
-        setApiError({ message: 'Withdrawal failed' });
-        setError('Withdrawal failed');
+        setApiError({ message: 'Withdrawal failed. Please try again.' });
+        setError('Withdrawal failed. Please try again.');
         setStep('form');
       }
     }

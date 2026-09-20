@@ -85,6 +85,7 @@ const TONE = {
 };
 
 export function mapApiCodeToReason(code?: string): FeatureBlockReason {
+  if (code && /idempoten/i.test(code)) return 'generic';
   if (!code) return 'generic';
   const c = code.toLowerCase();
   if (c.includes('kyc') && c.includes('pend')) return 'kyc_pending';
