@@ -4,7 +4,7 @@ import { fetchNotifications, type NotificationRow } from '../api/notifications';
 import { queryKeys } from '../query/queryClient';
 import { cacheGet, cacheSet } from '../cache/queryCache';
 
-export function useNotifications(limit = 30) {
+export function useNotifications(limit = 50) {
   const { userId, status } = useAuth();
   const qc = useQueryClient();
   const enabled = status === 'authenticated' && !!userId;

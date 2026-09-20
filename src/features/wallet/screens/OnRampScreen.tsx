@@ -72,6 +72,7 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
   const [quoting, setQuoting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [checkingPaid, setCheckingPaid] = useState(false);
+  const [cardConfirming, setCardConfirming] = useState(false);
   const [paidToast, setPaidToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -195,17 +196,20 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
           // Fallback only when public keys not configured on provider
           window.open(action.url, '_blank', 'noopener,noreferrer');
         }
+        setCardConfirming(true);
         setStep('processing');
         // Poll status until SUCCESS / FAILED (max ~2 min)
         const started = Date.now();
         while (Date.now() - started < 120_000) {
-          await new Promise((r) => setTimeout(r, 3000));
+          await new Promise((r) => setTimeout(r, 2500));
           const latest = await refreshPayment(payment.id);
           if (latest.status === 'SUCCESS') {
             if (userId) {
               void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
               void queryClient.invalidateQueries({ queryKey: queryKeys.transactions(userId, 50) });
+              void queryClient.invalidateQueries({ queryKey: queryKeys.notifications(userId) });
             }
+            setCardConfirming(false);
             setStep('done');
             return;
           }
@@ -470,7 +474,29 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
             />
           )}
 
-          {step === 'processing' && (
+          {step === 'processing' && cardConfirming && (
+            <div className="flex flex-col items-center justify-center min-h-[55vh] px-5 text-center">
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center mb-5"
+                style={{
+                  background: 'color-mix(in oklab, var(--primary) 14%, var(--card))',
+                  border: '1px solid color-mix(in oklab, var(--primary) 28%, var(--border))',
+                }}
+              >
+                <span className="inline-block w-7 h-7 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
+              </div>
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 650, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+                Confirming card payment
+              </p>
+              <p style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 18, marginTop: 8 }}>
+                Securing your {selectedAsset.symbol}
+              </p>
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginTop: 8, maxWidth: 280 }}>
+                Payment received — crediting your wallet. This usually takes a few seconds.
+              </p>
+            </div>
+          )}
+          {step === 'processing' && !cardConfirming && (
             <OnRampProcessingStep
               currency={payCurrencyDisplay}
               amount={String(order?.payment?.amount || order?.quote?.fiatAmount || fiatAmount || amount)}

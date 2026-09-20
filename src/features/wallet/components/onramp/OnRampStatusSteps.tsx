@@ -917,86 +917,45 @@ export function OnRampDoneStep({
   onDone: () => void;
 }) {
   return (
-    <motion.div
-      key="done"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-between pt-8 pb-4 px-1 text-center"
-    >
-      <div className="flex-1 flex flex-col items-center justify-center">
-        <motion.div
-          initial={{ scale: 0.7, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{
-            type: 'spring',
-            stiffness: 260,
-            damping: 18,
-          }}
-          className="w-16 h-16 rounded-full flex items-center justify-center mb-5"
-          style={{
-            background:
-              'color-mix(in oklab, var(--primary) 13%, var(--card))',
-            border:
-              '1px solid color-mix(in oklab, var(--primary) 28%, var(--border))',
-            boxShadow:
-              '0 12px 35px color-mix(in oklab, var(--primary) 12%, transparent)',
-          }}
-        >
-          <CheckCircle2
-            size={28}
-            strokeWidth={2.2}
-            style={{ color: PRIMARY }}
-          />
-        </motion.div>
-
-        <p style={LABEL}>
-          Payment confirmed
-        </p>
-
-        <p
-          className="tabular-nums"
-          style={{
-            color: FG,
-            fontSize: 27,
-            fontWeight: 750,
-            letterSpacing: -0.7,
-            marginTop: 7,
-          }}
-        >
-          +{youGet.toLocaleString(undefined, {
-            maximumFractionDigits: 6,
-          })}{' '}
-          {symbol}
-        </p>
-
-        <p
-          style={{
-            color: MUTED,
-            fontSize: 12,
-            marginTop: 5,
-          }}
-        >
-          In your wallet now
-        </p>
+    <div className="flex flex-col h-full min-h-0 overflow-hidden" style={{ background: 'var(--background)' }}>
+      <div className="flex-1 min-h-0 overflow-y-auto px-5 pt-6 pb-4">
+        <div className="flex flex-col items-center text-center max-w-sm mx-auto">
+          <motion.div
+            initial={{ scale: 0.7, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+            className="w-14 h-14 rounded-full flex items-center justify-center mb-4"
+            style={{
+              background: 'color-mix(in oklab, var(--positive) 16%, var(--card))',
+              border: '1px solid color-mix(in oklab, var(--positive) 35%, var(--border))',
+            }}
+          >
+            <CheckCircle2 size={26} strokeWidth={2.2} style={{ color: 'var(--positive)' }} />
+          </motion.div>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            Payment confirmed
+          </p>
+          <p className="tabular-nums mt-2" style={{ color: 'var(--foreground)', fontSize: 24, fontWeight: 800, letterSpacing: -0.5 }}>
+            +{youGet.toLocaleString(undefined, { maximumFractionDigits: 6 })} {symbol}
+          </p>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginTop: 6 }}>
+            In your wallet now
+          </p>
+        </div>
       </div>
-
-      <motion.button
-        type="button"
-        whileTap={{ scale: 0.985 }}
-        onClick={onDone}
-        className="w-full rounded-full"
-        style={{
-          height: 50,
-          background: PRIMARY,
-          color: PRIMARY_FG,
-          fontWeight: 650,
-          fontSize: 14,
-          boxShadow:
-            '0 8px 25px color-mix(in oklab, var(--primary) 18%, transparent)',
-        }}
+      <div
+        className="shrink-0 px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+        style={{ background: 'var(--background)', borderTop: '1px solid var(--border)' }}
       >
-        Done
-      </motion.button>
-    </motion.div>
+        <button
+          type="button"
+          onClick={onDone}
+          className="w-full h-12 rounded-full font-semibold text-[15px]"
+          style={{ background: 'var(--primary)', color: 'var(--primary-foreground, #fff)' }}
+        >
+          Done
+        </button>
+      </div>
+    </div>
   );
 }

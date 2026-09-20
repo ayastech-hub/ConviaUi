@@ -59,6 +59,7 @@ function notifIcon(type: string) {
 
 function isMoneyType(type: string) {
   const t = (type || '').toLowerCase();
+  if (t.includes('payment_received') || t.includes('swap') || t.includes('onramp') || t.includes('offramp') || t.includes('bill')) return true;
 
   return (
     t.includes('deposit') ||
@@ -178,7 +179,7 @@ function bodyOf(n: NotificationRow) {
 
 export function NotificationsScreen({ goBack, navigate }: NotificationsScreenProps) {
   const { userId, status } = useAuth();
-  const { data: notifs, loading, refresh } = useNotifications(30);
+  const { data: notifs, loading, refresh } = useNotifications(80);
 
   const [error, setError] = useState<{ code?: string; message?: string } | null>(null);
   const [selected, setSelected] = useState<NotificationRow | null>(null);

@@ -114,78 +114,54 @@ interface OffRampDoneStepProps {
 /** Success — aligned with swap complete layout. */
 export function OffRampDoneStep({ currency, youGet, bankName, amount, symbol, onDone }: OffRampDoneStepProps) {
   return (
-    <div className="flex flex-col h-full min-h-[70vh]" style={{ background: 'var(--background)' }}>
-      <div className="flex-1 flex flex-col items-center justify-center px-5 pb-6">
-        <motion.div
-          initial={{ scale: 0.85, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 280, damping: 20 }}
-          className="w-16 h-16 rounded-full mb-5 flex items-center justify-center"
-          style={{
-            background: 'color-mix(in oklab, var(--positive) 16%, var(--card))',
-            border: '1px solid color-mix(in oklab, var(--positive) 35%, var(--border))',
-          }}
-        >
-          <CheckCircle2 size={28} strokeWidth={2.5} style={{ color: 'var(--positive)' }} />
-        </motion.div>
-
-        <p
-          style={{
-            color: 'var(--muted-foreground)',
-            fontSize: 11,
-            fontWeight: 600,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-          }}
-        >
-          Sale complete
-        </p>
-        <p
-          className="tabular-nums mt-2"
-          style={{ color: 'var(--foreground)', fontSize: 26, fontWeight: 800, letterSpacing: -0.5 }}
-        >
-          {currency.symbol}
-          {youGet.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 0 })}
-        </p>
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginTop: 6 }}>
-          {bankName ? `On the way to ${bankName}` : 'Payout submitted'}
-        </p>
-
-        <div
-          className="w-full max-w-sm mt-7 rounded-[22px] overflow-hidden text-left"
-          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-        >
-          {amount && symbol && (
-            <div className="flex justify-between px-4 py-3.5" style={{ borderBottom: '1px solid var(--border)' }}>
-              <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>You sold</span>
-              <span className="tabular-nums" style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14 }}>
-                {amount} {symbol}
+    <div className="flex flex-col h-full min-h-0 overflow-hidden" style={{ background: 'var(--background)' }}>
+      <div className="flex-1 min-h-0 overflow-y-auto px-5 pt-6 pb-4">
+        <div className="flex flex-col items-center text-center max-w-sm mx-auto">
+          <motion.div
+            initial={{ scale: 0.85, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 280, damping: 20 }}
+            className="w-14 h-14 rounded-full mb-4 flex items-center justify-center"
+            style={{
+              background: 'color-mix(in oklab, var(--positive) 16%, var(--card))',
+              border: '1px solid color-mix(in oklab, var(--positive) 35%, var(--border))',
+            }}
+          >
+            <CheckCircle2 size={26} strokeWidth={2.5} style={{ color: 'var(--positive)' }} />
+          </motion.div>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            Sale complete
+          </p>
+          <p className="tabular-nums mt-2" style={{ color: 'var(--foreground)', fontSize: 24, fontWeight: 800, letterSpacing: -0.5 }}>
+            {currency.symbol}{youGet.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 0 })}
+          </p>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginTop: 6 }}>
+            {bankName ? `On the way to ${bankName}` : 'Payout submitted'}
+          </p>
+          <div className="w-full mt-6 rounded-[22px] overflow-hidden text-left" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+            {amount && symbol && (
+              <div className="flex justify-between px-4 py-3.5" style={{ borderBottom: '1px solid var(--border)' }}>
+                <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>You sold</span>
+                <span className="tabular-nums" style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14 }}>{amount} {symbol}</span>
+              </div>
+            )}
+            <div className="flex justify-between px-4 py-3.5">
+              <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>You receive</span>
+              <span className="tabular-nums" style={{ color: 'var(--positive)', fontWeight: 800, fontSize: 14 }}>
+                {currency.symbol}{youGet.toLocaleString(undefined, { maximumFractionDigits: 2 })}
               </span>
             </div>
-          )}
-          <div className="flex justify-between px-4 py-3.5">
-            <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>You receive</span>
-            <span className="tabular-nums" style={{ color: 'var(--positive)', fontWeight: 800, fontSize: 14 }}>
-              {currency.symbol}
-              {youGet.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-            </span>
+            {bankName && (
+              <div className="flex justify-between px-4 py-3.5" style={{ borderTop: '1px solid var(--border)' }}>
+                <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Bank</span>
+                <span style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13 }}>{bankName}</span>
+              </div>
+            )}
           </div>
-          {bankName && (
-            <div className="flex justify-between px-4 py-3.5" style={{ borderTop: '1px solid var(--border)' }}>
-              <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Bank</span>
-              <span style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13 }}>{bankName}</span>
-            </div>
-          )}
         </div>
       </div>
-
-      <div className="px-5 pb-8 shrink-0">
-        <button
-          type="button"
-          onClick={onDone}
-          className="w-full h-12 rounded-full font-semibold text-[15px]"
-          style={{ background: 'var(--primary)', color: 'var(--primary-foreground, #fff)' }}
-        >
+      <div className="shrink-0 px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]" style={{ background: 'var(--background)', borderTop: '1px solid var(--border)' }}>
+        <button type="button" onClick={onDone} className="w-full h-12 rounded-full font-semibold text-[15px]" style={{ background: 'var(--primary)', color: 'var(--primary-foreground, #fff)' }}>
           Done
         </button>
       </div>
