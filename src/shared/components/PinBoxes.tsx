@@ -83,7 +83,8 @@ export function PinBoxes({ length = 6, value, onChange, error, autoFocus = true 
             className="w-12 h-14 rounded-2xl text-center tabular-nums"
             style={{
               background: 'var(--card)',
-              border: `1.5px solid ${error ? 'var(--destructive)' : d ? 'var(--foreground)' : 'var(--border)'}`,
+              border: `1.5px solid ${d ? 'var(--foreground)' : 'var(--border)'}`,
+              boxShadow: error ? '0 0 0 1px color-mix(in oklab, var(--destructive) 35%, transparent)' : undefined,
               color: 'var(--foreground)',
               fontSize: 22,
               fontWeight: 700,

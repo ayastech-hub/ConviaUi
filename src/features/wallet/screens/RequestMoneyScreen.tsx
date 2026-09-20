@@ -18,6 +18,7 @@ import { PageTop } from '../../../shared/components/PageTop';
 import { BackButton } from '../../../shared/components/BackButton';
 import { AssetIcon } from '../../../shared/components/AssetIcon';
 import { SetTransactionPinSheet } from '../../../shared/components/SetTransactionPinSheet';
+import { EnterPinFullScreen } from '../../../shared/components/PinFullScreen';
 import { ensureTransactionPin } from '../../../shared/security/ensureTransactionPin';
 
 interface Props {
@@ -362,72 +363,46 @@ export function RequestMoneyScreen({ goBack }: Props) {
           }}
         />
       )}
-      {/* PIN sheet for paying a request */}
-      <AnimatePresence>
-        {payTargetId && (
-          <>
-            <motion.div
-              className="fixed inset-0 z-[70]"
-              style={{ background: 'rgba(0,0,0,0.55)' }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => !busy && setPayTargetId(null)}
-            />
-            <motion.div
-              initial={{ y: 48 }}
-              animate={{ y: 0 }}
-              exit={{ y: 48 }}
-              className="fixed bottom-0 left-0 right-0 z-[71] mx-auto max-w-md rounded-t-[24px] px-5 pt-4 pb-8"
-              style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-            >
-              <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: 'var(--border)' }} />
-              <p style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 17, marginBottom: 4 }}>
-                Confirm payment
-              </p>
-              <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginBottom: 16 }}>
-                Enter your 6-digit transaction PIN
-              </p>
-              <input
-                type="password"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                value={payPin}
-                onChange={(e) => setPayPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                className="w-full h-14 rounded-2xl text-center text-[22px] font-bold tracking-[0.4em] outline-none mb-2"
-                style={{ background: 'var(--muted)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
-                placeholder="••••••"
-                autoFocus
-              />
-              {pinError && (
-                <p style={{ color: 'var(--destructive)', fontSize: 12.5, marginBottom: 8 }}>{pinError}</p>
-              )}
-              <button
-                type="button"
-                disabled={busy || payPin.length !== 6}
-                onClick={() => void confirmPayWithPin()}
-                className="w-full h-12 rounded-full font-bold text-[15px] mt-2"
-                style={{
-                  background: payPin.length === 6 ? 'var(--primary)' : 'var(--muted)',
-                  color: payPin.length === 6 ? 'var(--primary-foreground, #fff)' : 'var(--muted-foreground)',
-                }}
-              >
-                {busy ? 'Paying…' : 'Pay now'}
-              </button>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => setPayTargetId(null)}
-                className="w-full h-11 rounded-full font-semibold text-[14px] mt-2"
-                style={{ color: 'var(--muted-foreground)' }}
-              >
-                Cancel
-              </button>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      <EnterPinFullScreen
+        open={!!payTargetId && !showSetPin}
+        title="Confirm payment"
+        subtitle="Enter your 6-digit transaction PIN to pay this request"
+        error={pinError}
+        busy={busy}
+        onSubmit={(digits) => {
+          setPayPin(digits);
+          void (async () => {
+            setBusy(true);
+            setPinError(null);
+            try {
+              await payMoneyRequest(payTargetId!, digits);
+              if (userId) {
+                void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio(userId) });
+              }
+              setMsg('Paid successfully');
+              setPayTargetId(null);
+              setPayPin('');
+              void refresh();
+            } catch (e) {
+              if (e instanceof ApiError) {
+                const code = String(e.code || e.body?.code || '');
+                if (code.includes('pin_not_set') || /not set/i.test(String(e.message))) {
+                  setPayTargetId(null);
+                  setShowSetPin(true);
+                } else if (code.includes('pin')) setPinError(String(e.body?.message || e.message || 'Invalid PIN'));
+                else setErr(String(e.body?.message || e.message));
+              } else setErr('Payment failed');
+            } finally {
+              setBusy(false);
+            }
+          })();
+        }}
+        onCancel={() => {
+          setPayTargetId(null);
+          setPayPin('');
+          setPinError(null);
+        }}
+      />
 
       <AnimatePresence>
         {assetOpen && (

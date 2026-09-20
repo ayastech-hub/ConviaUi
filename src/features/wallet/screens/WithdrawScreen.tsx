@@ -24,6 +24,7 @@ import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
 import { BackButton } from '../../../shared/components/BackButton';
 import { ensureTransactionPin } from '../../../shared/security/ensureTransactionPin';
 import { SetTransactionPinSheet } from '../../../shared/components/SetTransactionPinSheet';
+import { EnterPinFullScreen } from '../../../shared/components/PinFullScreen';
 
 interface WithdrawScreenProps {
   goBack: () => void;
@@ -143,7 +144,7 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
     setError('');
   };
 
-  const submitWithdraw = async () => {
+  const submitWithdraw = async (pinOverride?: string) => {
     if (userId) {
       const pinGate = await ensureTransactionPin(userId);
       if (!pinGate.ok) {
@@ -157,7 +158,7 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
         return;
       }
     }
-    const pinStr = pin.join('');
+    const pinStr = (pinOverride ?? pin.join('')).replace(/\D/g, '');
     if (!/^\d{6}$/.test(pinStr)) {
       setError('Enter your 6-digit PIN');
       setStep('pin');
@@ -170,10 +171,10 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
     }
     if (submittingRef.current) return;
     submittingRef.current = true;
+    setError('');
     setStep('processing');
     setApiError(null);
     try {
-      // selectedChain must be a product key (sepolia, ethereum, …) when set from form
       const resolved = resolveChain(selectedChain || withdrawChainKeys[0] || 'ethereum');
       if (!idempotencyRef.current) idempotencyRef.current = newIdempotencyKey();
       const res = (await withdrawCrypto({
@@ -183,7 +184,7 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
         amount: String(amount),
         chainKey: resolved.chainKey,
         chainFamily: resolved.chainFamily || chainFamilyForKey(resolved.chainKey),
-        pin: pin.join(),
+        pin: pinStr,
         idempotencyKey: idempotencyRef.current,
       })) as {
         txHash?: string;
@@ -218,14 +219,18 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
       }
       setStep('success');
     } catch (err) {
+      submittingRef.current = false;
       if (err instanceof ApiError) {
-        setApiError({ code: err.code, message: err.body.message || err.message });
-        setError(err.body.message || err.code);
+        const msg = err.body.message || err.message || err.code;
+        setApiError({ code: err.code, message: msg });
+        setError(msg);
+        const pinRelated = /pin/i.test(String(err.code) + String(msg));
+        setStep(pinRelated ? 'pin' : 'form');
       } else {
         setApiError({ message: 'Withdrawal failed' });
         setError('Withdrawal failed');
+        setStep('form');
       }
-      setStep('form');
     }
   };
 
@@ -309,21 +314,22 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
   if (step === 'pin') {
     return (
       <>
-        <WithdrawPinStep
-          pin={pin}
-          onPinChange={handlePinChange}
-          onPinUpdate={(next) => {
-            setPin(next);
+        <EnterPinFullScreen
+          open
+          title="Confirm withdrawal"
+          subtitle="Enter your 6-digit transaction PIN to authorize this transfer"
+          error={error || null}
+          busy={submittingRef.current}
+          onSubmit={(digits) => {
+            setPin(digits.split(''));
             setError('');
-            if (next.every((d) => d !== '') && next.join('').length >= 6) {
-              void submitWithdraw();
-            }
+            void submitWithdraw(digits);
           }}
-          error={error}
           onCancel={() => {
             setStep('form');
             setError('');
             setPin(Array(6).fill(''));
+            submittingRef.current = false;
           }}
         />
         {userId && (
