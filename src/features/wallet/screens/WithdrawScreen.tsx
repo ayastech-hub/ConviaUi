@@ -39,7 +39,7 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
   const liveAssets = (portfolioData?.holdings || []).map(holdingToAsset);
   const assets = cryptoAssets.length ? cryptoAssets : liveAssets;
 
-  const [step, setStep] = useState<'hub' | 'select' | 'form' | 'pin' | 'processing' | 'success'>(presetSymbol ? 'form' : 'hub');
+  const [step, setStep] = useState<'hub' | 'select' | 'form' | 'pin' | 'processing' | 'success'>('hub');
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [selectedChain, setSelectedChain] = useState<string>('');
   const [address, setAddress] = useState('');
@@ -76,17 +76,29 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
   };
 
   const handleSelectAsset = (asset: Asset) => {
-    setSelectedAsset(asset);
-    const keys = chainKeysForSymbol(asset.symbol, 'withdraw');
-    const first =
-      keys[0] ||
-      (asset.chains[0] ? resolveChain(asset.chains[0]).chainKey : 'ethereum');
-    setSelectedChain(first);
-    idempotencyRef.current = null;
-    submittingRef.current = false;
-    setStep('form');
-    setError('');
-    setApiError(null);
+    try {
+      setSelectedAsset(asset);
+      let keys: string[] = [];
+      try {
+        keys = chainKeysForSymbol(asset.symbol, 'withdraw') || [];
+      } catch {
+        keys = [];
+      }
+      const first =
+        keys[0] ||
+        (asset.chains?.[0] ? resolveChain(asset.chains[0]).chainKey : 'ethereum');
+      setSelectedChain(first || 'ethereum');
+      setAddress('');
+      setAmount('');
+      idempotencyRef.current = null;
+      submittingRef.current = false;
+      setError('');
+      setApiError(null);
+      setStep('form');
+    } catch (e) {
+      setError('Could not open withdraw form for this token');
+      setStep('select');
+    }
   };
 
   useEffect(() => {
@@ -297,14 +309,13 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
   }
 
   if (!selectedAsset) {
-    if (presetSymbol) {
-      return (
-        <div className="flex flex-col h-full items-center justify-center" style={{ background: 'var(--background)' }}>
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Loading…</p>
-        </div>
-      );
-    }
-    return null;
+    return (
+      <WithdrawTokenList
+        assets={assets}
+        goBack={() => setStep('hub')}
+        onSelect={handleSelectAsset}
+      />
+    );
   }
 
   return (

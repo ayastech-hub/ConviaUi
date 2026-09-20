@@ -209,13 +209,6 @@ export function WithdrawForm({
             className="rounded-[20px] px-4 py-3.5 space-y-2"
             style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
           >
-            <div className="flex justify-between">
-              <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Network fee</span>
-              <span className="tabular-nums" style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: 600 }}>
-                {fee} {asset.symbol}
-                {feeUSD > 0 ? ` · ${format(feeUSD)}` : ''}
-              </span>
-            </div>
             <div className="flex justify-between pt-2" style={{ borderTop: '1px solid var(--border)' }}>
               <span style={{ color: 'var(--foreground)', fontSize: 14, fontWeight: 700 }}>Total</span>
               <span className="tabular-nums" style={{ color: 'var(--foreground)', fontSize: 14, fontWeight: 700 }}>

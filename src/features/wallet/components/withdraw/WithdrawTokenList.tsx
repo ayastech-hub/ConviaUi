@@ -33,7 +33,7 @@ export function WithdrawTokenList({ assets, goBack, onSelect }: WithdrawTokenLis
       list = list.filter(
         (a) =>
           a.symbol.toLowerCase().includes(needle) ||
-          a.name.toLowerCase().includes(needle),
+          (a.name || '').toLowerCase().includes(needle),
       );
     }
     return list;
