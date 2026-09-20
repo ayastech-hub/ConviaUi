@@ -531,8 +531,6 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
       </AnimatePresence>
 
       <TransactionReceipt tx={receiptTx} open={showReceipt} onClose={() => setShowReceipt(false)} />
-    </div>
-
       {userId && (
         <SetTransactionPinSheet
           open={showSetPin}
@@ -540,9 +538,10 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
           onClose={() => setShowSetPin(false)}
           onComplete={() => {
             setShowSetPin(false);
-            setApiError?.(null as never);
+            setApiError(null);
           }}
         />
       )}
+    </div>
   );
 }

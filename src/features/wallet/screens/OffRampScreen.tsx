@@ -207,8 +207,6 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
           )}
         </AnimatePresence>
       </div>
-    </div>
-
       {userId && (
         <SetTransactionPinSheet
           open={showSetPin}
@@ -217,5 +215,6 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
           onComplete={() => setShowSetPin(false)}
         />
       )}
+    </div>
   );
 }
