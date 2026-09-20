@@ -19,6 +19,7 @@ interface OffRampReviewStepProps {
   youGet: number;
   selectedAccount?: BankLike | null;
   rateLabel?: string;
+  countryFlag?: string;
   onConfirm: () => void;
   onBack?: () => void;
 }
@@ -37,6 +38,7 @@ export function OffRampReviewStep({
   youGet,
   selectedAccount,
   rateLabel,
+  countryFlag,
   onConfirm,
   onBack,
 }: OffRampReviewStepProps) {
@@ -88,15 +90,14 @@ export function OffRampReviewStep({
           </div>
           <div className="flex items-center gap-3 px-4 py-4">
             <div
-              className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+              className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 text-[22px] leading-none"
               style={{
-                background: 'color-mix(in oklab, var(--primary) 14%, var(--muted))',
-                border: '1px solid color-mix(in oklab, var(--primary) 25%, var(--border))',
+                background: 'var(--muted)',
+                border: '1px solid var(--border)',
               }}
+              aria-hidden
             >
-              <span style={{ color: 'var(--primary)', fontWeight: 800, fontSize: 13 }}>
-                {currency.symbol?.slice(0, 2) || currency.code?.slice(0, 2)}
-              </span>
+              {countryFlag || currency.flag || '🏳️'}
             </div>
             <div className="flex-1 min-w-0">
               <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }}>You receive</p>
@@ -104,7 +105,9 @@ export function OffRampReviewStep({
                 {currency.symbol}
                 {youGet.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 0 })}
               </p>
-              <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>{currency.code || currency.name}</p>
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
+                {currency.code} · {currency.name}
+              </p>
             </div>
           </div>
         </div>
@@ -224,10 +227,11 @@ interface OffRampDoneStepProps {
   bankName?: string;
   amount?: string;
   symbol?: string;
+  countryFlag?: string;
   onDone: () => void;
 }
 
-export function OffRampDoneStep({ currency, youGet, bankName, amount, symbol, onDone }: OffRampDoneStepProps) {
+export function OffRampDoneStep({ currency, youGet, bankName, amount, symbol, countryFlag, onDone }: OffRampDoneStepProps) {
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 flex flex-col items-center justify-center px-5 text-center pb-4">
@@ -252,7 +256,7 @@ export function OffRampDoneStep({ currency, youGet, bankName, amount, symbol, on
             textTransform: 'uppercase',
           }}
         >
-          Sell submitted
+          Sell submitted {countryFlag ? <span className="normal-case tracking-normal">{countryFlag}</span> : null}
         </p>
         <p
           className="tabular-nums mt-2"

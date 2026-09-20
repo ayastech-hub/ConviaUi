@@ -24,6 +24,9 @@ import { ensureTransactionPin } from '../../../shared/security/ensureTransaction
 import { SetTransactionPinSheet } from '../../../shared/components/SetTransactionPinSheet';
 import { EnterPinFullScreen } from '../../../shared/components/PinFullScreen';
 import { ApiError } from '../../../shared/api/types';
+import { useMyProfile } from '../../../shared/hooks/useMyProfile';
+import { localFiatForCountry } from '../../../shared/lib/countryFiat';
+import { getRate } from '../../../shared/rates/fx';
 
 interface OffRampScreenProps {
   goBack: () => void;
@@ -52,6 +55,7 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
   const { userId } = useAuth();
   const gates = useAccountGates();
   const { isApproved } = useKycStatus();
+  const { profile } = useMyProfile();
 
   const [showSetPin, setShowSetPin] = useState(false);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
@@ -117,12 +121,36 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
     else setSelectedAsset(cryptoAssets.find((a) => a.symbol === 'USDT') || cryptoAssets[0]);
   }, [cryptoAssets]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Sell always settles in the user's *country* fiat — never the display/picker currency (e.g. USD).
+  const countryCode = (profile?.country || gates.country || 'NG').toString().toUpperCase().slice(0, 2);
+  const payCode = localFiatForCountry(countryCode, 'NGN');
+  const payRate = getRate(payCode) || 1;
+  const FIAT_META: Record<string, { symbol: string; name: string; flag: string }> = {
+    NGN: { symbol: '₦', name: 'Nigerian Naira', flag: '🇳🇬' },
+    GHS: { symbol: 'GH₵', name: 'Ghanaian Cedi', flag: '🇬🇭' },
+    KES: { symbol: 'KSh', name: 'Kenyan Shilling', flag: '🇰🇪' },
+    ZAR: { symbol: 'R', name: 'South African Rand', flag: '🇿🇦' },
+    UGX: { symbol: 'USh', name: 'Ugandan Shilling', flag: '🇺🇬' },
+  };
+  const meta = FIAT_META[payCode] || { symbol: payCode, name: payCode, flag: '🏳️' };
+  const FLAG_BY_COUNTRY: Record<string, string> = {
+    NG: '🇳🇬', GH: '🇬🇭', KE: '🇰🇪', ZA: '🇿🇦', UG: '🇺🇬', TZ: '🇹🇿', EG: '🇪🇬',
+  };
+  const countryFlag = FLAG_BY_COUNTRY[countryCode] || meta.flag;
+  const payoutCurrency = {
+    code: payCode,
+    name: meta.name,
+    symbol: meta.symbol,
+    rate: payRate,
+    flag: countryFlag,
+  };
+
   const fee = Number(amount) * selectedAsset.price * 0.015;
-  const youGet = Math.max(0, (Number(amount) * selectedAsset.price - fee) * currency.rate);
+  const youGet = Math.max(0, (Number(amount) * selectedAsset.price - fee) * payRate);
   const selectedAccount = bankAccounts.find((a) => a.id === selectedAccountId);
   const rateLabel =
-    selectedAsset.price > 0 && currency.rate > 0
-      ? `1 ${selectedAsset.symbol} ≈ ${currency.symbol}${(selectedAsset.price * currency.rate).toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+    selectedAsset.price > 0 && payRate > 0
+      ? `1 ${selectedAsset.symbol} ≈ ${meta.symbol}${(selectedAsset.price * payRate).toLocaleString(undefined, { maximumFractionDigits: 2 })}`
       : undefined;
 
   const goBackStep = () => {
@@ -163,7 +191,7 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
         userId,
         asset: selectedAsset.symbol,
         amount: String(amount),
-        fiatCurrency: currency.code || 'NGN',
+        fiatCurrency: payCode,
         bankAccountId: selectedAccountId,
         pin,
       });
@@ -269,7 +297,7 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
         <AnimatePresence mode="wait">
           {step === 'form' && (
             <OffRampFormStep
-              currency={currency}
+              currency={payoutCurrency}
               format={format}
               stablecoins={cryptoAssets}
               selectedAsset={selectedAsset}
@@ -299,12 +327,13 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
 
           {step === 'review' && (
             <OffRampReviewStep
-              currency={currency}
+              currency={payoutCurrency}
               amount={amount}
               selectedAsset={selectedAsset}
               youGet={youGet}
               selectedAccount={selectedAccount}
               rateLabel={rateLabel}
+              countryFlag={countryFlag}
               onConfirm={() => void openPinStep()}
               onBack={() => setStep('form')}
             />
@@ -314,18 +343,19 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
             <OffRampProcessingStep
               amount={amount}
               symbol={selectedAsset.symbol}
-              currency={currency}
+              currency={payoutCurrency}
               youGet={youGet}
             />
           )}
 
           {step === 'done' && (
             <OffRampDoneStep
-              currency={currency}
+              currency={payoutCurrency}
               youGet={youGet}
               bankName={selectedAccount?.bankName}
               amount={amount}
               symbol={selectedAsset.symbol}
+              countryFlag={countryFlag}
               onDone={goBack}
             />
           )}
