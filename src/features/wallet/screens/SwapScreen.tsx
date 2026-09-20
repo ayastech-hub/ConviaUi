@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Zap, AlertTriangle } from 'lucide-react';
-import { type Asset, type Transaction } from '../../../shared/data/mockData';
+import { type Asset } from '../../../shared/data/mockData';
 import { AssetPicker } from '../../../shared/components/AssetPicker';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { STABLE_SYMBOLS, decimalsFor } from '../components/swap/utils';
@@ -148,8 +148,6 @@ export function SwapScreen({ goBack, navigate, presetSymbol }: SwapScreenProps) 
   const [settlement, setSettlement] = useState<SwapSettlement | null>(null);
   const [rateRefreshing, setRateRefreshing] = useState(false);
   const [ratePulse, setRatePulse] = useState(0);
-  const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);
-  const [showReceipt, setShowReceipt] = useState(false);
 
   const effectiveSlippage = useMemo(() => (customSlippage ? `${customSlippage}%` : slippage), [customSlippage, slippage]);
   const slippageNum = useMemo(() => {
@@ -345,19 +343,7 @@ export function SwapScreen({ goBack, navigate, presetSymbol }: SwapScreenProps) 
         feeBps,
         feeAsset: (res.toAsset || toAsset.symbol).toString().toUpperCase(),
       });
-      setReceiptTx({
-        id: res.transactionId || 'swap-' + Date.now(),
-        type: 'swap',
-        asset: fromAsset.symbol,
-        assetTo: toAsset.symbol,
-        amount: amountIn,
-        amountTo: amountOut,
-        valueUSD: 0,
-        status: 'confirmed',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        hash: res.transactionId || 'internal',
-      });
-      setPhase('success');
+setPhase('success');
       if (userId) {
         queryClient.setQueryData(queryKeys.portfolio(userId), (prev: unknown) => {
           if (!prev || typeof prev !== 'object') return prev;
@@ -399,8 +385,6 @@ export function SwapScreen({ goBack, navigate, presetSymbol }: SwapScreenProps) 
     setFromAmount('');
     setError('');
     setRatePulse((p) => p + 1);
-    setReceiptTx(null);
-    setShowReceipt(false);
   }, []);
 
   const setSlippagePreset = useCallback((v: string) => { setSlippage(v); setCustomSlippage(''); }, []);
@@ -409,14 +393,10 @@ export function SwapScreen({ goBack, navigate, presetSymbol }: SwapScreenProps) 
   if (phase === 'success' && settlement) {
     return (
       <SwapSuccessView
-        settlement={settlement}
-        receiptTx={receiptTx}
-        showReceipt={showReceipt}
-        onShowReceipt={() => setShowReceipt(true)}
-        onCloseReceipt={() => setShowReceipt(false)}
-        onSwapAgain={resetSwap}
-        onDone={goBack}
-      />
+          settlement={settlement}
+          onSwapAgain={resetSwap}
+          onDone={goBack}
+        />
     );
   }
 
@@ -424,8 +404,10 @@ export function SwapScreen({ goBack, navigate, presetSymbol }: SwapScreenProps) 
     <div className="relative flex flex-col min-h-full h-full" style={{ background: 'var(--background)' }}>
       <PageTop />
 
-      <div className="flex items-center justify-center px-5 mb-6">
-        <h2 style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 18 }}>{t('swap.title') || 'Swap'}</h2>
+      <div className="px-5 pt-1 pb-4 flex items-center justify-center">
+        <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 18, letterSpacing: -0.3 }}>
+          {t('swap.title') || 'Swap'}
+        </h2>
       </div>
 
       <div className="px-5 mb-2">
@@ -485,22 +467,6 @@ export function SwapScreen({ goBack, navigate, presetSymbol }: SwapScreenProps) 
               rateRefreshing={rateRefreshing || quoteLoading}
               onRefresh={refreshRate}
             />
-            {platformFee > 0 && (
-              <div className="flex justify-between items-center px-1 py-2 mb-1">
-                <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
-                  {/* fee */}Platform fee{quoteFeeBps != null ? ` (${(quoteFeeBps / 100).toFixed(2)}%)` : ''}
-                </span>
-                <span style={{ color: 'var(--foreground)', fontSize: 12, fontWeight: 600 }}>
-                  {platformFee.toFixed(6)} {toAsset.symbol}
-                </span>
-              </div>
-            )}
-            <div className="flex justify-between items-center px-1 py-2 mb-2">
-              <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>You receive</span>
-              <span style={{ color: 'var(--positive)', fontSize: 13, fontWeight: 700 }}>
-                {quoteLoading ? '…' : `${receiveAmount.toFixed(6)} ${toAsset.symbol}`}
-              </span>
-            </div>
           </>
         )}
 
@@ -535,19 +501,17 @@ export function SwapScreen({ goBack, navigate, presetSymbol }: SwapScreenProps) 
 
       <AnimatePresence>
         {phase === 'review' && (
-          <div className="fixed inset-0 z-50 flex flex-col justify-end">
-            <button type="button" className="absolute inset-0 bg-black/50" aria-label="Close" onClick={() => setPhase('idle')} />
-            <div className="relative z-10 space-y-3 rounded-t-2xl border-t border-white/10 bg-[var(--background)] p-4 pb-6">
-              <SwapReviewSheet
-                confirming={false}
-                fromAsset={fromAsset} toAsset={toAsset} fromNum={fromNum} toAmount={receiveAmount}
-                fromUSD={fromUSD} toUSD={receiveUSD} format={format} rate={displayRate}
-                priceImpactPct={0} effectiveSlippage={0} minReceived={receiveAmount}
-                networkFeeUSD={platformFee} route={[fromAsset.symbol, toAsset.symbol]}
-                onClose={() => setPhase('idle')} onConfirm={() => void confirmSwap()}
-              />
-            </div>
-          </div>
+          <SwapReviewSheet
+            key="review"
+            fromAsset={fromAsset}
+            toAsset={toAsset}
+            fromNum={fromNum}
+            toAmount={receiveAmount}
+            rate={displayRate || rate}
+            confirming={false}
+            onClose={() => setPhase('idle')}
+            onConfirm={() => void confirmSwap()}
+          />
         )}
       </AnimatePresence>
 

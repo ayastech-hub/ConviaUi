@@ -17,7 +17,7 @@ const IMAGE_URL_OVERRIDES: Record<string, string> = {
   JUP: "https://coin-images.coingecko.com/coins/images/34188/large/jup.png",
   NOT: "https://s2.coinmarketcap.com/static/img/coins/64x64/28850.png", // Updated to CoinMarketCap to fix CORS block
   TON: "https://coin-images.coingecko.com/coins/images/17980/large/ton_symbol.png",
-  GRAM: "https://coin-images.coingecko.com/coins/images/33784/large/gram.png",
+  GRAM: "https://s2.coinmarketcap.com/static/img/coins/64x64/27765.png", // The Open Network Gram
   POL: "https://coin-images.coingecko.com/coins/images/32440/large/polygon.png",
   SOL: "https://coin-images.coingecko.com/coins/images/4128/large/solana.png",
 };
@@ -84,16 +84,23 @@ const COMMON_TOKEN_FALLBACKS: Record<string, { chainId: number; address: string 
  * Returns the TrustWallet Asset CDN URL
  */
 function getAssetUrl(symbol: string, chainId?: number, address?: string): string | null {
-  const sym = (symbol || '').toUpperCase();
+  const sym = (symbol || '').trim().toUpperCase();
+  // Normalize display names the backend may return
+  const normalized =
+    sym === 'GRAM' || sym === 'THE OPEN NETWORK GRAM' || sym === 'TON GRAM'
+      ? 'GRAM'
+      : sym === 'NOTCOIN'
+        ? 'NOT'
+        : sym;
 
   // 1. Check explicit manual overrides first
-  if (IMAGE_URL_OVERRIDES[sym]) {
-    return IMAGE_URL_OVERRIDES[sym];
+  if (IMAGE_URL_OVERRIDES[normalized] || IMAGE_URL_OVERRIDES[sym]) {
+    return IMAGE_URL_OVERRIDES[normalized] || IMAGE_URL_OVERRIDES[sym];
   }
 
   // Handle explicit contract lookup OR fallback to default mainnet contract
-  const targetChainId = chainId ?? COMMON_TOKEN_FALLBACKS[sym]?.chainId;
-  const targetAddress = address ?? COMMON_TOKEN_FALLBACKS[sym]?.address;
+  const targetChainId = chainId ?? COMMON_TOKEN_FALLBACKS[normalized]?.chainId ?? COMMON_TOKEN_FALLBACKS[sym]?.chainId;
+  const targetAddress = address ?? COMMON_TOKEN_FALLBACKS[normalized]?.address ?? COMMON_TOKEN_FALLBACKS[sym]?.address;
 
   // 2. Fetch by Contract Address & Chain ID (Most reliable for tokens like USDT/USDC)
   if (targetChainId && targetAddress && targetAddress.toLowerCase() !== 'native') {
@@ -104,13 +111,13 @@ function getAssetUrl(symbol: string, chainId?: number, address?: string): string
   }
 
   // 3. Fetch Native Mainnet Coin Logo
-  const nativeSlug = TRUSTWALLET_NATIVE_MAP[sym];
+  const nativeSlug = TRUSTWALLET_NATIVE_MAP[normalized] || TRUSTWALLET_NATIVE_MAP[sym];
   if (nativeSlug) {
     return `https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/${nativeSlug}/info/logo.png`;
   }
 
   // 4. Generic crypto icon pack fallback
-  const slug = sym.toLowerCase();
+  const slug = normalized.toLowerCase();
   return `https://cdn.jsdelivr.net/npm/cryptocurrency-icons@0.18.1/128/color/${slug}.png`;
 }
 
