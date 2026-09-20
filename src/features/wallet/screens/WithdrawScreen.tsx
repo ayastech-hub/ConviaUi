@@ -45,7 +45,13 @@ function friendlyWithdrawError(code: string, raw: string): string {
     return 'Set your transaction PIN to continue.';
   }
   if (c.includes('insufficient') || m.includes('insufficient')) {
-    return 'Insufficient balance for this withdrawal.';
+    return 'Insufficient balance for this withdrawal (including network fee). Try a smaller amount.';
+  }
+  if (m.includes('execution reverted') || m.includes('estimate gas') || m.includes('viem@')) {
+    return 'Network could not complete this transfer right now. Please try again shortly.';
+  }
+  if (m.includes('account user:') || m.includes('has insufficient')) {
+    return 'Insufficient balance for this withdrawal (including network fee). Try a smaller amount.';
   }
   if (c.includes('below_minimum') || m.includes('minimum')) {
     return 'Amount is below the minimum withdrawal.';
@@ -96,14 +102,9 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
   const [txHash, setTxHash] = useState('');
   const [showSetPin, setShowSetPin] = useState(false);
 
-  const fee = selectedAsset
-    ? selectedAsset.symbol === 'BTC'
-      ? 0.00005
-      : selectedAsset.symbol === 'ETH'
-        ? 0.002
-        : 1.0
-    : 0;
-  const feeUSD = selectedAsset ? fee * selectedAsset.price : 0;
+  // Fee is taken from amount on the backend quote — do not invent large native fees on FE
+  const fee = 0;
+  const feeUSD = 0;
 
   const withdrawChainKeys = useMemo(() => {
     if (!selectedAsset) return [] as string[];
