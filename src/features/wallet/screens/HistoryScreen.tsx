@@ -23,6 +23,15 @@ import {
   X,
   CalendarDays,
   ChevronRight,
+  Smartphone,
+  Wifi,
+  Zap,
+  Tv,
+  Trophy,
+  Receipt,
+  Gift,
+  Link2,
+  Award,
 } from 'lucide-react';
 
 import type { Transaction } from '../../../shared/data/mockData';
@@ -161,47 +170,47 @@ const TX_META: Record<
   },
   airtime: {
     label: 'Airtime',
-    Icon: Minus,
+    Icon: Smartphone,
     sign: '−',
   },
   data: {
     label: 'Mobile data',
-    Icon: Minus,
+    Icon: Wifi,
     sign: '−',
   },
   electricity: {
     label: 'Electricity',
-    Icon: Minus,
+    Icon: Zap,
     sign: '−',
   },
   cable: {
     label: 'TV & cable',
-    Icon: Minus,
+    Icon: Tv,
     sign: '−',
   },
   betting: {
     label: 'Betting',
-    Icon: Minus,
+    Icon: Trophy,
     sign: '−',
   },
   bill: {
     label: 'Bill payment',
-    Icon: Minus,
+    Icon: Receipt,
     sign: '−',
   },
   giveaway: {
     label: 'Giveaway',
-    Icon: Plus,
+    Icon: Gift,
     sign: '',
   },
   request: {
     label: 'Payment request',
-    Icon: ArrowUpRight,
+    Icon: Link2,
     sign: '',
   },
   reward: {
     label: 'Reward',
-    Icon: Plus,
+    Icon: Award,
     sign: '+',
   },
 };

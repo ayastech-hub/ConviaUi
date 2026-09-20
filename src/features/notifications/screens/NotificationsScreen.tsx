@@ -16,6 +16,12 @@ import {
   Trash2,
   ExternalLink,
   CheckCircle2,
+  Smartphone,
+  Wifi,
+  Zap,
+  Tv,
+  Trophy,
+  Receipt,
 } from 'lucide-react';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { useNotifications } from '../../../shared/hooks/useNotifications';
@@ -42,8 +48,15 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: 'security', label: 'Security' },
 ];
 
-function notifIcon(type: string) {
-  const t = (type || '').toLowerCase();
+function notifIcon(type: string, title?: string, body?: string) {
+  const t = `${type || ''} ${title || ''} ${body || ''}`.toLowerCase();
+
+  if (t.includes('airtime')) return Smartphone;
+  if (t.includes('mobile data') || (t.includes('data') && t.includes('bill'))) return Wifi;
+  if (t.includes('electric') || t.includes('power')) return Zap;
+  if (t.includes('cable') || t.includes('tv &') || t.includes('tv and')) return Tv;
+  if (t.includes('betting')) return Trophy;
+  if (t.includes('bill_payment') || (t.includes('bill') && t.includes('payment'))) return Receipt;
 
   if (t.includes('deposit') || t.includes('receive')) return ArrowDownLeft;
   if (t.includes('withdraw') || t.includes('send') || t.includes('sold') || t === 'sell') return ArrowUpRight;
@@ -51,7 +64,7 @@ function notifIcon(type: string) {
   if (t.includes('buy') || t.includes('onramp') || t.includes('on-ramp')) return Plus;
   if (t.includes('security') || t.includes('login')) return Shield;
   if (t.includes('kyc')) return FileCheck;
-  if (t.includes('reward') || t.includes('point')) return Gift;
+  if (t.includes('reward') || t.includes('point') || t.includes('giveaway')) return Gift;
   if (t.includes('price')) return TrendingUp;
 
   return ArrowDownLeft;
@@ -665,7 +678,7 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
                 }}
               >
                 {group.items.map((notif, index) => {
-                  const Icon = notifIcon(String(notif.type));
+                  const Icon = notifIcon(String(notif.type), titleOf(notif), bodyOf(notif));
                   const read = Boolean(notif.readAt);
                   const isSelected = selectedIds.has(notif.id);
                   const last = index === group.items.length - 1;
@@ -950,7 +963,7 @@ export function NotificationsScreen({ goBack, navigate }: NotificationsScreenPro
 
             <div className="flex-1 overflow-y-auto px-5 pb-8">
               {(() => {
-                const Icon = notifIcon(String(selected.type));
+                const Icon = notifIcon(String(selected.type), titleOf(selected), bodyOf(selected));
                 const link = deepLinkFor(String(selected.type));
 
                 return (
