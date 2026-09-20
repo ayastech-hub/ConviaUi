@@ -23,6 +23,7 @@ import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useTokenRegistry } from '../../../shared/hooks/useTokenRegistry';
 import { BackButton } from '../../../shared/components/BackButton';
 import { ensureTransactionPin } from '../../../shared/security/ensureTransactionPin';
+import { SetTransactionPinSheet } from '../../../shared/components/SetTransactionPinSheet';
 
 interface WithdrawScreenProps {
   goBack: () => void;
@@ -46,12 +47,13 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
   const [amount, setAmount] = useState('');
   const [error, setError] = useState('');
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
-  const [pin, setPin] = useState(['', '', '', '']);
+  const [pin, setPin] = useState<string[]>(Array(6).fill(''));
   const idempotencyRef = useRef<string | null>(null);
   const submittingRef = useRef(false);
   const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);
   const [showReceipt, setShowReceipt] = useState(false);
   const [txHash, setTxHash] = useState('');
+  const [showSetPin, setShowSetPin] = useState(false);
 
   const fee = selectedAsset
     ? selectedAsset.symbol === 'BTC'
@@ -145,11 +147,21 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
     if (userId) {
       const pinGate = await ensureTransactionPin(userId);
       if (!pinGate.ok) {
+        if (pinGate.hasPin === false) {
+          setShowSetPin(true);
+          setStep('pin');
+          return;
+        }
         setError(pinGate.message);
         setApiError({ code: 'pin_not_set', message: pinGate.message });
-        // navigate if available
         return;
       }
+    }
+    const pinStr = pin.join('');
+    if (!/^\d{6}$/.test(pinStr)) {
+      setError('Enter your 6-digit PIN');
+      setStep('pin');
+      return;
     }
     if (!userId || !selectedAsset) {
       setApiError({ message: 'Sign in required' });
@@ -171,6 +183,7 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
         amount: String(amount),
         chainKey: resolved.chainKey,
         chainFamily: resolved.chainFamily || chainFamilyForKey(resolved.chainKey),
+        pin: pin.join(),
         idempotencyKey: idempotencyRef.current,
       })) as {
         txHash?: string;
@@ -228,9 +241,7 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
     setPin(newPin);
     setError('');
 
-    if (newPin.every((d) => d !== '')) {
-      // Client-side PIN gate UX; server enforces whitelist/limits/signing.
-      // Full transaction-PIN verify endpoint can be added when PIN is set for the user.
+    if (newPin.every((d) => d !== '') && newPin.join('').length >= 6) {
       void submitWithdraw();
     }
   };
@@ -297,23 +308,38 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
 
   if (step === 'pin') {
     return (
-      <WithdrawPinStep
-        pin={pin}
-        onPinChange={handlePinChange}
-        onPinUpdate={(next) => {
-          setPin(next);
-          setError('');
-          if (next.every((d) => d !== '') && next.length >= 4) {
-            void submitWithdraw();
-          }
-        }}
-        error={error}
-        onCancel={() => {
-          setStep('form');
-          setError('');
-          setPin(['', '', '', '']);
-        }}
-      />
+      <>
+        <WithdrawPinStep
+          pin={pin}
+          onPinChange={handlePinChange}
+          onPinUpdate={(next) => {
+            setPin(next);
+            setError('');
+            if (next.every((d) => d !== '') && next.join('').length >= 6) {
+              void submitWithdraw();
+            }
+          }}
+          error={error}
+          onCancel={() => {
+            setStep('form');
+            setError('');
+            setPin(Array(6).fill(''));
+          }}
+        />
+        {userId && (
+          <SetTransactionPinSheet
+            open={showSetPin}
+            userId={userId}
+            onClose={() => setShowSetPin(false)}
+            onComplete={() => {
+              setShowSetPin(false);
+              setError('');
+              setApiError(null);
+              setPin(Array(6).fill(''));
+            }}
+          />
+        )}
+      </>
     );
   }
 
@@ -335,11 +361,25 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
             reason={mapApiCodeToReason(apiError.code)}
             message={apiError.message}
             detail={apiError.code}
-            onAction={apiError.code === 'pin_not_set' && navigate ? () => navigate('security') : undefined}
+            onAction={apiError.code === 'pin_not_set' ? () => setShowSetPin(true) : undefined}
             actionLabel={apiError.code === 'pin_not_set' ? 'Set PIN' : 'Continue'}
           />
         )}
       </div>
+      {userId && (
+        <SetTransactionPinSheet
+          open={showSetPin}
+          userId={userId}
+          onClose={() => setShowSetPin(false)}
+          onComplete={() => {
+            setShowSetPin(false);
+            setError('');
+            setApiError(null);
+            setStep('pin');
+            setPin(Array(6).fill(''));
+          }}
+        />
+      )}
       <WithdrawForm
         asset={selectedAsset}
         selectedChain={selectedChain}
@@ -355,14 +395,21 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
         feeUSD={feeUSD}
         onChangeAsset={() => { if (!presetSymbol) setStep('select'); }}
         onBack={() => (presetSymbol ? goBack() : setStep('select'))}
-        onContinue={() => {
+        onContinue={async () => {
           if (!gates.canWithdraw) {
             setError(gates.isFrozen ? 'Account frozen' : 'Complete KYC to withdraw');
             return;
           }
+          if (userId) {
+            const pinGate = await ensureTransactionPin(userId);
+            if (!pinGate.ok && pinGate.hasPin === false) {
+              setShowSetPin(true);
+              return;
+            }
+          }
           setStep('pin');
           setError('');
-          setPin(['', '', '', '']);
+          setPin(Array(6).fill(''));
         }}
       />
     </div>

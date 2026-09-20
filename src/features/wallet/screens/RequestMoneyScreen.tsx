@@ -17,6 +17,8 @@ import { queryClient, queryKeys } from '../../../shared/query/queryClient';
 import { PageTop } from '../../../shared/components/PageTop';
 import { BackButton } from '../../../shared/components/BackButton';
 import { AssetIcon } from '../../../shared/components/AssetIcon';
+import { SetTransactionPinSheet } from '../../../shared/components/SetTransactionPinSheet';
+import { ensureTransactionPin } from '../../../shared/security/ensureTransactionPin';
 
 interface Props {
   goBack: () => void;
@@ -51,6 +53,7 @@ export function RequestMoneyScreen({ goBack }: Props) {
   const [payTargetId, setPayTargetId] = useState<string | null>(null);
   const [payPin, setPayPin] = useState('');
   const [pinError, setPinError] = useState<string | null>(null);
+  const [showSetPin, setShowSetPin] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!userId) return;
@@ -113,7 +116,15 @@ export function RequestMoneyScreen({ goBack }: Props) {
     }
   };
 
-  const openPayPin = (id: string) => {
+  const openPayPin = async (id: string) => {
+    if (userId) {
+      const gate = await ensureTransactionPin(userId);
+      if (!gate.ok && gate.hasPin === false) {
+        setShowSetPin(true);
+        setPayTargetId(id);
+        return;
+      }
+    }
     setPayTargetId(id);
     setPayPin('');
     setPinError(null);
@@ -140,7 +151,10 @@ export function RequestMoneyScreen({ goBack }: Props) {
     } catch (e) {
       if (e instanceof ApiError) {
         const code = String(e.code || e.body?.code || '');
-        if (code.includes('pin')) setPinError(String(e.body?.message || e.message || 'Invalid PIN'));
+        if (code.includes('pin_not_set') || /not set/i.test(String(e.message))) {
+          setPayTargetId(null);
+          setShowSetPin(true);
+        } else if (code.includes('pin')) setPinError(String(e.body?.message || e.message || 'Invalid PIN'));
         else setErr(String(e.body?.message || e.message));
       } else setErr('Payment failed');
     } finally {
@@ -334,6 +348,20 @@ export function RequestMoneyScreen({ goBack }: Props) {
         )}
       </div>
 
+      {userId && (
+        <SetTransactionPinSheet
+          open={showSetPin}
+          userId={userId}
+          onClose={() => setShowSetPin(false)}
+          onComplete={() => {
+            setShowSetPin(false);
+            if (payTargetId) {
+              setPayPin('');
+              setPinError(null);
+            }
+          }}
+        />
+      )}
       {/* PIN sheet for paying a request */}
       <AnimatePresence>
         {payTargetId && (

@@ -17,19 +17,25 @@ interface SendConfirmStepProps {
   confirmProgress: number;
   onHoldStart: () => void;
   onHoldEnd: () => void;
+  /** Required for external address withdrawals */
+  needsPin?: boolean;
+  pin?: string;
+  onPinChange?: (v: string) => void;
 }
 
 /** Send step 3: transaction summary and the "hold to confirm" button. */
 export function SendConfirmStep({
   format, selectedContact, recipient, amount, cryptoAmount, selectedAsset, fee, total,
   onEdit, canConfirm, holding, confirmProgress, onHoldStart, onHoldEnd,
+  needsPin, pin = '', onPinChange,
 }: SendConfirmStepProps) {
   const rows = [
     { label: 'From', value: 'My Wallet' },
     { label: 'Asset', value: selectedAsset.name },
     { label: 'Network', value: selectedAsset.chains[0] },
-    { label: 'Network fee', value: format(fee) },
   ];
+  const pinOk = !needsPin || /^\d{6}$/.test(pin);
+  const enabled = canConfirm && pinOk;
 
   return (
     <motion.div key="confirm" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.25 }}>
@@ -64,6 +70,22 @@ export function SendConfirmStep({
         </div>
       </div>
 
+      {needsPin && (
+        <div className="mb-4">
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600, marginBottom: 8 }}>Transaction PIN</p>
+          <input
+            type="password"
+            inputMode="numeric"
+            maxLength={6}
+            value={pin}
+            onChange={(e) => onPinChange?.(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            placeholder="••••••"
+            className="w-full h-12 rounded-2xl text-center text-[20px] font-bold tracking-[0.35em] outline-none"
+            style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
+          />
+        </div>
+      )}
+
       <div className="flex justify-center mb-4">
         <motion.button whileTap={{ scale: 0.95 }} onClick={onEdit} className="flex items-center gap-1.5 px-4 py-2 rounded-xl" style={{ background: 'var(--muted)' }}>
           <Pencil size={13} style={{ color: 'var(--foreground)' }} />
@@ -73,11 +95,11 @@ export function SendConfirmStep({
 
       <div className="relative">
         <motion.button
-          onPointerDown={onHoldStart}
+          onPointerDown={enabled ? onHoldStart : undefined}
           onPointerUp={onHoldEnd}
           onPointerLeave={onHoldEnd}
           className="relative w-full py-4 rounded-[16px] text-white flex items-center justify-center gap-2 overflow-hidden select-none"
-          style={{ background: canConfirm ? 'var(--primary)' : 'var(--muted)', color: canConfirm ? '#fff' : 'var(--muted-foreground)', fontWeight: 700, fontSize: 15, touchAction: 'none' }}
+          style={{ background: enabled ? 'var(--primary)' : 'var(--muted)', color: enabled ? '#fff' : 'var(--muted-foreground)', fontWeight: 700, fontSize: 15, touchAction: 'none' }}
         >
           <motion.div className="absolute inset-0" style={{ background: 'var(--positive)' }} animate={{ width: `${confirmProgress * 100}%` }} transition={{ duration: 0.03 }} />
           <span className="relative z-10 flex items-center gap-2">

@@ -30,6 +30,7 @@ import { holdingToAsset } from '../../../shared/utils/mapApiToUi';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { BackButton } from '../../../shared/components/BackButton';
 import { ensureTransactionPin } from '../../../shared/security/ensureTransactionPin';
+import { SetTransactionPinSheet } from '../../../shared/components/SetTransactionPinSheet';
 
 interface SendScreenProps {
   navigate: (s: Screen) => void;
@@ -48,6 +49,8 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
     // Prefer stable default once catalog loads
   }, [cryptoAssets]);
   const { userId } = useAuth();
+  const [showSetPin, setShowSetPin] = useState(false);
+  const [sendPin, setSendPin] = useState('');
   const gates = useAccountGates();
   const { data: portfolioData } = usePortfolio();
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
@@ -141,6 +144,13 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
 
         const pinGate = await ensureTransactionPin(userId);
         if (!pinGate.ok) {
+          if (pinGate.hasPin === false) {
+            setShowSetPin(true);
+            setStep('confirm');
+            setHolding(false);
+            setConfirmProgress(0);
+            return;
+          }
           throw new ApiError(403, { code: 'pin_not_set', message: pinGate.message });
         }
 
@@ -164,6 +174,12 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
           });
           hash = res.ledgerTransactionId || res.txHash || `internal:${Date.now()}`;
         } else {
+          if (!/^\d{6}$/.test(sendPin)) {
+            setApiError({ code: 'pin_required', message: 'Enter your 6-digit PIN on the confirm step' });
+            setStep('confirm');
+            setHolding(false);
+            return;
+          }
           const res = (await withdrawCrypto({
             userId,
             destinationAddress: recipient.trim(),
@@ -171,6 +187,7 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
             amount: amountAsset,
             chainKey: chain.chainKey,
             chainFamily: chain.chainFamily,
+            pin: sendPin,
           })) as { txHash?: string; [k: string]: unknown };
           hash = res.txHash;
         }
@@ -412,7 +429,7 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
             reason={mapApiCodeToReason(apiError.code)}
             message={apiError.message}
             detail={apiError.code}
-            onAction={apiError.code === 'pin_not_set' ? () => navigate('security') : undefined}
+            onAction={apiError.code === 'pin_not_set' ? () => setShowSetPin(true) : undefined}
             actionLabel={apiError.code === 'pin_not_set' ? 'Set PIN' : 'Continue'}
           />
         )}
@@ -469,6 +486,9 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
               cryptoAmount={cryptoAmount} selectedAsset={selectedAsset} fee={fee} total={total}
               onEdit={() => setStep('amount')} canConfirm={canContinueAmount}
               holding={holding} confirmProgress={confirmProgress} onHoldStart={startHold} onHoldEnd={cancelHold}
+              needsPin={!isUsernameSend}
+              pin={sendPin}
+              onPinChange={setSendPin}
             />
             <GateHint mode={isUsernameSend ? 'internal_send' : 'external_send'} />
             </>
@@ -512,5 +532,17 @@ export function SendScreen({ navigate, goBack }: SendScreenProps) {
 
       <TransactionReceipt tx={receiptTx} open={showReceipt} onClose={() => setShowReceipt(false)} />
     </div>
+
+      {userId && (
+        <SetTransactionPinSheet
+          open={showSetPin}
+          userId={userId}
+          onClose={() => setShowSetPin(false)}
+          onComplete={() => {
+            setShowSetPin(false);
+            setApiError?.(null as never);
+          }}
+        />
+      )}
   );
 }

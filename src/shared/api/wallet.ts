@@ -52,6 +52,9 @@ export function withdrawCrypto(body: {
   amount: string;
   chainKey: string;
   chainFamily: string;
+  /** 6-digit transaction PIN (required by backend) */
+  pin: string;
+  feeQuoteId?: string;
   /** Stable key for one user intent — prevents double rows on double-tap */
   idempotencyKey?: string;
 }) {

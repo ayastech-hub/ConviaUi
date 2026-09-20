@@ -20,6 +20,7 @@ import { useLanguage } from '../../../shared/context/LanguageContext';
 import { PageTop } from '../../../shared/components/PageTop';
 import { BackButton } from '../../../shared/components/BackButton';
 import { ensureTransactionPin } from '../../../shared/security/ensureTransactionPin';
+import { SetTransactionPinSheet } from '../../../shared/components/SetTransactionPinSheet';
 
 interface OffRampScreenProps {
   goBack: () => void;
@@ -37,6 +38,7 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
 
   const { currency, format } = useCurrency();
   const { userId } = useAuth();
+  const [showSetPin, setShowSetPin] = useState(false);
   const gates = useAccountGates();
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
@@ -51,6 +53,10 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
       try {
         const pinGate = await ensureTransactionPin(userId);
         if (pinGate && !pinGate.ok) {
+          if (pinGate.hasPin === false) {
+            setShowSetPin(true);
+            return;
+          }
           setApiError({ code: 'pin_not_set', message: pinGate.message });
         }
       } catch (error) {
@@ -202,5 +208,14 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
         </AnimatePresence>
       </div>
     </div>
+
+      {userId && (
+        <SetTransactionPinSheet
+          open={showSetPin}
+          userId={userId}
+          onClose={() => setShowSetPin(false)}
+          onComplete={() => setShowSetPin(false)}
+        />
+      )}
   );
 }
