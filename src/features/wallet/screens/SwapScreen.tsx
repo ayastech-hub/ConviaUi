@@ -29,12 +29,44 @@ import { ensureTransactionPin } from '../../../shared/security/ensureTransaction
 
 interface SwapScreenProps {
   goBack: () => void;
+  navigate?: (screen: string, param?: string) => void;
   presetSymbol?: string;
 }
 
 type SwapPhase = 'idle' | 'review' | 'swapping' | 'success';
 
-export function SwapScreen({ goBack, presetSymbol }: SwapScreenProps) {
+function pickDefaultFrom(assets: Asset[]): Asset | undefined {
+  if (!assets.length) return undefined;
+  const positive = assets.filter((a) => Number(a.balance) > 0);
+  if (positive.length) {
+    const byValue = [...positive].sort((a, b) => (b.valueUSD || 0) - (a.valueUSD || 0));
+    const stables = positive.filter((a) => ['USDT', 'USDC'].includes(a.symbol.toUpperCase()));
+    if (stables.length) {
+      const bestStable = [...stables].sort((a, b) => (b.valueUSD || 0) - (a.valueUSD || 0))[0];
+      const top = byValue[0];
+      if ((bestStable.valueUSD || 0) >= (top.valueUSD || 0) * 0.2) return bestStable;
+    }
+    return byValue[0];
+  }
+  return (
+    assets.find((a) => a.symbol === 'USDT') ||
+    assets.find((a) => a.symbol === 'ETH') ||
+    assets[0]
+  );
+}
+
+function pickDefaultTo(assets: Asset[], fromSym: string): Asset | undefined {
+  if (!assets.length) return undefined;
+  const others = assets.filter((a) => a.symbol !== fromSym);
+  return (
+    others.find((a) => a.symbol === 'USDT') ||
+    others.find((a) => a.symbol === 'USDC') ||
+    others[0] ||
+    assets[0]
+  );
+}
+
+export function SwapScreen({ goBack, navigate, presetSymbol }: SwapScreenProps) {
   const { t } = useLanguage();
   const { swapAssets: cryptoAssets, loading: registryLoading } = useWalletAssets();
   useEffect(() => {
@@ -50,7 +82,7 @@ export function SwapScreen({ goBack, presetSymbol }: SwapScreenProps) {
   const [apiBlock, setApiBlock] = useState<{ code?: string; message?: string } | null>(null);
   const { format, currency } = useCurrency();
 
-  const [fromAsset, setFromAsset] = useState<Asset>(cryptoAssets.find((a) => a.symbol === 'ETH') || cryptoAssets[0] || {
+  const [fromAsset, setFromAsset] = useState<Asset>({
   id: 'loading',
   symbol: '…',
   name: 'Loading',
@@ -63,7 +95,7 @@ export function SwapScreen({ goBack, presetSymbol }: SwapScreenProps) {
   chains: [],
   sparkline: [],
 } as Asset);
-  const [toAsset, setToAsset] = useState<Asset>(cryptoAssets.find((a) => a.symbol === 'USDT') || cryptoAssets[1] || cryptoAssets[0] || {
+  const [toAsset, setToAsset] = useState<Asset>({
   id: 'loading',
   symbol: '…',
   name: 'Loading',
@@ -76,19 +108,35 @@ export function SwapScreen({ goBack, presetSymbol }: SwapScreenProps) {
   chains: [],
   sparkline: [],
 } as Asset);
+  const [defaultsReady, setDefaultsReady] = useState(false);
+
+  // Smart defaults: prefer non-zero balance for "from"; never prefer zero when alternatives exist
   useEffect(() => {
-    if (!presetSymbol || !cryptoAssets.length) return;
-    const hit = cryptoAssets.find((a) => a.symbol.toUpperCase() === presetSymbol.toUpperCase());
-    if (!hit) return;
-    if (fromAsset.symbol !== hit.symbol) {
-      setFromAsset(hit);
-      // avoid same from/to
-      if (toAsset.symbol === hit.symbol) {
-        const other = cryptoAssets.find((a) => a.symbol !== hit.symbol);
+    if (!cryptoAssets.length) return;
+    if (presetSymbol) {
+      const hit = cryptoAssets.find((a) => a.symbol.toUpperCase() === presetSymbol.toUpperCase());
+      if (hit) {
+        setFromAsset(hit);
+        const other = pickDefaultTo(cryptoAssets, hit.symbol);
         if (other) setToAsset(other);
+        setDefaultsReady(true);
+        return;
       }
     }
-  }, [presetSymbol, cryptoAssets]);
+    if (defaultsReady) {
+      const f = cryptoAssets.find((a) => a.symbol === fromAsset.symbol);
+      const tt = cryptoAssets.find((a) => a.symbol === toAsset.symbol);
+      if (f) setFromAsset(f);
+      if (tt) setToAsset(tt);
+      return;
+    }
+    const from = pickDefaultFrom(cryptoAssets);
+    if (!from) return;
+    const to = pickDefaultTo(cryptoAssets, from.symbol);
+    setFromAsset(from);
+    if (to) setToAsset(to);
+    setDefaultsReady(true);
+  }, [cryptoAssets, presetSymbol]);
 
   const [fromAmount, setFromAmount] = useState<string>('');
   const [slippage, setSlippage] = useState<string>('0.5%');
@@ -504,8 +552,8 @@ export function SwapScreen({ goBack, presetSymbol }: SwapScreenProps) {
         </motion.button>
       </div>
 
-      <AssetPicker open={showFromPicker} onClose={() => setShowFromPicker(false)} onSelect={selectFromAsset} excludeId={toAsset.id} title="Select token to pay" />
-      <AssetPicker open={showToPicker} onClose={() => setShowToPicker(false)} onSelect={selectToAsset} excludeId={fromAsset.id} title="Select token to receive" />
+      <AssetPicker open={showFromPicker} onClose={() => setShowFromPicker(false)} onSelect={selectFromAsset} excludeId={toAsset.id} title="Select token to pay" assets={cryptoAssets} selected={fromAsset} />
+      <AssetPicker open={showToPicker} onClose={() => setShowToPicker(false)} onSelect={selectToAsset} excludeId={fromAsset.id} title="Select token to receive" assets={cryptoAssets} selected={toAsset} />
 
       <AnimatePresence>
         {phase === 'review' && (

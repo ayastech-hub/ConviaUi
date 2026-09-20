@@ -55,7 +55,7 @@ export function useWalletAssets() {
 
   const symbols = useMemo(() => {
     const set = new Set<string>();
-    for (const a of registry.assets) set.add(a.symbol.toUpperCase());
+    for (const a of registry.assets || []) set.add(a.symbol.toUpperCase());
     for (const h of portfolio.data?.holdings || []) {
       const s = String(h.asset || '').toUpperCase();
       if (s) set.add(s);
@@ -127,7 +127,7 @@ export function useWalletAssets() {
       return 0;
     };
 
-    const merged: Asset[] = registry.assets.map((a) => {
+    const merged: Asset[] = (registry.assets || []).map((a) => {
       const b = bal.get(a.symbol);
       const qty = b?.qty ?? 0;
       const price = priceFor(a.symbol, a.price || 0);

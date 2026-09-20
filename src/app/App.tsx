@@ -292,7 +292,7 @@ export default function App() {
       case 'swap':
         return (
           <motion.div key="swap" {...slideRight} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
-            <SwapScreen goBack={goBack} presetSymbol={navParam} />
+            <SwapScreen goBack={goBack} navigate={navigate} presetSymbol={navParam} />
           </motion.div>
         );
       case 'offramp':
