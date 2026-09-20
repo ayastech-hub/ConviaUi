@@ -1,10 +1,31 @@
 import { formatTokenAmountPrecise } from '../utils/formatAmount';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  X, CheckCircle2, Clock, AlertCircle, ArrowUpRight, ArrowDownLeft,
-  RefreshCw, Plus, Minus, TrendingUp, TrendingDown, Copy, Check,
-  Share2, ExternalLink, Loader,
-} Smartphone, Wifi, Zap, Tv, Trophy, Receipt, Gift, Link2, Award,
+  X,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  ArrowUpRight,
+  ArrowDownLeft,
+  RefreshCw,
+  Plus,
+  Minus,
+  TrendingUp,
+  TrendingDown,
+  Copy,
+  Check,
+  Share2,
+  ExternalLink,
+  Loader,
+  Smartphone,
+  Wifi,
+  Zap,
+  Tv,
+  Trophy,
+  Receipt,
+  Gift,
+  Link2,
+  Award,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { type Transaction } from '../data/mockData';
