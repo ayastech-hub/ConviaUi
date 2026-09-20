@@ -395,7 +395,7 @@ export function SwapScreen({ goBack, presetSymbol }: SwapScreenProps) {
   }
 
   return (
-    <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
+    <div className="relative flex flex-col min-h-full h-full" style={{ background: 'var(--background)' }}>
       <PageTop />
 
       <div className="flex items-center justify-center px-5 mb-6">

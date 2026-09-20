@@ -1007,7 +1007,6 @@ function JoinForm() {
   const [scanning, setScanning] = useState(false);
   const [recent, setRecent] = useState<Awaited<ReturnType<typeof listRecentClaims>>>([]);
   const [claiming, setClaiming] = useState(false);
-  const [pin, setPin] = useState('');
 
   useEffect(() => {
     void listRecentClaims(6).then(setRecent);
@@ -1033,29 +1032,12 @@ function JoinForm() {
       return;
     }
 
-    if (!pin.trim() || pin.trim().length < 4) {
-      setError('Enter your transaction PIN');
-      return;
-    }
-
     setClaiming(true);
 
     try {
-      const pinGate = await ensureTransactionPin(userId);
-
-      if (!pinGate.ok) {
-        setError(
-          pinGate.hasPin === false
-            ? 'Set a transaction PIN in Profile → Security before claiming.'
-            : pinGate.message,
-        );
-        return;
-      }
-
       const result = await claimGift(
         code,
         userId || 'claimer_local',
-        pin.trim(),
       );
 
       if (!result.ok) {
@@ -1144,27 +1126,7 @@ function JoinForm() {
         </Field>
       </section>
 
-      <Field label="Transaction PIN">
-        <input
-          type="password"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          maxLength={6}
-          value={pin}
-          onChange={(event) =>
-            setPin(event.target.value.replace(/\D/g, '').slice(0, 6))
-          }
-          placeholder="••••••"
-          className="w-full bg-transparent outline-none tabular-nums"
-          style={{
-            color: 'var(--foreground)',
-            fontSize: 18,
-            letterSpacing: 5,
-          }}
-        />
-      </Field>
-
-      <motion.button
+            <motion.button
         type="button"
         whileTap={{ scale: 0.985 }}
         onClick={() => void confirm()}
@@ -1200,7 +1162,7 @@ function JoinForm() {
           onDone={() => {
             setSuccess(null);
             setCode('');
-            setPin('');
+            
           }}
         />
       )}
