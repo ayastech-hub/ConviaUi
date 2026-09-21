@@ -9,6 +9,7 @@ import { hasSeenOnboarding, markOnboardingSeen } from '../shared/utils/firstVisi
 import { usePrefetchAppData } from '../shared/hooks/usePrefetchAppData';
 import { prefetchForScreen } from '../shared/query/prefetchAppData';
 import { useAuth } from '../shared/context/AuthContext';
+import { setupNotificationNavigation } from '../shared/native/notificationNavigation';
 
 import { OnboardingScreen } from '../features/onboarding/screens/OnboardingScreen';
 import { AuthScreen } from '../features/auth/screens/AuthScreen';
@@ -217,6 +218,12 @@ export default function App() {
       switchTab('home');
     }
   }, [status, current, switchTab, navigate]);
+
+  // System push tap → open history / kyc / notifications etc.
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    void setupNotificationNavigation(navigate);
+  }, [status, navigate]);
 
   const showNav = NAV_VISIBLE.includes(current);
   const activeTab: Screen =
