@@ -65,3 +65,20 @@ export function deleteNotification(notificationId: string) {
 export function deleteAllNotifications(userId: string) {
   return api.delete<{ ok?: boolean; deleted?: number }>(`/notifications/${userId}/all`);
 }
+
+/** Register Capacitor / Expo / FCM push token for this user */
+export function registerPushToken(
+  userId: string,
+  body: {
+    token: string;
+    platform?: string;
+    channel?: 'default' | 'security' | 'transactions';
+    deviceId?: string;
+  },
+) {
+  return api.post(`/notifications/${userId}/push-token`, body);
+}
+
+export function unregisterPushToken(userId: string, token?: string) {
+  return api.delete(`/users/${userId}/device-tokens`, token ? { token } : {});
+}

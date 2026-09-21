@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, User } from 'lucide-react';
+import { loadDeviceContacts, isNativeShell } from '../../../shared/native/nativeShell';
 
 type Contact = { name: string; phone: string };
 
@@ -22,6 +23,24 @@ export function ContactsSheet({ open, onClose, onPick }: Props) {
     if (!open) return;
     let cancelled = false;
     (async () => {
+      // Native ConviaMobile shell — full contact list
+      if (await isNativeShell()) {
+        try {
+          const rows = await loadDeviceContacts(150);
+          if (cancelled) return;
+          if (rows.length) {
+            setContacts(rows.map((r) => ({
+              name: r.name,
+              phone: r.phone.startsWith('0') ? r.phone : r.phone.length === 10 ? `0${r.phone}` : r.phone,
+            })));
+            setStatus('ready');
+            return;
+          }
+        } catch {
+          /* fall through */
+        }
+      }
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const nav = navigator as any;
       if (!nav.contacts?.select) {

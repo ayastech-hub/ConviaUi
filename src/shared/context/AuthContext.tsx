@@ -14,6 +14,7 @@ import {
   persistSession,
 } from '../api/client';
 import * as authApi from '../api/auth';
+import { setupNativePush } from '../native/nativeShell';
 import type { SessionTokens } from '../api/types';
 import { ApiError } from '../api/types';
 import { cacheInvalidate } from '../cache/queryCache';
@@ -73,7 +74,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const login = useCallback(
+  useEffect(() => {
+    const uid = session?.userId;
+    if (!uid) return;
+    void setupNativePush(uid);
+  }, [session?.userId]);
+
+    const login = useCallback(
     async (email: string, password: string) => {
       const deviceId =
         typeof localStorage !== 'undefined'
