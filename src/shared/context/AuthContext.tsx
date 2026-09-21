@@ -78,6 +78,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const uid = session?.userId;
     if (!uid) return;
     void setupNativePush(uid);
+    const t1 = window.setTimeout(() => void setupNativePush(uid), 2000);
+    const t2 = window.setTimeout(() => void setupNativePush(uid), 8000);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
   }, [session?.userId]);
 
     const login = useCallback(

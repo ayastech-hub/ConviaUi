@@ -1,97 +1,154 @@
 /**
- * Capacitor shell integration (ConviaMobile).
- * Safe no-ops in a normal browser.
- *
- * Android system push requires google-services.json in the native app
- * (Firebase → Android app package com.ayastech.convia). Without it,
- * PushNotifications.register() never yields an FCM token.
+ * Capacitor / native FCM registration for ConviaMobile.
+ * Primary path: window.__CONVIA_FCM_TOKEN__ injected by MainActivity.
+ * Fallback: Capacitor PushNotifications plugin.
  */
 
 import { registerPushToken } from '../api/notifications';
 
-async function loadCapacitor(): Promise<typeof import('@capacitor/core') | null> {
+declare global {
+  interface Window {
+    __CONVIA_FCM_TOKEN__?: string;
+    Capacitor?: {
+      isNativePlatform?: () => boolean;
+      getPlatform?: () => string;
+    };
+  }
+}
+
+function injectedToken(): string {
   try {
-    return await import('@capacitor/core');
+    return String(window.__CONVIA_FCM_TOKEN__ || '').trim();
   } catch {
-    return null;
+    return '';
   }
 }
 
 export async function isNativeShell(): Promise<boolean> {
-  const cap = await loadCapacitor();
-  if (!cap) return false;
   try {
-    return cap.Capacitor.isNativePlatform();
+    if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) return true;
+  } catch {
+    /* */
+  }
+  try {
+    const { Capacitor } = await import('@capacitor/core');
+    return Capacitor.isNativePlatform();
   } catch {
     return false;
   }
 }
 
 export async function getNativePlatform(): Promise<'ios' | 'android' | 'web'> {
-  const cap = await loadCapacitor();
-  if (!cap) return 'web';
   try {
-    const p = cap.Capacitor.getPlatform();
+    const p = window.Capacitor?.getPlatform?.();
     if (p === 'ios' || p === 'android') return p;
   } catch {
-    /* web */
+    /* */
+  }
+  try {
+    const { Capacitor } = await import('@capacitor/core');
+    const p = Capacitor.getPlatform();
+    if (p === 'ios' || p === 'android') return p;
+  } catch {
+    /* */
   }
   return 'web';
 }
 
-let pushSetupForUser: string | null = null;
+let savedToken: string | null = null;
+let setupStarted = false;
 
-/** Register FCM/APNs token with backend after login. Idempotent per user session. */
-export async function setupNativePush(userId: string): Promise<{ ok: boolean; reason?: string }> {
-  if (!userId) return { ok: false, reason: 'no_user' };
-  if (!(await isNativeShell())) return { ok: false, reason: 'not_native' };
-  if (pushSetupForUser === userId) return { ok: true, reason: 'already_setup' };
+async function persistToken(userId: string, token: string, platform: string): Promise<boolean> {
+  const t = token.trim();
+  if (!t || t.length < 20) return false;
+  if (savedToken === t) return true;
+  try {
+    await registerPushToken(userId, {
+      token: t,
+      platform,
+      channel: 'default',
+      deviceId:
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? crypto.randomUUID()
+          : `android-${Date.now()}`,
+    });
+    savedToken = t;
+    console.info('[native] push token saved, len=', t.length);
+    return true;
+  } catch (e) {
+    console.warn('[native] push token POST failed', e);
+    return false;
+  }
+}
 
+async function tryCapacitorRegister(userId: string, platform: string): Promise<void> {
   try {
     const { PushNotifications } = await import('@capacitor/push-notifications');
-    const platform = await getNativePlatform();
-
     let perm = await PushNotifications.checkPermissions();
     if (perm.receive === 'prompt' || perm.receive === 'prompt-with-rationale') {
       perm = await PushNotifications.requestPermissions();
     }
     if (perm.receive !== 'granted') {
-      console.warn('[native] push permission not granted', perm);
-      return { ok: false, reason: 'permission_denied' };
+      console.warn('[native] notification permission', perm);
+      return;
     }
-
-    // Listeners must be attached before register()
-    await PushNotifications.addListener('registration', (t) => {
-      const token = (t?.value || '').trim();
-      if (!token) {
-        console.warn('[native] empty push token');
-        return;
-      }
-      console.info('[native] FCM/APNs token received, length=', token.length);
-      void registerPushToken(userId, {
-        token,
-        platform,
-        channel: 'default',
-        deviceId:
-          typeof crypto !== 'undefined' && 'randomUUID' in crypto
-            ? crypto.randomUUID()
-            : `device-${Date.now()}`,
-      })
-        .then(() => console.info('[native] push token saved to backend'))
-        .catch((e) => console.warn('[native] push token register failed', e));
+    await PushNotifications.addListener('registration', (ev) => {
+      void persistToken(userId, ev?.value || '', platform);
     });
-
     await PushNotifications.addListener('registrationError', (e) => {
-      console.warn('[native] push registrationError — often missing google-services.json', e);
+      console.warn('[native] registrationError', e);
     });
-
     await PushNotifications.register();
-    pushSetupForUser = userId;
-    return { ok: true };
   } catch (e) {
-    console.warn('[native] push setup skipped', e);
-    return { ok: false, reason: 'exception' };
+    console.warn('[native] capacitor push register failed', e);
   }
+}
+
+/**
+ * Call after login. Retries: injected FCM token + Capacitor plugin.
+ */
+export async function setupNativePush(userId: string): Promise<{ ok: boolean; reason?: string }> {
+  if (!userId) return { ok: false, reason: 'no_user' };
+
+  const platform = await getNativePlatform();
+  const native = platform === 'android' || platform === 'ios' || (await isNativeShell());
+
+  // Always try injected token (works even if Capacitor JS detection fails)
+  const inj = injectedToken();
+  if (inj) {
+    const ok = await persistToken(userId, inj, platform === 'web' ? 'android' : platform);
+    if (ok) return { ok: true, reason: 'injected' };
+  }
+
+  if (!native && !inj) {
+    // Still listen — token may arrive later from native inject
+  }
+
+  if (setupStarted && savedToken) return { ok: true, reason: 'already' };
+  setupStarted = true;
+
+  const onFcm = (ev: Event) => {
+    const detail = (ev as CustomEvent).detail as { token?: string } | undefined;
+    const tok = detail?.token || injectedToken();
+    if (tok) void persistToken(userId, tok, platform === 'web' ? 'android' : platform);
+  };
+  window.addEventListener('convia-fcm', onFcm);
+
+  if (native || platform === 'android') {
+    void tryCapacitorRegister(userId, platform === 'web' ? 'android' : platform);
+  }
+
+  // Retry injected token — MainActivity may fetch FCM after first paint
+  const delays = [500, 1500, 3000, 6000, 10000];
+  for (const ms of delays) {
+    window.setTimeout(() => {
+      if (savedToken) return;
+      const t = injectedToken();
+      if (t) void persistToken(userId, t, platform === 'web' ? 'android' : platform);
+    }, ms);
+  }
+
+  return { ok: true, reason: 'pending' };
 }
 
 export type DeviceContact = { name: string; phone: string };
@@ -113,9 +170,7 @@ export async function loadDeviceContacts(limit = 200): Promise<DeviceContact[]> 
     }).Contacts;
     const perm = await Contacts.requestPermissions();
     if (perm.contacts !== 'granted' && perm.contacts !== 'limited') return [];
-    const result = await Contacts.getContacts({
-      projection: { name: true, phones: true },
-    });
+    const result = await Contacts.getContacts({ projection: { name: true, phones: true } });
     const out: DeviceContact[] = [];
     for (const c of result.contacts || []) {
       const name = c.name?.display || 'Contact';
