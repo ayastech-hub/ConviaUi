@@ -1,23 +1,37 @@
 /**
  * Capacitor shell integration (ConviaMobile).
- * Safe no-ops when running in a normal browser.
+ * Safe no-ops in a normal browser.
+ *
+ * Android system push requires google-services.json in the native app
+ * (Firebase → Android app package com.ayastech.convia). Without it,
+ * PushNotifications.register() never yields an FCM token.
  */
 
 import { registerPushToken } from '../api/notifications';
 
-export async function isNativeShell(): Promise<boolean> {
+async function loadCapacitor(): Promise<typeof import('@capacitor/core') | null> {
   try {
-    const { Capacitor } = await import('@capacitor/core');
-    return Capacitor.isNativePlatform();
+    return await import('@capacitor/core');
+  } catch {
+    return null;
+  }
+}
+
+export async function isNativeShell(): Promise<boolean> {
+  const cap = await loadCapacitor();
+  if (!cap) return false;
+  try {
+    return cap.Capacitor.isNativePlatform();
   } catch {
     return false;
   }
 }
 
 export async function getNativePlatform(): Promise<'ios' | 'android' | 'web'> {
+  const cap = await loadCapacitor();
+  if (!cap) return 'web';
   try {
-    const { Capacitor } = await import('@capacitor/core');
-    const p = Capacitor.getPlatform();
+    const p = cap.Capacitor.getPlatform();
     if (p === 'ios' || p === 'android') return p;
   } catch {
     /* web */
@@ -25,54 +39,78 @@ export async function getNativePlatform(): Promise<'ios' | 'android' | 'web'> {
   return 'web';
 }
 
-/** Register FCM/APNs token with backend after login. */
-export async function setupNativePush(userId: string): Promise<void> {
-  if (!(await isNativeShell())) return;
+let pushSetupForUser: string | null = null;
+
+/** Register FCM/APNs token with backend after login. Idempotent per user session. */
+export async function setupNativePush(userId: string): Promise<{ ok: boolean; reason?: string }> {
+  if (!userId) return { ok: false, reason: 'no_user' };
+  if (!(await isNativeShell())) return { ok: false, reason: 'not_native' };
+  if (pushSetupForUser === userId) return { ok: true, reason: 'already_setup' };
+
   try {
     const { PushNotifications } = await import('@capacitor/push-notifications');
     const platform = await getNativePlatform();
 
     let perm = await PushNotifications.checkPermissions();
-    if (perm.receive === 'prompt') {
+    if (perm.receive === 'prompt' || perm.receive === 'prompt-with-rationale') {
       perm = await PushNotifications.requestPermissions();
     }
-    if (perm.receive !== 'granted') return;
+    if (perm.receive !== 'granted') {
+      console.warn('[native] push permission not granted', perm);
+      return { ok: false, reason: 'permission_denied' };
+    }
 
-    await PushNotifications.register();
-
+    // Listeners must be attached before register()
     await PushNotifications.addListener('registration', (t) => {
-      const token = t.value;
-      if (!token) return;
+      const token = (t?.value || '').trim();
+      if (!token) {
+        console.warn('[native] empty push token');
+        return;
+      }
+      console.info('[native] FCM/APNs token received, length=', token.length);
       void registerPushToken(userId, {
         token,
         platform,
         channel: 'default',
-        deviceId: typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : undefined,
-      }).catch((e) => console.warn('[native] push token register failed', e));
+        deviceId:
+          typeof crypto !== 'undefined' && 'randomUUID' in crypto
+            ? crypto.randomUUID()
+            : `device-${Date.now()}`,
+      })
+        .then(() => console.info('[native] push token saved to backend'))
+        .catch((e) => console.warn('[native] push token register failed', e));
     });
 
     await PushNotifications.addListener('registrationError', (e) => {
-      console.warn('[native] push registration error', e);
+      console.warn('[native] push registrationError — often missing google-services.json', e);
     });
+
+    await PushNotifications.register();
+    pushSetupForUser = userId;
+    return { ok: true };
   } catch (e) {
     console.warn('[native] push setup skipped', e);
+    return { ok: false, reason: 'exception' };
   }
 }
 
 export type DeviceContact = { name: string; phone: string };
 
-/** Read device contacts when running in ConviaMobile. */
 export async function loadDeviceContacts(limit = 200): Promise<DeviceContact[]> {
   if (!(await isNativeShell())) return [];
   try {
     const mod = await import('@capacitor-community/contacts').catch(() => null);
     if (!mod) return [];
-    const Contacts = (mod as { Contacts: {
-      requestPermissions: () => Promise<{ contacts: string }>;
-      getContacts: (opts: { projection: { name?: boolean; phones?: boolean } }) => Promise<{
-        contacts: Array<{ name?: { display?: string }; phones?: Array<{ number?: string }> }>;
-      }>;
-    } }).Contacts;
+    const Contacts = (mod as {
+      Contacts: {
+        requestPermissions: () => Promise<{ contacts: string }>;
+        getContacts: (opts: {
+          projection: { name?: boolean; phones?: boolean };
+        }) => Promise<{
+          contacts: Array<{ name?: { display?: string }; phones?: Array<{ number?: string }> }>;
+        }>;
+      };
+    }).Contacts;
     const perm = await Contacts.requestPermissions();
     if (perm.contacts !== 'granted' && perm.contacts !== 'limited') return [];
     const result = await Contacts.getContacts({
