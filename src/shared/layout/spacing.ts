@@ -1,8 +1,10 @@
 /**
  * Single source of truth for vertical/horizontal page chrome.
- * Use these everywhere instead of ad-hoc height: 50 / 12 / 32.
+ * WebView on Android often reports safe-area-inset-top as 0 — use a status-bar floor.
  */
 export const LAYOUT = {
+  /** Floor under status bar when env() is 0 (common in Capacitor WebView) */
+  statusBarFloor: 28,
   top: 16,
   topWithHeader: 16,
   x: 20,
@@ -12,7 +14,7 @@ export const LAYOUT = {
 } as const;
 
 export const pageTopStyle = {
-  height: `max(${LAYOUT.top}px, env(safe-area-inset-top, 0px))`,
+  height: `max(${LAYOUT.top + LAYOUT.statusBarFloor}px, calc(env(safe-area-inset-top, 0px) + ${LAYOUT.top}px))`,
   flexShrink: 0,
 } as const;
 

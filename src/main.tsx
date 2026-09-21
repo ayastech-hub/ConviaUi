@@ -35,3 +35,10 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </AppProviders>,
 );
+
+/** App-shell cache for Capacitor / offline reopen (API stays network-only). */
+if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => undefined);
+  });
+}

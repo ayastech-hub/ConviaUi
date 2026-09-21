@@ -1,0 +1,7 @@
+
+
+/* Capacitor / mobile WebView */
+html, body {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
