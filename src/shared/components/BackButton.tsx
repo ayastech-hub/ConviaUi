@@ -7,6 +7,8 @@ interface BackButtonProps {
   label?: string;
   className?: string;
   size?: number;
+  /** glass = liquid chip; bare = icon only on page bg (home/profile style) */
+  variant?: 'glass' | 'bare';
 }
 
 const glassStyle: CSSProperties = {
@@ -17,8 +19,28 @@ const glassStyle: CSSProperties = {
   WebkitBackdropFilter: 'blur(16px) saturate(180%)',
 };
 
-/** Liquid glass back control — theme tokens for light + dark. */
-export function BackButton({ onClick, label = 'Go back', className = '', size = 40 }: BackButtonProps) {
+export function BackButton({
+  onClick,
+  label = 'Go back',
+  className = '',
+  size = 40,
+  variant = 'bare',
+}: BackButtonProps) {
+  if (variant === 'bare') {
+    return (
+      <motion.button
+        type="button"
+        whileTap={{ scale: 0.92 }}
+        onClick={onClick}
+        aria-label={label}
+        className={`flex items-center justify-center flex-shrink-0 p-1 ${className}`}
+        style={{ background: 'transparent', border: 'none' }}
+      >
+        <ChevronLeft size={24} strokeWidth={2.35} style={{ color: 'var(--foreground)' }} />
+      </motion.button>
+    );
+  }
+
   return (
     <motion.button
       type="button"
@@ -26,11 +48,7 @@ export function BackButton({ onClick, label = 'Go back', className = '', size = 
       onClick={onClick}
       aria-label={label}
       className={`flex items-center justify-center flex-shrink-0 rounded-full ${className}`}
-      style={{
-        width: size,
-        height: size,
-        ...glassStyle,
-      }}
+      style={{ width: size, height: size, ...glassStyle }}
     >
       <ChevronLeft
         size={Math.round(size * 0.5)}

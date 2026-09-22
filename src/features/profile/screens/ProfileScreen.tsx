@@ -150,34 +150,34 @@ export function ProfileScreen({ navigate, goBack }: ProfileScreenProps) {
       <div className="flex items-center justify-between px-4 pt-1 pb-3">
         <motion.button
           type="button"
-          whileTap={{ scale: 0.9 }}
+          whileTap={{ scale: 0.92 }}
           onClick={() => (goBack ? goBack() : navigate('home'))}
           aria-label="Close"
-          className="w-10 h-10 rounded-full flex items-center justify-center"
-          style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+          className="flex items-center justify-center p-1"
+          style={{ background: 'transparent', border: 'none' }}
         >
-          <X size={18} style={{ color: 'var(--foreground)' }} />
+          <X size={24} strokeWidth={2.35} style={{ color: 'var(--foreground)' }} />
         </motion.button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <motion.button
             type="button"
-            whileTap={{ scale: 0.9 }}
+            whileTap={{ scale: 0.92 }}
             onClick={() => navigate('support-center')}
             aria-label="Support"
-            className="w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+            className="flex items-center justify-center p-1"
+            style={{ background: 'transparent', border: 'none' }}
           >
-            <Headphones size={18} style={{ color: 'var(--foreground)' }} />
+            <Headphones size={24} strokeWidth={2.35} style={{ color: 'var(--foreground)' }} />
           </motion.button>
           <motion.button
             type="button"
-            whileTap={{ scale: 0.9 }}
+            whileTap={{ scale: 0.92 }}
             onClick={() => navigate('settings')}
             aria-label="Settings"
-            className="w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+            className="flex items-center justify-center p-1"
+            style={{ background: 'transparent', border: 'none' }}
           >
-            <Settings size={18} style={{ color: 'var(--foreground)' }} />
+            <Settings size={24} strokeWidth={2.35} style={{ color: 'var(--foreground)' }} />
           </motion.button>
         </div>
       </div>

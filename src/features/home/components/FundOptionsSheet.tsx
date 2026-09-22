@@ -1,16 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
-import {
-  CreditCard,
-  ShoppingCart,
-  ArrowDownLeft,
-  ArrowUpRight,
-  Building2,
-  Users,
-  Wallet,
-  ChevronRight,
-  X,
-} from 'lucide-react';
+import { ChevronRight, X } from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
+import { DualIconBox, DualToneIcon, type DualIconKey } from './icons/DualToneIcons';
 
 export type FundSheetMode = 'deposit' | 'send';
 
@@ -21,58 +12,65 @@ type Props = {
   mode?: FundSheetMode;
 };
 
-const DEPOSIT_ROWS = [
+type Row = {
+  id: string;
+  label: string;
+  sub: string;
+  badge?: string;
+  icon: DualIconKey;
+  screen: Screen;
+};
+
+const DEPOSIT_ROWS: Row[] = [
   {
     id: 'card',
     label: 'Credit/debit card',
     sub: 'Buy with card — fast & simple',
     badge: 'Recommended',
-    Icon: CreditCard,
-    screen: 'onramp' as Screen,
+    icon: 'card',
+    screen: 'onramp',
   },
   {
     id: 'buy',
     label: 'Buy crypto',
     sub: 'Card, bank transfer, and more',
-    Icon: ShoppingCart,
-    screen: 'onramp' as Screen,
+    icon: 'buy',
+    screen: 'onramp',
   },
   {
     id: 'receive',
     label: 'Receive crypto assets',
     sub: 'Send from another wallet or exchange',
-    Icon: ArrowDownLeft,
-    screen: 'deposit' as Screen,
+    icon: 'receive',
+    screen: 'deposit',
   },
 ];
 
-/** Single Send / Withdraw entry — internal, on-chain, or bank. */
-const SEND_ROWS = [
+const SEND_ROWS: Row[] = [
   {
     id: 'internal',
     label: 'Send to Convia user',
     sub: 'Instant transfer by username',
     badge: 'Instant',
-    Icon: Users,
-    screen: 'send' as Screen,
+    icon: 'request',
+    screen: 'send',
   },
   {
     id: 'external',
     label: 'External wallet',
     sub: 'Withdraw crypto on-chain',
-    Icon: Wallet,
-    screen: 'withdraw' as Screen,
+    icon: 'send',
+    screen: 'withdraw',
   },
   {
     id: 'bank',
     label: 'Withdraw to bank',
     sub: 'Cash out to your bank account',
-    Icon: Building2,
-    screen: 'offramp' as Screen,
+    icon: 'bank',
+    screen: 'offramp',
   },
 ];
 
-/** Compact bottom sheet for Deposit or Send/Withdraw entry. */
 export function FundOptionsSheet({ open, onClose, onNavigate, mode = 'deposit' }: Props) {
   const rows = mode === 'send' ? SEND_ROWS : DEPOSIT_ROWS;
   const title = mode === 'send' ? 'Send / Withdraw' : 'Deposit';
@@ -105,8 +103,8 @@ export function FundOptionsSheet({ open, onClose, onNavigate, mode = 'deposit' }
               borderRadius: '20px 20px 0 0',
               background: 'var(--card)',
               border: '1px solid var(--border)',
-              boxShadow: '0 -12px 40px rgba(0,0,0,0.4)',
-              paddingBottom: 'max(20px, env(safe-area-inset-bottom))',
+              boxShadow: '0 -12px 40px rgba(0,0,0,0.35)',
+              paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
             }}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
@@ -120,16 +118,16 @@ export function FundOptionsSheet({ open, onClose, onNavigate, mode = 'deposit' }
               />
             </div>
             <div className="flex items-center justify-between px-5 pb-3">
-              <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 18 }}>{title}</p>
+              <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 17 }}>{title}</p>
               <motion.button
                 type="button"
-                whileTap={{ scale: 0.9 }}
+                whileTap={{ scale: 0.92 }}
                 onClick={onClose}
-                className="w-9 h-9 rounded-full flex items-center justify-center"
-                style={{ background: 'var(--muted)' }}
+                className="flex items-center justify-center p-1"
+                style={{ background: 'transparent', border: 'none' }}
                 aria-label="Close"
               >
-                <X size={18} style={{ color: 'var(--foreground)' }} />
+                <X size={22} strokeWidth={2.35} style={{ color: 'var(--foreground)' }} />
               </motion.button>
             </div>
 
@@ -140,24 +138,23 @@ export function FundOptionsSheet({ open, onClose, onNavigate, mode = 'deposit' }
                   type="button"
                   whileTap={{ scale: 0.98 }}
                   onClick={() => go(row.screen)}
-                  className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-left"
+                  className="w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-left"
                   style={{
                     background: 'var(--muted)',
                     border: '1px solid var(--border)',
                   }}
                 >
-                  <div
-                    className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
-                    style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-                  >
-                    <row.Icon size={20} style={{ color: 'var(--primary)' }} strokeWidth={2} />
-                  </div>
+                  <DualIconBox size={44}>
+                    <span style={{ transform: 'scale(0.82)', transformOrigin: 'center' }}>
+                      <DualToneIcon name={row.icon} />
+                    </span>
+                  </DualIconBox>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 15 }}>
                         {row.label}
                       </span>
-                      {'badge' in row && row.badge ? (
+                      {row.badge ? (
                         <span
                           className="px-1.5 py-0.5 rounded-md text-[10px] font-bold"
                           style={{
