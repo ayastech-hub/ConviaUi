@@ -15,6 +15,7 @@ import { setupNotificationNavigation } from '../shared/native/notificationNaviga
 import { OnboardingScreen } from '../features/onboarding/screens/OnboardingScreen';
 import { AuthScreen } from '../features/auth/screens/AuthScreen';
 import { HomeScreen } from '../features/home/screens/HomeScreen';
+import { ExploreScreen } from '../features/explore/screens/ExploreScreen';
 
 import { SendScreen } from '../features/wallet/screens/SendScreen';
 import { RequestMoneyScreen } from '../features/wallet/screens/RequestMoneyScreen';
@@ -56,7 +57,7 @@ const MAIN_TABS: Screen[] = ['home', 'wallet']; // legacy tab ids for home hub
 const NAV_VISIBLE: Screen[] = [
   'home',
   'wallet',
-  'profile',
+  'explore',
   'services',
   'swap',
   'rewards',
@@ -233,8 +234,8 @@ export default function App() {
   const activeTab: Screen =
     current === 'home' || current === 'wallet'
       ? 'home'
-      : current === 'profile' || current === 'settings' || current === 'security'
-        ? 'profile'
+      : current === 'explore'
+        ? 'explore'
         : current === 'pay-hub' || current === 'services'
           ? 'pay-hub'
           : current === 'swap'
@@ -266,8 +267,14 @@ export default function App() {
         );
       case 'profile':
         return (
-          <motion.div key="profile" {...fadeIn} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
+          <motion.div key="profile" {...slideRight} className="absolute inset-0 flex flex-col">
             <ProfileScreen navigate={navigate} goBack={goBack} darkMode={darkMode} toggleDark={toggleDark} />
+          </motion.div>
+        );
+      case 'explore':
+        return (
+          <motion.div key="explore" {...fadeIn} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
+            <ExploreScreen navigate={navigate} />
           </motion.div>
         );
 

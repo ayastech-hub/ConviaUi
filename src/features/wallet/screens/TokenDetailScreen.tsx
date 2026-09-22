@@ -182,7 +182,7 @@ export function TokenDetailScreen({ symbol, goBack, navigate }: TokenDetailScree
               </DualIconBox>
               <span style={{ color: 'var(--foreground)', fontSize: 12, fontWeight: 600 }}>{label}</span>
             </motion.button>
-          ))
+          ))}
         </div>
       </div>
 

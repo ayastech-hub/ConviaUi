@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Wallet, ArrowLeftRight, Banknote, User } from 'lucide-react';
+import { Wallet, ArrowLeftRight, Banknote, Compass } from 'lucide-react';
 import type { Screen } from '../data/mockData';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -10,8 +10,8 @@ interface BottomNavProps {
 }
 
 /**
- * Floating pill with liquid glass active indicator — light + dark via CSS vars.
- * Tabs: Wallet · Swap · Pay · Profile  (More removed)
+ * Floating pill — Wallet · Swap · Pay · Explore
+ * Account is reached from home avatar.
  */
 export function BottomNav({ activeTab, onNavigate, onSwap }: BottomNavProps) {
   const { t } = useLanguage();
@@ -45,11 +45,11 @@ export function BottomNav({ activeTab, onNavigate, onSwap }: BottomNavProps) {
       active: activeTab === 'pay-hub' || activeTab === 'services',
     },
     {
-      id: 'profile',
-      label: t('nav.profile') || 'Profile',
-      icon: User,
-      action: () => onNavigate('profile'),
-      active: activeTab === 'profile' || activeTab === 'settings' || activeTab === 'security',
+      id: 'explore',
+      label: 'Explore',
+      icon: Compass,
+      action: () => onNavigate('explore'),
+      active: activeTab === 'explore',
     },
   ];
 
@@ -80,35 +80,37 @@ export function BottomNav({ activeTab, onNavigate, onSwap }: BottomNavProps) {
               key={tab.id}
               type="button"
               onClick={tab.action}
-              whileTap={{ scale: 0.9 }}
+              whileTap={{ scale: 0.92 }}
               aria-label={tab.label}
               aria-current={isActive ? 'page' : undefined}
-              className="relative flex flex-1 flex-col items-center justify-center gap-0.5 h-full rounded-full"
-              style={{ minWidth: 0 }}
+              className="relative flex flex-1 flex-col items-center justify-center gap-0.5 min-w-0 h-full rounded-full"
+              style={{ zIndex: 1 }}
             >
               {isActive && (
                 <motion.div
                   layoutId="nav-liquid"
-                  className="absolute inset-1 rounded-full"
+                  className="absolute inset-y-1 inset-x-1 rounded-full"
                   style={{
                     background: 'var(--liquid-active-bg)',
                     border: '1px solid var(--liquid-active-border)',
                     boxShadow: 'var(--liquid-active-shadow)',
                   }}
-                  transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+                  transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                 />
               )}
-              <span className="relative z-10 flex flex-col items-center gap-0.5 pt-1 pb-0.5">
+              <span className="relative z-[1] flex flex-col items-center gap-0.5 pt-0.5">
                 <Icon
                   size={20}
-                  strokeWidth={isActive ? 2.4 : 2}
-                  style={{ color: isActive ? 'var(--primary)' : 'var(--muted-foreground)' }}
+                  strokeWidth={isActive ? 2.35 : 1.9}
+                  style={{
+                    color: isActive ? 'var(--liquid-icon-active)' : 'var(--liquid-icon-idle)',
+                  }}
                 />
                 <span
                   style={{
                     fontSize: 10,
                     fontWeight: isActive ? 700 : 500,
-                    color: isActive ? 'var(--foreground)' : 'var(--muted-foreground)',
+                    color: isActive ? 'var(--liquid-icon-active)' : 'var(--liquid-icon-idle)',
                   }}
                 >
                   {tab.label}
