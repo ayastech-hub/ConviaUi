@@ -92,26 +92,26 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
           <User size={18} style={{ color: 'var(--primary)' }} strokeWidth={2.2} />
         </motion.button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <motion.button
             type="button"
-            whileTap={{ scale: 0.9 }}
+            whileTap={{ scale: 0.92 }}
             onClick={() => navigate('scan')}
             aria-label="Scan QR"
-            className="w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+            className="flex items-center justify-center p-1"
+            style={{ background: 'transparent', border: 'none' }}
           >
-            <ScanLine size={18} style={{ color: 'var(--foreground)' }} />
+            <ScanLine size={24} strokeWidth={2.35} style={{ color: 'var(--foreground)' }} />
           </motion.button>
           <motion.button
             type="button"
-            whileTap={{ scale: 0.9 }}
+            whileTap={{ scale: 0.92 }}
             onClick={() => navigate('notifications')}
             aria-label="Notifications"
-            className="relative w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+            className="relative flex items-center justify-center p-1"
+            style={{ background: 'transparent', border: 'none' }}
           >
-            <Bell size={18} style={{ color: 'var(--foreground)' }} />
+            <Bell size={24} strokeWidth={2.35} style={{ color: 'var(--foreground)' }} />
             {notificationCount > 0 && (
               <span
                 className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold text-white flex items-center justify-center"

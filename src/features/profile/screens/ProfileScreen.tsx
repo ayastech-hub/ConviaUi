@@ -8,6 +8,7 @@ import {
   ChevronRight,
   History,
   Shield,
+  FileCheck,
   type LucideIcon,
 } from 'lucide-react';
 import { DualIconBox, DualToneIcon, type DualIconKey } from '../../home/components/icons/DualToneIcons';
