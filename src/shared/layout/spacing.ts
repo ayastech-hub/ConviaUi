@@ -1,20 +1,20 @@
 /**
  * Single source of truth for vertical/horizontal page chrome.
- * WebView on Android often reports safe-area-inset-top as 0 — use a status-bar floor.
+ * WebView on Android often reports safe-area-inset-top as 0 — use a light floor only.
  */
 export const LAYOUT = {
-  /** Floor under status bar when env() is 0 (common in Capacitor WebView) */
-  statusBarFloor: 28,
-  top: 16,
-  topWithHeader: 16,
+  /** Minimal floor when env(safe-area-inset-top) is 0 (Capacitor WebView) */
+  statusBarFloor: 10,
+  top: 6,
+  topWithHeader: 8,
   x: 20,
   bottomNav: 94,
   bottom: 16,
-  headerBottom: 20,
+  headerBottom: 16,
 } as const;
 
 export const pageTopStyle = {
-  height: `max(${LAYOUT.top + LAYOUT.statusBarFloor}px, calc(env(safe-area-inset-top, 0px) + ${LAYOUT.top}px))`,
+  height: `max(${LAYOUT.statusBarFloor}px, calc(env(safe-area-inset-top, 0px) + ${LAYOUT.top}px))`,
   flexShrink: 0,
 } as const;
 

@@ -4,22 +4,26 @@ import type { Screen } from '../../../shared/data/mockData';
 
 type Props = {
   onNavigate: (s: Screen) => void;
-  onOpenApps: () => void;
-  /** Optional: open deposit options sheet instead of full receive page */
+  onOpenMore: () => void;
   onReceive?: () => void;
+  onSend?: () => void;
 };
 
-/** Wallet-style circular actions under balance (Send / Receive / History / Apps). */
-export function HubActions({ onNavigate, onOpenApps, onReceive }: Props) {
+/** Wallet-style actions: Send / Receive / History / More */
+export function HubActions({ onNavigate, onOpenMore, onReceive, onSend }: Props) {
   const items: { label: string; Icon: typeof ArrowUpRight; action: () => void }[] = [
-    { label: 'Send', Icon: ArrowUpRight, action: () => onNavigate('send') },
+    {
+      label: 'Send',
+      Icon: ArrowUpRight,
+      action: () => (onSend ? onSend() : onNavigate('send')),
+    },
     {
       label: 'Receive',
       Icon: ArrowDownLeft,
       action: () => (onReceive ? onReceive() : onNavigate('deposit')),
     },
     { label: 'History', Icon: History, action: () => onNavigate('history') },
-    { label: 'Apps', Icon: LayoutGrid, action: () => onOpenApps() },
+    { label: 'More', Icon: LayoutGrid, action: () => onOpenMore() },
   ];
 
   return (

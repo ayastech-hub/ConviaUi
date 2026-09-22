@@ -54,7 +54,7 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
   const [hideSmall, setHideSmall] = useState(false);
   const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);
   const [appsOpen, setAppsOpen] = useState(false);
-  const [fundSheet, setFundSheet] = useState<'deposit' | 'withdraw' | null>(null);
+  const [fundSheet, setFundSheet] = useState<'deposit' | 'send' | null>(null);
   const { assets: assetsRaw, loading } = useWalletAssets();
   const assets = Array.isArray(assetsRaw) ? assetsRaw : [];
   useEffect(() => {
@@ -142,8 +142,9 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
 
       <HubActions
         onNavigate={navigate}
-        onOpenApps={() => setAppsOpen(true)}
+        onOpenMore={() => setAppsOpen(true)}
         onReceive={() => setFundSheet('deposit')}
+        onSend={() => setFundSheet('send')}
       />
 
       {/* Add funds → deposit options sheet */}
@@ -180,7 +181,12 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
 
       <TransactionReceipt tx={receiptTx} open={!!receiptTx} onClose={() => setReceiptTx(null)} />
 
-      <AppsPanel open={appsOpen} onClose={() => setAppsOpen(false)} onNavigate={navigate} />
+      <AppsPanel
+        open={appsOpen}
+        onClose={() => setAppsOpen(false)}
+        onNavigate={navigate}
+        onOpenSend={() => setFundSheet('send')}
+      />
 
       <FundOptionsSheet
         open={fundSheet !== null}

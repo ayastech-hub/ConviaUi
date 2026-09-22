@@ -23,18 +23,17 @@ import {
 } from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
 
-type Item = { id: string; label: string; Icon: LucideIcon; screen?: Screen; serviceId?: string };
+type Item = { id: string; label: string; Icon: LucideIcon; screen?: Screen; serviceId?: string; action?: 'send-sheet' };
 
 const SECTIONS: { title: string; items: Item[] }[] = [
   {
     title: 'Manage assets',
     items: [
-      { id: 'send', label: 'Send', Icon: ArrowUpRight, screen: 'send' },
+      { id: 'send', label: 'Send / Withdraw', Icon: ArrowUpRight, action: 'send-sheet' as const },
       { id: 'receive', label: 'Receive', Icon: ArrowDownLeft, screen: 'deposit' },
       { id: 'buy', label: 'Buy crypto', Icon: CreditCard, screen: 'onramp' },
       { id: 'sell', label: 'Sell crypto', Icon: CircleDollarSign, screen: 'offramp' },
       { id: 'swap', label: 'Swap', Icon: ArrowLeftRight, screen: 'swap' },
-      { id: 'withdraw', label: 'Withdraw', Icon: ArrowUpRight, screen: 'withdraw' },
     ],
   },
   {
@@ -73,15 +72,20 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onNavigate: (screen: Screen, param?: string) => void;
+  /** Opens unified Send / Withdraw sheet (internal, external, bank). */
+  onOpenSend?: () => void;
 };
 
-export function AppsPanel({ open, onClose, onNavigate }: Props) {
+export function AppsPanel({ open, onClose, onNavigate, onOpenSend }: Props) {
   const go = (item: Item) => {
     onClose();
-    if (item.screen) {
-      // small delay so sheet closes smoothly
-      window.setTimeout(() => onNavigate(item.screen!, item.serviceId), 120);
-    }
+    window.setTimeout(() => {
+      if (item.action === 'send-sheet' && onOpenSend) {
+        onOpenSend();
+        return;
+      }
+      if (item.screen) onNavigate(item.screen, item.serviceId);
+    }, 120);
   };
 
   return (
@@ -101,7 +105,7 @@ export function AppsPanel({ open, onClose, onNavigate }: Props) {
           <motion.div
             role="dialog"
             aria-modal="true"
-            aria-label="All apps"
+            aria-label="More"
             className="fixed left-0 right-0 bottom-0 z-[81] flex flex-col"
             style={{
               maxHeight: '88vh',
@@ -120,14 +124,14 @@ export function AppsPanel({ open, onClose, onNavigate }: Props) {
               <div className="w-10 h-1 rounded-full" style={{ background: 'var(--muted-foreground)', opacity: 0.35 }} />
             </div>
             <div className="flex items-center justify-between px-5 pb-3">
-              <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 17 }}>Apps</p>
+              <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 17 }}>More</p>
               <motion.button
                 type="button"
                 whileTap={{ scale: 0.9 }}
                 onClick={onClose}
                 className="w-9 h-9 rounded-full flex items-center justify-center"
                 style={{ background: 'var(--muted)' }}
-                aria-label="Close apps"
+                aria-label="Close"
               >
                 <X size={18} style={{ color: 'var(--foreground)' }} />
               </motion.button>

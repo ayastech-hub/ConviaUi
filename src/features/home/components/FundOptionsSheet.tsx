@@ -1,12 +1,24 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { CreditCard, ShoppingCart, ArrowDownLeft, ChevronRight, X } from 'lucide-react';
+import {
+  CreditCard,
+  ShoppingCart,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Building2,
+  Users,
+  Wallet,
+  ChevronRight,
+  X,
+} from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
+
+export type FundSheetMode = 'deposit' | 'send';
 
 type Props = {
   open: boolean;
   onClose: () => void;
   onNavigate: (screen: Screen, param?: string) => void;
-  mode?: 'deposit' | 'withdraw';
+  mode?: FundSheetMode;
 };
 
 const DEPOSIT_ROWS = [
@@ -34,28 +46,36 @@ const DEPOSIT_ROWS = [
   },
 ];
 
-const WITHDRAW_ROWS = [
+/** Single Send / Withdraw entry — internal, on-chain, or bank. */
+const SEND_ROWS = [
   {
-    id: 'sell',
-    label: 'Sell to bank',
-    sub: 'Cash out to your bank account',
-    badge: 'Recommended',
-    Icon: CreditCard,
-    screen: 'offramp' as Screen,
+    id: 'internal',
+    label: 'Send to Convia user',
+    sub: 'Instant transfer by username',
+    badge: 'Instant',
+    Icon: Users,
+    screen: 'send' as Screen,
   },
   {
     id: 'external',
     label: 'External wallet',
-    sub: 'Withdraw on-chain to any address',
-    Icon: ArrowDownLeft,
+    sub: 'Withdraw crypto on-chain',
+    Icon: Wallet,
     screen: 'withdraw' as Screen,
+  },
+  {
+    id: 'bank',
+    label: 'Withdraw to bank',
+    sub: 'Cash out to your bank account',
+    Icon: Building2,
+    screen: 'offramp' as Screen,
   },
 ];
 
-/** Compact bottom sheet for Add funds / Withdraw entry (not a full page). */
+/** Compact bottom sheet for Deposit or Send/Withdraw entry. */
 export function FundOptionsSheet({ open, onClose, onNavigate, mode = 'deposit' }: Props) {
-  const rows = mode === 'withdraw' ? WITHDRAW_ROWS : DEPOSIT_ROWS;
-  const title = mode === 'withdraw' ? 'Withdraw' : 'Deposit';
+  const rows = mode === 'send' ? SEND_ROWS : DEPOSIT_ROWS;
+  const title = mode === 'send' ? 'Send / Withdraw' : 'Deposit';
 
   const go = (screen: Screen) => {
     onClose();
@@ -137,7 +157,7 @@ export function FundOptionsSheet({ open, onClose, onNavigate, mode = 'deposit' }
                       <span style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 15 }}>
                         {row.label}
                       </span>
-                      {'badge' in row && row.badge && (
+                      {'badge' in row && row.badge ? (
                         <span
                           className="px-1.5 py-0.5 rounded-md text-[10px] font-bold"
                           style={{
@@ -147,7 +167,7 @@ export function FundOptionsSheet({ open, onClose, onNavigate, mode = 'deposit' }
                         >
                           {row.badge}
                         </span>
-                      )}
+                      ) : null}
                     </div>
                     <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 2 }}>
                       {row.sub}
