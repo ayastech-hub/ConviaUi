@@ -265,7 +265,7 @@ export default function App() {
       case 'profile':
         return (
           <motion.div key="profile" {...fadeIn} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
-            <ProfileScreen navigate={navigate} darkMode={darkMode} toggleDark={toggleDark} />
+            <ProfileScreen navigate={navigate} goBack={goBack} darkMode={darkMode} toggleDark={toggleDark} />
           </motion.div>
         );
 

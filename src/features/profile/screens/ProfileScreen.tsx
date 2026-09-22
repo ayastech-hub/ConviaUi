@@ -1,233 +1,350 @@
-import { useState, useEffect, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'motion/react';
 import {
-  Shield,
-  Gift,
+  X,
   Settings,
-  Bell,
-  CreditCard,
-  HelpCircle,
-  User,
-  FileCheck,
-  Info,
   Headphones,
+  Share2,
+  Bell,
   ChevronRight,
+  Gift,
+  CreditCard,
+  ArrowDownLeft,
+  History,
+  FileCheck,
+  Shield,
+  type LucideIcon,
 } from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
-import { useLanguage } from '../../../shared/context/LanguageContext';
-import { ReferralModal } from '../../../shared/components/ReferralModal';
-import { ListSection } from '../../../shared/components/ListSection';
-import { ListRow } from '../../../shared/components/ListRow';
-import { ProfileCard } from '../components/ProfileCard';
-import { ProfileQuickActions } from '../components/ProfileQuickActions';
-import { ReferralBanner } from '../components/ReferralBanner';
-import { SignOutButton } from '../components/SignOutButton';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { useKycStatus } from '../../../shared/hooks/useKycStatus';
-import * as rewardsApi from '../../../shared/api/rewards';
-import * as notifApi from '../../../shared/api/notifications';
+import { useMyProfile } from '../../../shared/hooks/useMyProfile';
+import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
+import { useCurrency } from '../../../shared/context/CurrencyContext';
+import { useNotifications } from '../../../shared/hooks/useNotifications';
 import { PageTop } from '../../../shared/components/PageTop';
+import { SignOutButton } from '../components/SignOutButton';
 
 interface ProfileScreenProps {
-  navigate: (s: Screen) => void;
+  navigate: (s: Screen, param?: string) => void;
   darkMode: boolean;
   toggleDark: () => void;
+  goBack?: () => void;
 }
 
-function StatusPill({ label, tone }: { label: string; tone?: 'ok' | 'warn' | 'muted' }) {
-  const color =
-    tone === 'ok' ? 'var(--positive)' : tone === 'warn' ? 'var(--warning)' : 'var(--muted-foreground)';
-  return (
-    <span
-      className="px-2 py-0.5 rounded-lg"
-      style={{ background: 'var(--muted)', color, fontSize: 11, fontWeight: 600 }}
-    >
-      {label}
-    </span>
-  );
+function maskEmail(email?: string | null) {
+  if (!email) return '—';
+  const [u, d] = email.split('@');
+  if (!d) return email;
+  if (u.length <= 3) return `${u[0] || ''}***@${d}`;
+  return `${u.slice(0, 3)}***${u.slice(-1)}@${d}`;
 }
 
-function RowTrail({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex items-center gap-2">
-      {children}
-      <ChevronRight size={16} style={{ color: 'var(--muted-foreground)' }} />
-    </div>
-  );
+function initialsOf(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || 'C';
 }
+
+const RECENT_SHORTCUTS: { label: string; Icon: LucideIcon; screen: Screen }[] = [
+  { label: 'Rewards', Icon: Gift, screen: 'rewards' },
+  { label: 'Buy crypto', Icon: CreditCard, screen: 'onramp' },
+  { label: 'Deposit', Icon: ArrowDownLeft, screen: 'deposit' },
+  { label: 'History', Icon: History, screen: 'history' },
+];
 
 /**
- * Account hub — identity first, then security / preferences / support.
- * Portfolio removed (balances live on Home). Appearance lives in Settings.
+ * Account hub (profile tab) — Bitget-style overview.
+ * Settings is a separate screen opened from the gear icon.
  */
-export function ProfileScreen({ navigate }: ProfileScreenProps) {
-  const { t } = useLanguage();
-  const { userId, status } = useAuth();
-  const { isApproved, isPending, kycStatus } = useKycStatus();
-  const [showReferral, setShowReferral] = useState(false);
-  const [refCode, setRefCode] = useState('');
-  const [shareUrl, setShareUrl] = useState('');
-  const [points, setPoints] = useState<number | null>(null);
-  const [unread, setUnread] = useState(0);
+export function ProfileScreen({ navigate, goBack }: ProfileScreenProps) {
+  const { email, username: sessionUsername, displayName: sessionDisplayName, status } = useAuth();
+  const { profile } = useMyProfile();
+  const { isApproved, isPending, isRejected } = useKycStatus();
+  const { totalValueUsd } = useWalletAssets();
+  const { currency, convert } = useCurrency();
+  const { data: notifItems, unread } = useNotifications(8);
 
-  useEffect(() => {
-    if (!userId || status !== 'authenticated') return;
-    let cancelled = false;
-    rewardsApi
-      .getRewardsProfile(userId)
-      .then((r) => {
-        if (!cancelled) setPoints(Number(r.balance ?? r.points ?? 0));
-      })
-      .catch(() => {});
-    notifApi
-      .listNotifications(userId)
-      .then((r) => {
-        if (!cancelled) {
-          const items = Array.isArray(r) ? r : [];
-          setUnread(items.filter((n) => !n.readAt && !(n as { read?: boolean }).read).length);
-        }
-      })
-      .catch(() => {});
-    rewardsApi
-      .getReferralCode(userId)
-      .then((r: any) => {
-        if (cancelled || !r) return;
-        setRefCode(r.code || r.referralCode || '');
-        setShareUrl(r.shareUrl || r.url || '');
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [userId, status]);
+  const displayName =
+    profile?.displayName || sessionDisplayName || profile?.username || sessionUsername || 'Convia user';
+  const handle = profile?.username || sessionUsername;
+  const avatarUrl = profile?.avatarUrl || null;
+  const initials = initialsOf(displayName);
 
-  const kycTone = isApproved ? 'ok' : isPending ? 'warn' : 'muted';
-  const kycLabel = isApproved ? 'Verified' : isPending ? 'In review' : kycStatus === 'rejected' ? 'Action needed' : 'Unverified';
+  const bal = convert(Number(totalValueUsd) || 0);
+  const balStr =
+    status === 'authenticated'
+      ? `${currency.symbol || ''}${bal.toLocaleString(undefined, {
+          maximumFractionDigits: (currency.rate || 1) > 100 ? 0 : 2,
+        })}`
+      : '—';
+
+  const kycLabel = isApproved
+    ? 'Verified'
+    : isPending
+      ? 'In review'
+      : isRejected
+        ? 'Action needed'
+        : 'Verify identity';
+
+  const recentNotifs = useMemo(() => (notifItems || []).slice(0, 3), [notifItems]);
 
   return (
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
       <PageTop />
-      <div className="h-2" />
 
-      <div className="px-5 mb-4">
-        <ProfileCard onOpenProfile={() => navigate('edit-profile')} />
+      {/* Top bar: close · settings / support */}
+      <div className="flex items-center justify-between px-4 pt-1 pb-3">
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.9 }}
+          onClick={() => (goBack ? goBack() : navigate('home'))}
+          aria-label="Close"
+          className="w-10 h-10 rounded-full flex items-center justify-center"
+          style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+        >
+          <X size={18} style={{ color: 'var(--foreground)' }} />
+        </motion.button>
+        <div className="flex items-center gap-2">
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.9 }}
+            onClick={() => navigate('support-center')}
+            aria-label="Support"
+            className="w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+          >
+            <Headphones size={18} style={{ color: 'var(--foreground)' }} />
+          </motion.button>
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.9 }}
+            onClick={() => navigate('settings')}
+            aria-label="Settings"
+            className="w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+          >
+            <Settings size={18} style={{ color: 'var(--foreground)' }} />
+          </motion.button>
+        </div>
       </div>
 
-      <ProfileQuickActions onNavigate={navigate} kycDone={isApproved} />
-
-      <div className="px-5 space-y-1">
-        <ListSection title="Account">
-          <ListRow
-            icon={User}
-            label="Edit profile"
-            desc="Name, photo, country"
+      {/* Identity row */}
+      <div className="px-4 mb-4">
+        <div className="flex items-center gap-3">
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.96 }}
             onClick={() => navigate('edit-profile')}
-          />
-          <ListRow
-            icon={FileCheck}
-            label="Identity verification"
-            desc="KYC status and documents"
+            className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden shrink-0"
+            style={{
+              background: 'color-mix(in oklab, var(--primary) 25%, var(--muted))',
+              border: '1px solid color-mix(in oklab, var(--primary) 40%, var(--border))',
+            }}
+            aria-label="Edit profile"
+          >
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <span style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 15 }}>{initials}</span>
+            )}
+          </motion.button>
+
+          <div className="flex-1 min-w-0">
+            <p
+              className="truncate"
+              style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 15 }}
+            >
+              {handle ? `@${handle}` : maskEmail(email || profile?.email)}
+            </p>
+            <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginTop: 2 }}>{balStr}</p>
+          </div>
+
+          {/* KYC instead of “Add wallet” */}
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.96 }}
             onClick={() => navigate('kyc')}
-            trailing={
-              <RowTrail>
-                <StatusPill label={kycLabel} tone={kycTone} />
-              </RowTrail>
-            }
-          />
-          <ListRow
+            className="shrink-0 rounded-full px-3.5 py-2 flex items-center gap-1.5"
+            style={{
+              background: 'var(--muted)',
+              border: '1px solid var(--border)',
+              color: 'var(--foreground)',
+              fontSize: 12,
+              fontWeight: 600,
+            }}
+          >
+            <FileCheck size={14} style={{ color: isApproved ? 'var(--positive)' : 'var(--primary)' }} />
+            {kycLabel}
+          </motion.button>
+        </div>
+      </div>
+
+      <div className="px-4 flex flex-col gap-3 pb-28">
+        {/* Notifications preview */}
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.99 }}
+          onClick={() => navigate('notifications')}
+          className="w-full rounded-2xl p-4 text-left"
+          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 15 }}>Notifications</p>
+            <div className="flex items-center gap-1.5">
+              {unread > 0 && (
+                <span
+                  className="w-2 h-2 rounded-full"
+                  style={{ background: 'var(--destructive)' }}
+                />
+              )}
+              <ChevronRight size={16} style={{ color: 'var(--muted-foreground)' }} />
+            </div>
+          </div>
+          {recentNotifs.length === 0 ? (
+            <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>No notifications yet</p>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {recentNotifs.map((n) => (
+                <div key={n.id} className="flex items-start gap-2.5">
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                    style={{ background: 'var(--muted)' }}
+                  >
+                    <Bell size={14} style={{ color: 'var(--muted-foreground)' }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className="truncate"
+                      style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: 500 }}
+                    >
+                      {n.title || n.body || 'Update'}
+                    </p>
+                  </div>
+                  <span
+                    className="shrink-0 tabular-nums"
+                    style={{ color: 'var(--muted-foreground)', fontSize: 11 }}
+                  >
+                    {n.createdAt
+                      ? new Date(n.createdAt).toLocaleTimeString(undefined, {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
+                      : ''}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </motion.button>
+
+        {/* Recently used */}
+        <div
+          className="rounded-2xl p-4"
+          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+        >
+          <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 15, marginBottom: 14 }}>
+            Recently used
+          </p>
+          <div className="grid grid-cols-4 gap-2">
+            {RECENT_SHORTCUTS.map((s) => (
+              <motion.button
+                key={s.label}
+                type="button"
+                whileTap={{ scale: 0.94 }}
+                onClick={() => navigate(s.screen)}
+                className="flex flex-col items-center gap-2"
+              >
+                <div
+                  className="w-12 h-12 rounded-full flex items-center justify-center"
+                  style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+                >
+                  <s.Icon size={20} style={{ color: 'var(--primary)' }} />
+                </div>
+                <span
+                  className="text-center leading-tight"
+                  style={{ color: 'var(--foreground)', fontSize: 11, fontWeight: 500 }}
+                >
+                  {s.label}
+                </span>
+              </motion.button>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent transactions teaser */}
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.99 }}
+          onClick={() => navigate('history')}
+          className="w-full rounded-2xl p-4 text-left"
+          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 15 }}>
+              Recent transactions
+            </p>
+            <ChevronRight size={16} style={{ color: 'var(--muted-foreground)' }} />
+          </div>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 13, textAlign: 'center', padding: '16px 0 8px' }}>
+            View full history
+          </p>
+        </motion.button>
+
+        {/* Quick links into settings areas */}
+        <div
+          className="rounded-2xl overflow-hidden"
+          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+        >
+          <Row
             icon={Shield}
             label="Security"
-            desc="PIN, sessions, whitelist"
             onClick={() => navigate('security')}
           />
-          <ListRow
-            icon={CreditCard}
-            label="Payment methods"
-            desc="Cards and bank accounts"
-            onClick={() => navigate('payment-methods')}
-          />
-        </ListSection>
-
-        <ListSection title="Inbox">
-          <ListRow
-            icon={Gift}
-            label={t('profile.rewards') || 'Rewards'}
-            desc="Points and referrals"
-            onClick={() => navigate('rewards')}
-            trailing={
-              points != null && Number.isFinite(points) ? (
-                <RowTrail>
-                  <StatusPill label={`${Math.round(points).toLocaleString()} pts`} tone="ok" />
-                </RowTrail>
-              ) : undefined
-            }
-          />
-          <ListRow
-            icon={Bell}
-            label={t('profile.notifications') || 'Notifications'}
-            desc="Inbox"
-            onClick={() => navigate('notifications')}
-            trailing={
-              unread > 0 ? (
-                <RowTrail>
-                  <StatusPill label={unread > 9 ? '9+' : String(unread)} tone="warn" />
-                </RowTrail>
-              ) : undefined
-            }
-          />
-        </ListSection>
-
-        <ListSection title="Preferences">
-          <ListRow
+          <Row
             icon={Settings}
             label="Settings"
-            desc="Appearance, currency, alerts"
             onClick={() => navigate('settings')}
+            last
           />
-        </ListSection>
+        </div>
 
-        <ListSection title="Support">
-          <ListRow
-            icon={HelpCircle}
-            label={t('profile.help') || 'Help center'}
-            desc={t('profile.helpDesc') || 'Guides and FAQs'}
-            onClick={() => navigate('help-center')}
-          />
-          <ListRow
-            icon={Headphones}
-            label={t('profile.support') || 'Support'}
-            desc={t('profile.supportDesc') || 'Contact us'}
-            onClick={() => navigate('support-center')}
-          />
-          <ListRow
-            icon={Info}
-            label={t('profile.about') || 'About'}
-            desc={t('profile.aboutDesc') || 'Version and legal'}
-            onClick={() => navigate('about')}
-          />
-        </ListSection>
+        <div className="pt-2">
+          <SignOutButton />
+        </div>
       </div>
-
-      <div className="px-5 mt-2">
-        <ReferralBanner
-          code={refCode || '—'}
-          reward="Earn when friends join and trade"
-          onOpen={() => setShowReferral(true)}
-        />
-      </div>
-
-      <ReferralModal
-        open={showReferral}
-        onClose={() => setShowReferral(false)}
-        code={refCode || '—'}
-        reward={shareUrl || 'Rewards on referral'}
-        shareUrl={shareUrl}
-      />
-
-      <div className="px-5 mt-4 mb-2">
-        <SignOutButton onSignedOut={() => navigate('login')} />
-      </div>
-
-      <div style={{ height: 110 }} />
     </div>
+  );
+}
+
+function Row({
+  icon: Icon,
+  label,
+  onClick,
+  last,
+}: {
+  icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+  last?: boolean;
+}) {
+  return (
+    <motion.button
+      type="button"
+      whileTap={{ scale: 0.99 }}
+      onClick={onClick}
+      className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
+      style={{ borderBottom: last ? undefined : '1px solid var(--border)' }}
+    >
+      <Icon size={18} style={{ color: 'var(--foreground)' }} />
+      <span className="flex-1" style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>
+        {label}
+      </span>
+      <ChevronRight size={16} style={{ color: 'var(--muted-foreground)' }} />
+    </motion.button>
   );
 }
