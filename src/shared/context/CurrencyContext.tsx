@@ -28,13 +28,13 @@ export type Currency = {
 /** Soft display metadata only — codes/rates still prefer API-driven list. */
 const META: Record<string, Partial<Currency>> = {
   USD: { name: 'US Dollar', symbol: '$', rate: 1, flag: 'US' },
-  NGN: { name: 'Nigerian Naira', symbol: '₦', rate: 1600, flag: 'NG' },
-  GHS: { name: 'Ghanaian Cedi', symbol: 'GH₵', rate: 15, flag: 'GH' },
-  KES: { name: 'Kenyan Shilling', symbol: 'KSh', rate: 130, flag: 'KE' },
-  ZAR: { name: 'South African Rand', symbol: 'R', rate: 18, flag: 'ZA' },
-  UGX: { name: 'Ugandan Shilling', symbol: 'USh', rate: 3700, flag: 'UG' },
-  TZS: { name: 'Tanzanian Shilling', symbol: 'TSh', rate: 2500, flag: 'TZ' },
-  EGP: { name: 'Egyptian Pound', symbol: 'E£', rate: 48, flag: 'EG' },
+  NGN: { name: 'Nigerian Naira', symbol: '₦', rate: 0, flag: 'NG' },
+  GHS: { name: 'Ghanaian Cedi', symbol: 'GH₵', rate: 0, flag: 'GH' },
+  KES: { name: 'Kenyan Shilling', symbol: 'KSh', rate: 0, flag: 'KE' },
+  ZAR: { name: 'South African Rand', symbol: 'R', rate: 0, flag: 'ZA' },
+  UGX: { name: 'Ugandan Shilling', symbol: 'USh', rate: 0, flag: 'UG' },
+  TZS: { name: 'Tanzanian Shilling', symbol: 'TSh', rate: 0, flag: 'TZ' },
+  EGP: { name: 'Egyptian Pound', symbol: 'E£', rate: 0, flag: 'EG' },
 };
 
 function currencyFromCode(code: string): Currency {
@@ -44,7 +44,7 @@ function currencyFromCode(code: string): Currency {
     code: c,
     name: m.name || c,
     symbol: m.symbol || (DEFAULT_USD_RATES[c] ? c : c),
-    rate: getRate(c) || m.rate || 1,
+    rate: getRate(c) || (c === 'USD' ? 1 : m.rate) || 0,
     flag: m.flag || c.slice(0, 2),
   };
 }

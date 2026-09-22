@@ -3,9 +3,9 @@ import { motion } from 'motion/react';
 import { ArrowLeftRight, ChevronDown } from 'lucide-react';
 import { PageTop } from '../../../shared/components/PageTop';
 import { BackButton } from '../../../shared/components/BackButton';
-import { useCurrency, type Currency } from '../../../shared/context/CurrencyContext';
+import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { convertRate } from '../../../shared/api/rates';
-import { getAllRates, getRate } from '../../../shared/rates/fx';
+import { getRate, hasLiveRate, getAllRates } from '../../../shared/rates/fx';
 import { CountryFlag } from '../../../shared/components/CountryFlag';
 
 type Props = {
@@ -25,20 +25,23 @@ const SYMBOLS: Record<string, string> = {
   GBP: '£',
 };
 
-/**
- * FX calculator — convert between supported currencies (USD base).
- */
 export function RatesScreen({ goBack }: Props) {
   const { currencies } = useCurrency();
+  const [, bump] = useState(0);
+
   const list = useMemo(() => {
-    const codes = new Set<string>(['USD', 'NGN', 'GHS', 'KES', 'ZAR', 'UGX']);
+    const codes = new Set<string>(['USD']);
     for (const c of currencies || []) codes.add(c.code.toUpperCase());
+    // also any live rates already synced
+    for (const k of Object.keys(getAllRates())) codes.add(k.toUpperCase());
     return [...codes].map((code) => ({
       code,
       symbol: SYMBOLS[code] || code,
       rate: getRate(code),
+      available: hasLiveRate(code),
     }));
-  }, [currencies]);
+    // eslint-depend on currencies + bump when rates update
+  }, [currencies, bump]);
 
   const [from, setFrom] = useState('USD');
   const [to, setTo] = useState('NGN');
@@ -47,6 +50,7 @@ export function RatesScreen({ goBack }: Props) {
   const [out, setOut] = useState<string>('');
   const [rateLabel, setRateLabel] = useState('');
   const [loading, setLoading] = useState(false);
+  const [unavailable, setUnavailable] = useState(false);
 
   const amountNum = parseFloat(amount.replace(/,/g, '')) || 0;
 
@@ -56,14 +60,17 @@ export function RatesScreen({ goBack }: Props) {
       if (!from || !to || amountNum <= 0) {
         setOut('');
         setRateLabel('');
+        setUnavailable(false);
         return;
       }
       if (from === to) {
         setOut(String(amountNum));
         setRateLabel(`1 ${from} = 1 ${to}`);
+        setUnavailable(false);
         return;
       }
       setLoading(true);
+      setUnavailable(false);
       try {
         const res = await convertRate({
           from,
@@ -71,21 +78,26 @@ export function RatesScreen({ goBack }: Props) {
           amount: String(amountNum),
         });
         if (cancelled) return;
-        const ao = res?.amountOut ?? '';
-        setOut(ao);
+        const ao = res?.amountOut;
         const r = Number(res?.rate);
-        if (Number.isFinite(r) && r > 0) {
-          setRateLabel(`1 ${from} = ${formatNum(r)} ${to}`);
+        if (ao != null && ao !== '' && Number.isFinite(Number(ao))) {
+          setOut(String(ao));
+          if (Number.isFinite(r) && r > 0) {
+            setRateLabel(`1 ${from} = ${formatNum(r)} ${to}`);
+          } else {
+            setRateLabel('');
+          }
+          setUnavailable(false);
         } else {
-          setRateLabel(localRateLine(from, to));
+          setOut('');
+          setRateLabel('');
+          setUnavailable(true);
         }
       } catch {
         if (cancelled) return;
-        // Local fallback: amount in USD via from rate, then to local
-        const usd = amountNum / getRate(from);
-        const local = usd * getRate(to);
-        setOut(String(local));
-        setRateLabel(localRateLine(from, to));
+        setOut('');
+        setRateLabel('');
+        setUnavailable(true);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -120,12 +132,11 @@ export function RatesScreen({ goBack }: Props) {
         <BackButton onClick={goBack} />
         <div>
           <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 18 }}>Rates</p>
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 12.5 }}>Currency calculator</p>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 12.5 }}>Live currency calculator</p>
         </div>
       </div>
 
       <div className="px-4 flex flex-col gap-3">
-        {/* From */}
         <div
           className="rounded-2xl p-4"
           style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
@@ -177,7 +188,6 @@ export function RatesScreen({ goBack }: Props) {
           </motion.button>
         </div>
 
-        {/* To */}
         <div
           className="rounded-2xl p-4"
           style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
@@ -199,13 +209,17 @@ export function RatesScreen({ goBack }: Props) {
             <p
               className="flex-1 text-right tabular-nums truncate"
               style={{
-                color: loading ? 'var(--muted-foreground)' : 'var(--foreground)',
-                fontSize: 28,
+                color: unavailable
+                  ? 'var(--muted-foreground)'
+                  : loading
+                    ? 'var(--muted-foreground)'
+                    : 'var(--foreground)',
+                fontSize: unavailable ? 16 : 28,
                 fontWeight: 700,
                 letterSpacing: -0.5,
               }}
             >
-              {loading ? '…' : out ? formatNum(parseFloat(out)) : '0'}
+              {loading ? '…' : unavailable ? 'Unavailable' : out ? formatNum(parseFloat(out)) : '0'}
             </p>
           </div>
         </div>
@@ -214,10 +228,13 @@ export function RatesScreen({ goBack }: Props) {
           <p className="text-center tabular-nums" style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
             {rateLabel}
           </p>
+        ) : unavailable ? (
+          <p className="text-center" style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
+            Rate unavailable for this pair
+          </p>
         ) : null}
       </div>
 
-      {/* Rate table */}
       <div className="px-4 mt-6 pb-28">
         <p
           className="mb-2.5"
@@ -237,7 +254,7 @@ export function RatesScreen({ goBack }: Props) {
         >
           {list
             .filter((c) => c.code !== 'USD')
-            .map((c, i, arr) => (
+            .map((c, i) => (
               <button
                 key={c.code}
                 type="button"
@@ -248,7 +265,8 @@ export function RatesScreen({ goBack }: Props) {
                 }}
                 className="w-full flex items-center justify-between px-4 py-3.5 text-left"
                 style={{
-                  borderTop: i === 0 ? undefined : '1px solid color-mix(in oklab, var(--border) 85%, transparent)',
+                  borderTop:
+                    i === 0 ? undefined : '1px solid color-mix(in oklab, var(--border) 85%, transparent)',
                 }}
               >
                 <div className="flex items-center gap-3">
@@ -262,16 +280,21 @@ export function RatesScreen({ goBack }: Props) {
                     {c.code}
                   </span>
                 </div>
-                <span className="tabular-nums" style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>
-                  {c.symbol}
-                  {formatNum(c.rate)}
+                <span
+                  className="tabular-nums"
+                  style={{
+                    color: c.available ? 'var(--foreground)' : 'var(--muted-foreground)',
+                    fontWeight: 600,
+                    fontSize: 14,
+                  }}
+                >
+                  {c.available ? `${c.symbol}${formatNum(c.rate)}` : 'Unavailable'}
                 </span>
               </button>
             ))}
         </div>
       </div>
 
-      {/* Picker sheet */}
       {picking && (
         <div className="fixed inset-0 z-[80] flex flex-col justify-end">
           <button
@@ -292,7 +315,10 @@ export function RatesScreen({ goBack }: Props) {
             }}
           >
             <div className="flex justify-center pt-3 pb-2">
-              <div className="w-10 h-1 rounded-full" style={{ background: 'var(--muted-foreground)', opacity: 0.35 }} />
+              <div
+                className="w-10 h-1 rounded-full"
+                style={{ background: 'var(--muted-foreground)', opacity: 0.35 }}
+              />
             </div>
             <p className="px-5 pb-3" style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 16 }}>
               {picking === 'from' ? 'From currency' : 'To currency'}
@@ -318,9 +344,11 @@ export function RatesScreen({ goBack }: Props) {
                     <CountryFlag code={c.code} size={22} />
                   </span>
                   <span style={{ color: 'var(--foreground)', fontWeight: 650 }}>{c.code}</span>
-                  <span className="ml-auto tabular-nums" style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
-                    {c.symbol}
-                    {formatNum(c.rate)}
+                  <span
+                    className="ml-auto tabular-nums"
+                    style={{ color: 'var(--muted-foreground)', fontSize: 13 }}
+                  >
+                    {c.available ? `${c.symbol}${formatNum(c.rate)}` : '—'}
                   </span>
                 </button>
               );
@@ -353,11 +381,4 @@ function formatNum(n: number): string {
   if (n >= 100) return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
   if (n >= 1) return n.toLocaleString(undefined, { maximumFractionDigits: 4 });
   return n.toLocaleString(undefined, { maximumFractionDigits: 6 });
-}
-
-function localRateLine(from: string, to: string): string {
-  const fromR = getRate(from);
-  const toR = getRate(to);
-  const r = fromR > 0 ? toR / fromR : 0;
-  return `1 ${from} ≈ ${formatNum(r)} ${to}`;
 }

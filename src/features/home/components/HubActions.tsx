@@ -22,7 +22,7 @@ export function HubActions({ onNavigate, onOpenMore, onReceive, onSend }: Props)
       icon: 'receive',
       action: () => (onReceive ? onReceive() : onNavigate('deposit')),
     },
-    { label: 'History', icon: 'history', action: () => onNavigate('history') },
+    { label: 'Sell', icon: 'sell', action: () => onNavigate('offramp') },
   ];
 
   return (
