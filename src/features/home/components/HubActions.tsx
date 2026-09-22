@@ -10,8 +10,7 @@ type Props = {
 };
 
 /**
- * Home quick actions — dual-tone pill chips (reference: circular dual icon + label).
- * Theme-safe: icon halves use --foreground + --primary; glyph uses --background.
+ * Home quick actions — dual-tone pill chips always visible (2×2 / wrap).
  */
 export function HubActions({ onNavigate, onOpenMore, onReceive, onSend }: Props) {
   const items: { label: string; icon: DualIconKey; action: () => void }[] = [
@@ -30,31 +29,25 @@ export function HubActions({ onNavigate, onOpenMore, onReceive, onSend }: Props)
   ];
 
   return (
-    <div
-      className="flex items-center gap-2.5 px-4 mb-5 overflow-x-auto"
-      style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
-    >
+    <div className="grid grid-cols-2 gap-2.5 px-4 mb-5">
       {items.map((a) => (
         <motion.button
           key={a.label}
           type="button"
-          whileTap={{ scale: 0.96 }}
+          whileTap={{ scale: 0.97 }}
           onClick={a.action}
           aria-label={a.label}
-          className="flex items-center gap-2.5 shrink-0 rounded-full pl-1.5 pr-4 py-1.5"
+          className="flex items-center gap-3 rounded-full pl-2 pr-4 py-2 w-full"
           style={{
             background: 'var(--muted)',
             border: '1px solid var(--border)',
-            boxShadow: '0 2px 8px color-mix(in oklab, var(--foreground) 5%, transparent)',
+            minHeight: 48,
           }}
         >
-          <span
-            className="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden shrink-0"
-            style={{ background: 'transparent' }}
-          >
+          <span className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 overflow-hidden">
             <DualToneIcon name={a.icon} />
           </span>
-          <span style={{ color: 'var(--foreground)', fontSize: 13.5, fontWeight: 600 }}>{a.label}</span>
+          <span style={{ color: 'var(--foreground)', fontSize: 14, fontWeight: 600 }}>{a.label}</span>
         </motion.button>
       ))}
     </div>
