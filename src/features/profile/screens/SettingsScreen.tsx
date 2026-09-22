@@ -1,9 +1,12 @@
+import type { ReactNode } from 'react';
 import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Bell,
   Globe,
   Moon,
   Sun,
+  Monitor,
   Mail,
   Smartphone,
   MessageSquare,
@@ -11,7 +14,6 @@ import {
   Eye,
   EyeOff,
   User,
-  FileCheck,
   Shield,
   CreditCard,
   Gift,
@@ -19,19 +21,18 @@ import {
   Info,
   FileText,
   Headphones,
+  KeyRound,
+  BookUser,
+  SlidersHorizontal,
+  ChevronLeft,
 } from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
-import { ScreenHeader } from '../../../shared/components/ScreenHeader';
-import { ListSection } from '../../../shared/components/ListSection';
-import { ListRow } from '../../../shared/components/ListRow';
 import { ToggleSwitch } from '../../../shared/components/ToggleSwitch';
 import { CurrencyPickerView } from '../components/CurrencyPickerView';
 import { SignOutButton } from '../components/SignOutButton';
 import { ReferralModal } from '../../../shared/components/ReferralModal';
 import { useAuth } from '../../../shared/context/AuthContext';
-import { useLanguage } from '../../../shared/context/LanguageContext';
-import { useKycStatus } from '../../../shared/hooks/useKycStatus';
 import * as notifApi from '../../../shared/api/notifications';
 import * as rewardsApi from '../../../shared/api/rewards';
 import { PageTop } from '../../../shared/components/PageTop';
@@ -46,6 +47,66 @@ interface SettingsScreenProps {
 }
 
 type PrefChannel = 'in_app' | 'email' | 'sms' | 'push';
+type Panel = null | 'notifications' | 'preferences';
+
+function maskEmail(email?: string | null) {
+  if (!email) return 'Account';
+  const [u, d] = email.split('@');
+  if (!d) return email;
+  if (u.length <= 3) return `${u[0] || ''}***@${d}`;
+  return `${u.slice(0, 3)}***${u.slice(-2)}@${d}`;
+}
+
+/** Clean Bitget-style row: bare icon, no chip, no trailing chevron. */
+function SettingRow({
+  icon: Icon,
+  label,
+  sub,
+  onClick,
+  trailing,
+  last,
+}: {
+  icon: typeof User;
+  label: string;
+  sub?: string;
+  onClick?: () => void;
+  trailing?: ReactNode;
+  last?: boolean;
+}) {
+  return (
+    <motion.button
+      type="button"
+      whileTap={onClick ? { scale: 0.99 } : undefined}
+      onClick={onClick}
+      disabled={!onClick && !trailing}
+      className="w-full flex items-center gap-3.5 px-4 py-3.5 text-left"
+      style={{
+        borderBottom: last ? undefined : '1px solid color-mix(in oklab, var(--border) 80%, transparent)',
+        background: 'transparent',
+      }}
+    >
+      <Icon size={20} strokeWidth={1.85} style={{ color: 'var(--foreground)', flexShrink: 0 }} />
+      <div className="flex-1 min-w-0">
+        <p style={{ color: 'var(--foreground)', fontWeight: 500, fontSize: 15, lineHeight: 1.25 }}>{label}</p>
+        {sub ? (
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 12.5, marginTop: 3, lineHeight: 1.3 }}>{sub}</p>
+        ) : null}
+      </div>
+      {trailing}
+    </motion.button>
+  );
+}
+
+function Card({ children }: { children: ReactNode }) {
+  return (
+    <div
+      className="rounded-2xl overflow-hidden mb-3"
+      style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+    >
+      {children}
+    </div>
+  );
+}
 
 export function SettingsScreen({
   goBack,
@@ -79,25 +140,38 @@ export function SettingsScreen({
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [showReferral, setShowReferral] = useState(false);
   const [refCode, setRefCode] = useState('');
-  const { userId } = useAuth();
-  const { t } = useLanguage();
-  const { isApproved, isPending, isRejected } = useKycStatus();
+  const [panel, setPanel] = useState<Panel>(null);
+
+  const { userId, email, username } = useAuth();
+
   const [prefs, setPrefs] = useState<Record<PrefChannel, boolean>>({
     in_app: true,
-    email: false,
+    email: true,
     sms: false,
     push: true,
   });
   const [loadingPrefs, setLoadingPrefs] = useState(false);
+  const [saving, setSaving] = useState<PrefChannel | null>(null);
   const [prefError, setPrefError] = useState<string | null>(null);
-  const [saving, setSaving] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (darkProp !== undefined) setDarkMode(darkProp);
+  }, [darkProp]);
 
   useEffect(() => {
     if (!userId) return;
-    void rewardsApi
-      .getReferralCode(userId)
-      .then((r) => setRefCode(String(r?.code || '')))
-      .catch(() => undefined);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await rewardsApi.getReferralCode(userId);
+        if (!cancelled && res?.code) setRefCode(res.code);
+      } catch {
+        /* optional */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [userId]);
 
   const loadPrefs = useCallback(async () => {
@@ -105,16 +179,17 @@ export function SettingsScreen({
     setLoadingPrefs(true);
     setPrefError(null);
     try {
-      const raw = await notifApi.getNotificationPreferences(userId);
-      const list = Array.isArray(raw) ? raw : [];
-      setPrefs((prev) => {
-        const next = { ...prev };
-        for (const p of list) {
-          const ch = (p as { channel?: string }).channel as PrefChannel;
-          if (ch in next) next[ch] = Boolean((p as { enabled?: boolean }).enabled);
-        }
-        return next;
-      });
+      const res = await notifApi.getPreferences(userId);
+      const channels = (res as { channels?: Record<string, boolean> })?.channels || res;
+      if (channels && typeof channels === 'object') {
+        setPrefs((prev) => ({
+          ...prev,
+          in_app: channels.in_app ?? prev.in_app,
+          email: channels.email ?? prev.email,
+          sms: channels.sms ?? prev.sms,
+          push: channels.push ?? prev.push,
+        }));
+      }
     } catch {
       setPrefError('Could not load notification preferences');
     } finally {
@@ -123,209 +198,299 @@ export function SettingsScreen({
   }, [userId]);
 
   useEffect(() => {
-    void loadPrefs();
-  }, [loadPrefs]);
+    if (panel === 'notifications') void loadPrefs();
+  }, [panel, loadPrefs]);
 
-  const setChannel = async (channel: PrefChannel, enabled: boolean) => {
-    setPrefs((p) => ({ ...p, [channel]: enabled }));
+  const setChannel = async (ch: PrefChannel, value: boolean) => {
     if (!userId) return;
-    setSaving(channel);
-    setPrefError(null);
+    setSaving(ch);
+    setPrefs((p) => ({ ...p, [ch]: value }));
     try {
-      await notifApi.setNotificationPreference(userId, channel, enabled);
-      if (channel === 'push') {
-        await notifApi.setNotificationPreference(userId, 'in_app', enabled);
-        setPrefs((p) => ({ ...p, in_app: enabled }));
-      }
+      await notifApi.updatePreferences(userId, { [ch]: value });
     } catch {
+      setPrefs((p) => ({ ...p, [ch]: !value }));
       setPrefError('Could not save preference');
-      void loadPrefs();
     } finally {
       setSaving(null);
     }
   };
 
-  const go = (s: Screen) => {
-    if (navigate) navigate(s);
-  };
+  const go = (s: Screen) => navigate?.(s);
 
-  const kycDesc = isApproved
-    ? 'Verified'
-    : isPending
-      ? 'In review'
-      : isRejected
-        ? 'Action needed'
-        : 'Required for withdrawals and bills';
+  const accountLabel = username ? `@${username}` : maskEmail(email);
 
   if (showCurrencyPicker) {
     return (
-      <CurrencyPickerView
-        onBack={() => setShowCurrencyPicker(false)}
-        onSelect={(c) => {
-          setCurrency(c);
-          setShowCurrencyPicker(false);
-        }}
-      />
+      <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
+        <PageTop />
+        <CurrencyPickerView
+          selected={currency.code}
+          onSelect={(c) => {
+            setCurrency(c);
+            setShowCurrencyPicker(false);
+          }}
+          onBack={() => setShowCurrencyPicker(false)}
+        />
+      </div>
     );
   }
 
   return (
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
       <PageTop />
-      <ScreenHeader title="Settings" onBack={goBack} />
 
-      <div className="px-4 pb-28 space-y-1">
-        {prefError && (
-          <p className="mb-2 px-1" style={{ color: 'var(--destructive)', fontSize: 12 }}>
-            {prefError}
-          </p>
-        )}
+      {/* Centered title + bare back */}
+      <div className="relative flex items-center justify-center px-4 pt-1 pb-4 min-h-[44px]">
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.92 }}
+          onClick={() => (panel ? setPanel(null) : goBack())}
+          aria-label="Back"
+          className="absolute left-3 flex items-center justify-center p-1"
+          style={{ background: 'transparent', border: 'none' }}
+        >
+          <ChevronLeft size={24} strokeWidth={2.35} style={{ color: 'var(--foreground)' }} />
+        </motion.button>
+        <h1 style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 17 }}>
+          {panel === 'notifications' ? 'Notifications' : panel === 'preferences' ? 'Preferences' : 'Settings'}
+        </h1>
+      </div>
 
-        <ListSection title="Account">
-          <ListRow
-            icon={User}
-            label="Edit profile"
-            desc="Name, username, photo"
-            onClick={() => go('edit-profile')}
-          />
-          <ListRow
-            icon={FileCheck}
-            label="Identity verification"
-            desc={kycDesc}
-            onClick={() => go('kyc')}
-          />
-          <ListRow
-            icon={Shield}
-            label="Security"
-            desc="PIN, password, devices, whitelist"
-            onClick={() => go('security')}
-          />
-          <ListRow
-            icon={CreditCard}
-            label="Payment methods"
-            desc="Bank accounts for cash-out"
-            onClick={() => go('payment-methods')}
-          />
-          <ListRow
-            icon={Gift}
-            label="Referral"
-            desc={refCode ? `Code ${refCode}` : 'Invite friends'}
-            onClick={() => setShowReferral(true)}
-          />
-        </ListSection>
+      <div className="px-4 pb-28 flex-1">
+        <AnimatePresence mode="wait">
+          {panel === null && (
+            <motion.div
+              key="main"
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 8 }}
+              transition={{ duration: 0.15 }}
+            >
+              {/* Account */}
+              <Card>
+                <SettingRow
+                  icon={KeyRound}
+                  label={accountLabel}
+                  sub="Manage security settings, name, and avatar"
+                  onClick={() => go('edit-profile')}
+                  last
+                />
+              </Card>
 
-        <ListSection title="Appearance">
-          <ListRow
-            icon={darkMode ? Moon : Sun}
-            label="Theme"
-            desc={
-              themePref === 'system' ? 'System' : themePref === 'light' ? 'Light' : 'Dark'
-            }
-            onClick={() => {
-              const order: Array<'system' | 'light' | 'dark'> = ['system', 'light', 'dark'];
-              const i = order.indexOf(themePref);
-              const next = order[(i + 1) % order.length];
-              setThemePref?.(next);
-              if (next === 'light') setDarkMode(false);
-              else if (next === 'dark') setDarkMode(true);
-              else if (toggleDark) {
-                /* system — leave to media */
-              }
-            }}
-          />
-          <div className="flex gap-2 px-1 pb-2">
-            {(['system', 'light', 'dark'] as const).map((o) => (
-              <button
-                key={o}
-                type="button"
-                onClick={() => setThemePref?.(o)}
-                className="flex-1 rounded-xl py-2 text-center capitalize"
-                style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  background: themePref === o ? 'var(--primary)' : 'var(--muted)',
-                  color: themePref === o ? 'var(--primary-foreground, #0a0a0a)' : 'var(--foreground)',
-                  border: '1px solid var(--border)',
-                }}
-              >
-                {o}
-              </button>
-            ))}
-          </div>
-          <ListRow
-            icon={Globe}
-            label={t('settings.currency') || 'Display currency'}
-            desc={`${currency.code}${currency.name ? ` · ${currency.name}` : ''}`}
-            onClick={() => setShowCurrencyPicker(true)}
-          />
-          <ListRow
-            icon={hideBalance ? EyeOff : Eye}
-            label="Hide balances"
-            desc="Blur amounts on Home"
-            trailing={<ToggleSwitch checked={hideBalance} onChange={toggleHideBalance} />}
-          />
-        </ListSection>
+              {/* Security */}
+              <Card>
+                <SettingRow icon={Shield} label="Security" onClick={() => go('security')} last />
+              </Card>
 
-        <ListSection title={t('settings.notifications') || 'Notifications'}>
-          {loadingPrefs && (
-            <div className="flex items-center gap-2 px-1 mb-2">
-              <Loader size={14} className="animate-spin" style={{ color: 'var(--muted-foreground)' }} />
-              <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>Loading…</span>
-            </div>
+              {/* Main group — Convia features */}
+              <Card>
+                <SettingRow
+                  icon={CreditCard}
+                  label="Payment methods"
+                  sub="Banks and payout accounts"
+                  onClick={() => go('payment-methods')}
+                />
+                <SettingRow
+                  icon={FileText}
+                  label="Identity verification"
+                  sub="KYC status and documents"
+                  onClick={() => go('kyc')}
+                />
+                <SettingRow
+                  icon={BookUser}
+                  label="Address book"
+                  sub="Saved recipients"
+                  onClick={() => go('payment-methods')}
+                />
+                <SettingRow
+                  icon={Bell}
+                  label="Notifications"
+                  onClick={() => setPanel('notifications')}
+                />
+                <SettingRow
+                  icon={SlidersHorizontal}
+                  label="Preferences"
+                  sub="Theme, currency, balance"
+                  onClick={() => setPanel('preferences')}
+                />
+                <SettingRow
+                  icon={Gift}
+                  label="Referral"
+                  sub={refCode ? `Code ${refCode}` : 'Invite friends'}
+                  onClick={() => setShowReferral(true)}
+                  last
+                />
+              </Card>
+
+              {/* About / legal */}
+              <Card>
+                <SettingRow icon={Info} label="About Convia" onClick={() => go('about')} />
+                <SettingRow icon={FileText} label="Privacy policy" onClick={() => go('privacy')} />
+                <SettingRow icon={FileText} label="Terms of service" onClick={() => go('terms')} last />
+              </Card>
+
+              {/* Help row */}
+              <div className="flex gap-3 mt-4 mb-2">
+                <motion.button
+                  type="button"
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => go('support-center')}
+                  className="flex-1 flex flex-col items-center gap-2 py-4 rounded-2xl"
+                  style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+                >
+                  <Headphones size={22} strokeWidth={1.85} style={{ color: 'var(--foreground)' }} />
+                  <span style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 500 }}>
+                    Get help
+                  </span>
+                </motion.button>
+                <motion.button
+                  type="button"
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => go('help-center')}
+                  className="flex-1 flex flex-col items-center gap-2 py-4 rounded-2xl"
+                  style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+                >
+                  <HelpCircle size={22} strokeWidth={1.85} style={{ color: 'var(--foreground)' }} />
+                  <span style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 500 }}>
+                    Help center
+                  </span>
+                </motion.button>
+              </div>
+
+              <div className="mt-4">
+                <SignOutButton />
+              </div>
+            </motion.div>
           )}
-          <ListRow
-            icon={Bell}
-            label="In-app"
-            desc={saving === 'in_app' ? 'Saving…' : 'Inbox inside the app'}
-            trailing={
-              <ToggleSwitch
-                checked={prefs.in_app}
-                onChange={() => void setChannel('in_app', !prefs.in_app)}
-              />
-            }
-          />
-          <ListRow
-            icon={Smartphone}
-            label="Push"
-            desc={saving === 'push' ? 'Saving…' : 'Device push notifications'}
-            trailing={
-              <ToggleSwitch checked={prefs.push} onChange={() => void setChannel('push', !prefs.push)} />
-            }
-          />
-          <ListRow
-            icon={Mail}
-            label="Email"
-            desc={saving === 'email' ? 'Saving…' : 'Receipts and security'}
-            trailing={
-              <ToggleSwitch checked={prefs.email} onChange={() => void setChannel('email', !prefs.email)} />
-            }
-          />
-          <ListRow
-            icon={MessageSquare}
-            label="SMS"
-            desc={saving === 'sms' ? 'Saving…' : 'Optional text alerts'}
-            trailing={
-              <ToggleSwitch checked={prefs.sms} onChange={() => void setChannel('sms', !prefs.sms)} />
-            }
-          />
-        </ListSection>
 
-        <ListSection title="Support & legal">
-          <ListRow
-            icon={Headphones}
-            label="Support center"
-            desc="Chat and tickets"
-            onClick={() => go('support-center')}
-          />
-          <ListRow icon={HelpCircle} label="Help center" onClick={() => go('help-center')} />
-          <ListRow icon={Info} label="About Convia" onClick={() => go('about')} />
-          <ListRow icon={FileText} label="Privacy policy" onClick={() => go('privacy')} />
-          <ListRow icon={FileText} label="Terms of service" onClick={() => go('terms')} />
-        </ListSection>
+          {panel === 'notifications' && (
+            <motion.div
+              key="notif"
+              initial={{ opacity: 0, x: 12 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -8 }}
+              transition={{ duration: 0.15 }}
+            >
+              {loadingPrefs && (
+                <div className="flex items-center gap-2 px-1 mb-3">
+                  <Loader size={14} className="animate-spin" style={{ color: 'var(--muted-foreground)' }} />
+                  <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>Loading…</span>
+                </div>
+              )}
+              {prefError && (
+                <p className="px-1 mb-2" style={{ color: 'var(--destructive)', fontSize: 12 }}>
+                  {prefError}
+                </p>
+              )}
+              <Card>
+                <SettingRow
+                  icon={Bell}
+                  label="In-app"
+                  sub={saving === 'in_app' ? 'Saving…' : 'Inbox inside the app'}
+                  trailing={
+                    <ToggleSwitch
+                      checked={prefs.in_app}
+                      onChange={() => void setChannel('in_app', !prefs.in_app)}
+                    />
+                  }
+                />
+                <SettingRow
+                  icon={Smartphone}
+                  label="Push"
+                  sub={saving === 'push' ? 'Saving…' : 'Device alerts'}
+                  trailing={
+                    <ToggleSwitch checked={prefs.push} onChange={() => void setChannel('push', !prefs.push)} />
+                  }
+                />
+                <SettingRow
+                  icon={Mail}
+                  label="Email"
+                  sub={saving === 'email' ? 'Saving…' : 'Receipts and security'}
+                  trailing={
+                    <ToggleSwitch
+                      checked={prefs.email}
+                      onChange={() => void setChannel('email', !prefs.email)}
+                    />
+                  }
+                />
+                <SettingRow
+                  icon={MessageSquare}
+                  label="SMS"
+                  sub={saving === 'sms' ? 'Saving…' : 'Optional text alerts'}
+                  trailing={
+                    <ToggleSwitch checked={prefs.sms} onChange={() => void setChannel('sms', !prefs.sms)} />
+                  }
+                  last
+                />
+              </Card>
+            </motion.div>
+          )}
 
-        <div className="mt-6">
-          <SignOutButton />
-        </div>
+          {panel === 'preferences' && (
+            <motion.div
+              key="prefs"
+              initial={{ opacity: 0, x: 12 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -8 }}
+              transition={{ duration: 0.15 }}
+            >
+              <Card>
+                <SettingRow
+                  icon={themePref === 'light' ? Sun : themePref === 'dark' ? Moon : Monitor}
+                  label="Theme"
+                  sub={
+                    themePref === 'system'
+                      ? 'System'
+                      : themePref === 'light'
+                        ? 'Light'
+                        : 'Dark'
+                  }
+                  trailing={
+                    <div className="flex gap-1">
+                      {(['system', 'light', 'dark'] as const).map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => {
+                            setThemePref?.(p);
+                            if (p !== 'system' && toggleDark) {
+                              const wantDark = p === 'dark';
+                              if (wantDark !== darkMode) toggleDark();
+                            }
+                            setDarkMode(p === 'dark' || (p === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches));
+                          }}
+                          className="px-2.5 py-1 rounded-lg text-[11px] font-semibold capitalize"
+                          style={{
+                            background:
+                              themePref === p
+                                ? 'color-mix(in oklab, var(--primary) 22%, transparent)'
+                                : 'var(--muted)',
+                            color: themePref === p ? 'var(--primary)' : 'var(--muted-foreground)',
+                          }}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                    </div>
+                  }
+                />
+                <SettingRow
+                  icon={Globe}
+                  label="Display currency"
+                  sub={currency.code}
+                  onClick={() => setShowCurrencyPicker(true)}
+                />
+                <SettingRow
+                  icon={hideBalance ? EyeOff : Eye}
+                  label="Hide balances"
+                  sub="On home and account"
+                  trailing={<ToggleSwitch checked={hideBalance} onChange={toggleHideBalance} />}
+                  last
+                />
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <ReferralModal
