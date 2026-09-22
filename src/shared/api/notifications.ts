@@ -47,6 +47,9 @@ export function setNotificationPreference(userId: string, channel: 'in_app' | 'e
   return api.put(`/notifications/${userId}/preferences`, { channel, enabled });
 }
 
+/** Aliases imported by SettingsScreen.tsx */
+export const getPreferences = getNotificationPreferences;
+export const updatePreferences = setNotificationPreference;
 
 /** Alias used by NotificationsScreen */
 export const fetchNotifications = listNotifications;
