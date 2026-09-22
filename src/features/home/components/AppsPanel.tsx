@@ -2,14 +2,17 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
 import { DualIconBox, DualToneIcon, type DualIconKey } from './icons/DualToneIcons';
+import { trackRecentUse } from '../../../shared/utils/recentlyUsed';
 
 type Item = {
-  id: DualIconKey | string;
+  id: string;
   label: string;
   icon: DualIconKey;
+  /** Primary destination */
   screen?: Screen;
-  serviceId?: string;
-  action?: 'send-sheet';
+  /** Deep param (e.g. data / airtime / electricity / bills) */
+  param?: string;
+  action?: 'send-sheet' | 'deposit-sheet';
 };
 
 const SECTIONS: { title: string; items: Item[] }[] = [
@@ -17,7 +20,7 @@ const SECTIONS: { title: string; items: Item[] }[] = [
     title: 'Manage assets',
     items: [
       { id: 'send', label: 'Send / Withdraw', icon: 'send', action: 'send-sheet' },
-      { id: 'receive', label: 'Receive', icon: 'receive', screen: 'deposit' },
+      { id: 'receive', label: 'Receive', icon: 'receive', action: 'deposit-sheet' },
       { id: 'buy', label: 'Buy crypto', icon: 'buy', screen: 'onramp' },
       { id: 'sell', label: 'Sell crypto', icon: 'sell', screen: 'offramp' },
       { id: 'swap', label: 'Swap', icon: 'swap', screen: 'swap' },
@@ -29,10 +32,10 @@ const SECTIONS: { title: string; items: Item[] }[] = [
       { id: 'qr', label: 'QR pay', icon: 'qr', screen: 'scan' },
       { id: 'bank', label: 'Bank transfer', icon: 'bank', screen: 'onramp' },
       { id: 'card', label: 'Card', icon: 'card', screen: 'onramp' },
-      { id: 'airtime', label: 'Mobile top-up', icon: 'airtime', screen: 'services', serviceId: 'airtime' },
-      { id: 'data', label: 'Data', icon: 'data', screen: 'services', serviceId: 'data' },
-      { id: 'power', label: 'Electricity', icon: 'power', screen: 'services', serviceId: 'electricity' },
-      { id: 'tv', label: 'TV & cable', icon: 'tv', screen: 'services', serviceId: 'bills' },
+      { id: 'airtime', label: 'Airtime', icon: 'airtime', screen: 'services', param: 'airtime' },
+      { id: 'data', label: 'Data', icon: 'data', screen: 'services', param: 'data' },
+      { id: 'power', label: 'Electricity', icon: 'power', screen: 'services', param: 'electricity' },
+      { id: 'tv', label: 'TV & cable', icon: 'tv', screen: 'services', param: 'bills' },
     ],
   },
   {
@@ -60,18 +63,28 @@ type Props = {
   onClose: () => void;
   onNavigate: (screen: Screen, param?: string) => void;
   onOpenSend?: () => void;
+  onOpenDeposit?: () => void;
 };
 
-export function AppsPanel({ open, onClose, onNavigate, onOpenSend }: Props) {
+export function AppsPanel({ open, onClose, onNavigate, onOpenSend, onOpenDeposit }: Props) {
   const go = (item: Item) => {
+    trackRecentUse(
+      (item.screen || (item.action === 'send-sheet' ? 'send' : 'deposit')) as Screen,
+      item.param,
+      item.label,
+    );
     onClose();
     window.setTimeout(() => {
       if (item.action === 'send-sheet' && onOpenSend) {
         onOpenSend();
         return;
       }
-      if (item.screen) onNavigate(item.screen, item.serviceId);
-    }, 120);
+      if (item.action === 'deposit-sheet' && onOpenDeposit) {
+        onOpenDeposit();
+        return;
+      }
+      if (item.screen) onNavigate(item.screen, item.param);
+    }, 140);
   };
 
   return (

@@ -2,8 +2,25 @@ import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { Search } from 'lucide-react';
 import { SERVICE_GROUPS, type ServiceItem } from './serviceData';
+import { DualIconBox, DualToneIcon, type DualIconKey } from '../../home/components/icons/DualToneIcons';
 
-/** Grid catalog — dense tiles so most features show without long scroll. */
+const DUAL: Record<string, DualIconKey> = {
+  airtime: 'airtime',
+  data: 'data',
+  electricity: 'power',
+  bills: 'tv',
+  betting: 'rewards',
+  vault: 'security',
+  onramp: 'buy',
+  offramp: 'sell',
+  send: 'send',
+  swap: 'swap',
+  giveaway: 'gifts',
+  'request-link': 'reqlink',
+  rewards: 'rewards',
+  history: 'history',
+};
+
 export function ServiceHub({ onSelectService }: { onSelectService: (item: ServiceItem) => void }) {
   const [q, setQ] = useState('');
 
@@ -53,28 +70,20 @@ export function ServiceHub({ onSelectService }: { onSelectService: (item: Servic
           </p>
           <div className="grid grid-cols-4 gap-2.5">
             {group.items.map((item) => {
-              const Icon = item.icon;
+              const dual = DUAL[item.id] || 'history';
               return (
                 <motion.button
                   key={item.id}
                   type="button"
                   whileTap={{ scale: 0.94 }}
                   onClick={() => onSelectService(item)}
-                  className="flex flex-col items-center gap-2 pt-3.5 pb-2.5 px-1 rounded-[18px]"
-                  style={{
-                    background: 'var(--card)',
-                    border: '1px solid var(--border)',
-                  }}
+                  className="flex flex-col items-center gap-2 pt-2.5 pb-2 px-1"
                 >
-                  <div
-                    className="w-11 h-11 rounded-2xl flex items-center justify-center"
-                    style={{
-                      background: 'var(--muted)',
-                      border: '1px solid var(--border)',
-                    }}
-                  >
-                    <Icon size={20} style={{ color: 'var(--foreground)' }} strokeWidth={1.8} />
-                  </div>
+                  <DualIconBox size={52}>
+                    <span style={{ transform: 'scale(0.9)', transformOrigin: 'center' }}>
+                      <DualToneIcon name={dual} />
+                    </span>
+                  </DualIconBox>
                   <span
                     className="text-center leading-tight px-0.5"
                     style={{
@@ -98,8 +107,8 @@ export function ServiceHub({ onSelectService }: { onSelectService: (item: Servic
       ))}
 
       {!filteredGroups.length && (
-        <p className="py-16 text-center" style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
-          No results
+        <p className="text-center py-10" style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
+          No services match
         </p>
       )}
     </div>

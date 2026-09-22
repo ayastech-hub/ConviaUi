@@ -444,7 +444,7 @@ export default function App() {
         );
       case 'services':
         return (
-          <motion.div key="services" {...slideRight} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
+          <motion.div key={`services-${navParam || 'hub'}`} {...slideRight} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
             <ServicesScreen navigate={navigate} goBack={goBack} switchTab={switchTab} initialService={navParam} />
           </motion.div>
         );

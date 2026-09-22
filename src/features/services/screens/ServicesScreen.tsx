@@ -79,6 +79,48 @@ export function ServicesScreen({ navigate, switchTab, initialService }: Services
     if (marketCountries.length && !country) setCountry(marketCountries[0].code);
   }, [marketCountries, country]);
 
+  /** Deep-link from More / Pay: open the service form, not the hub catalog. */
+  useEffect(() => {
+    if (!initialService) return;
+    const id = initialService;
+    const item = SERVICE_GROUPS.flatMap((g) => g.items).find((i) => i.id === id);
+    if (!item || !isBillService(id)) return;
+    setActiveService(id);
+    setSelectedAmount(null);
+    setCustomAmount('');
+    setMeterNumber('');
+    setPhoneNumber('');
+    setContactPhone('');
+    setProductCode(null);
+    setLiveVariations([]);
+    setApiError(null);
+    setPin(Array(6).fill(''));
+    setPinError('');
+    setMeterType('prepaid');
+    setMinLocalAmount(null);
+    setNetworkSheetOpen(false);
+    setManualNetwork(false);
+    setPrefixMismatch(false);
+    if (id === 'data') {
+      setSelectedBillerCode('mtn-data');
+      setSelectedProvider('MTN Data');
+      setProviderImage(getCachedLogo('mtn-data') || null);
+    } else if (id === 'airtime') {
+      setSelectedBillerCode('mtn');
+      setSelectedProvider('MTN');
+      setProviderImage(getCachedLogo('mtn') || null);
+    } else if (id === 'bills') {
+      setSelectedBillerCode('dstv');
+      setSelectedProvider('DStv');
+      setProviderImage(getCachedLogo('dstv') || null);
+    } else {
+      setSelectedProvider(null);
+      setSelectedBillerCode(null);
+      setProviderImage(null);
+    }
+    setStep('detail');
+  }, [initialService]);
+
   const activeItem = SERVICE_GROUPS.flatMap((g) => g.items).find((i) => i.id === activeService);
   const localCurrency = (billerCurrency || currency.code || 'NGN').toUpperCase();
   const localAmountNum = (selectedAmount ?? parseFloat(customAmount)) || 0;

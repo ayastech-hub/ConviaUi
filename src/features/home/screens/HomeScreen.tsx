@@ -186,6 +186,7 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
         onClose={() => setAppsOpen(false)}
         onNavigate={navigate}
         onOpenSend={() => setFundSheet('send')}
+        onOpenDeposit={() => setFundSheet('deposit')}
       />
 
       <FundOptionsSheet
