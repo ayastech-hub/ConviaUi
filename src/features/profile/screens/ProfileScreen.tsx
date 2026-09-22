@@ -6,17 +6,11 @@ import {
   Headphones,
   Bell,
   ChevronRight,
-  Gift,
-  CreditCard,
-  ArrowDownLeft,
   History,
-  FileCheck,
   Shield,
-  ArrowLeftRight,
-  ScanLine,
-  Wallet,
   type LucideIcon,
 } from 'lucide-react';
+import { DualIconBox, DualToneIcon, type DualIconKey } from '../../home/components/icons/DualToneIcons';
 import type { Screen } from '../../../shared/data/mockData';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { useKycStatus } from '../../../shared/hooks/useKycStatus';
@@ -56,22 +50,38 @@ function initialsOf(name: string) {
   );
 }
 
-const ICON_BY_SCREEN: Partial<Record<Screen, LucideIcon>> = {
-  rewards: Gift,
-  onramp: CreditCard,
-  offramp: CreditCard,
-  deposit: ArrowDownLeft,
-  withdraw: Wallet,
-  send: ArrowDownLeft,
-  swap: ArrowLeftRight,
-  history: History,
-  scan: ScanLine,
-  services: CreditCard,
-  giveaway: Gift,
-  notifications: Bell,
-  security: Shield,
-  kyc: FileCheck,
-};
+function dualKeyFor(entry: RecentEntry): DualIconKey {
+  const { screen, param } = entry;
+  if (screen === 'services') {
+    const p = (param || '').toLowerCase();
+    if (p.includes('data')) return 'data';
+    if (p.includes('air') || p.includes('top')) return 'airtime';
+    if (p.includes('electric') || p.includes('power')) return 'power';
+    if (p.includes('tv') || p.includes('cable') || p.includes('bill')) return 'tv';
+    return 'airtime';
+  }
+  const map: Partial<Record<Screen, DualIconKey>> = {
+    rewards: 'rewards',
+    onramp: 'buy',
+    offramp: 'sell',
+    deposit: 'receive',
+    withdraw: 'send',
+    send: 'send',
+    swap: 'swap',
+    history: 'history',
+    scan: 'qr',
+    giveaway: 'gifts',
+    request: 'request',
+    'request-link': 'reqlink',
+    notifications: 'support',
+    security: 'security',
+    kyc: 'security',
+    'payment-methods': 'bank',
+    'support-center': 'support',
+    'edit-profile': 'support',
+  };
+  return map[screen] || 'history';
+}
 
 const FALLBACK_RECENT: RecentEntry[] = [
   { screen: 'rewards', label: 'Rewards', at: 0 },
@@ -299,31 +309,27 @@ export function ProfileScreen({ navigate, goBack }: ProfileScreenProps) {
             Recently used
           </p>
           <div className="grid grid-cols-4 gap-2">
-            {recentShow.map((s) => {
-              const Icon = ICON_BY_SCREEN[s.screen] || History;
-              return (
-                <motion.button
-                  key={`${s.screen}-${s.param || ''}-${s.at}`}
-                  type="button"
-                  whileTap={{ scale: 0.94 }}
-                  onClick={() => navigate(s.screen, s.param)}
-                  className="flex flex-col items-center gap-2"
-                >
-                  <div
-                    className="w-12 h-12 rounded-full flex items-center justify-center"
-                    style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
-                  >
-                    <Icon size={20} style={{ color: 'var(--primary)' }} />
-                  </div>
-                  <span
-                    className="text-center leading-tight truncate w-full"
-                    style={{ color: 'var(--foreground)', fontSize: 11, fontWeight: 500 }}
-                  >
-                    {s.label}
+            {recentShow.map((s) => (
+              <motion.button
+                key={`${s.screen}-${s.param || ''}-${s.at}`}
+                type="button"
+                whileTap={{ scale: 0.94 }}
+                onClick={() => navigate(s.screen, s.param)}
+                className="flex flex-col items-center gap-2"
+              >
+                <DualIconBox size={48}>
+                  <span style={{ transform: 'scale(0.85)', transformOrigin: 'center' }}>
+                    <DualToneIcon name={dualKeyFor(s)} />
                   </span>
-                </motion.button>
-              );
-            })}
+                </DualIconBox>
+                <span
+                  className="text-center leading-tight"
+                  style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 500, maxWidth: 72 }}
+                >
+                  {s.label}
+                </span>
+              </motion.button>
+            ))}
           </div>
         </div>
 
