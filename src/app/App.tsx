@@ -9,6 +9,7 @@ import { hasSeenOnboarding, markOnboardingSeen } from '../shared/utils/firstVisi
 import { usePrefetchAppData } from '../shared/hooks/usePrefetchAppData';
 import { prefetchForScreen } from '../shared/query/prefetchAppData';
 import { useAuth } from '../shared/context/AuthContext';
+import { trackRecentUse } from '../shared/utils/recentlyUsed';
 import { setupNotificationNavigation } from '../shared/native/notificationNavigation';
 
 import { OnboardingScreen } from '../features/onboarding/screens/OnboardingScreen';
@@ -134,6 +135,7 @@ export default function App() {
   const navigate = useCallback(
     (s: Screen, param?: string) => {
       prefetchForScreen(s, userId);
+      trackRecentUse(s, param);
       navigateRaw(s, param);
     },
     [navigateRaw, userId],

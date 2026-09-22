@@ -4,7 +4,6 @@ import {
   X,
   Settings,
   Headphones,
-  Share2,
   Bell,
   ChevronRight,
   Gift,
@@ -13,6 +12,9 @@ import {
   History,
   FileCheck,
   Shield,
+  ArrowLeftRight,
+  ScanLine,
+  Wallet,
   type LucideIcon,
 } from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
@@ -24,6 +26,8 @@ import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { useNotifications } from '../../../shared/hooks/useNotifications';
 import { PageTop } from '../../../shared/components/PageTop';
 import { SignOutButton } from '../components/SignOutButton';
+import { readRecentlyUsed, type RecentEntry } from '../../../shared/utils/recentlyUsed';
+import { prefetchAppData } from '../../../shared/query/prefetchAppData';
 
 interface ProfileScreenProps {
   navigate: (s: Screen, param?: string) => void;
@@ -41,33 +45,66 @@ function maskEmail(email?: string | null) {
 }
 
 function initialsOf(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((w) => w[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase() || 'C';
+  return (
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((w) => w[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase() || 'C'
+  );
 }
 
-const RECENT_SHORTCUTS: { label: string; Icon: LucideIcon; screen: Screen }[] = [
-  { label: 'Rewards', Icon: Gift, screen: 'rewards' },
-  { label: 'Buy crypto', Icon: CreditCard, screen: 'onramp' },
-  { label: 'Deposit', Icon: ArrowDownLeft, screen: 'deposit' },
-  { label: 'History', Icon: History, screen: 'history' },
+const ICON_BY_SCREEN: Partial<Record<Screen, LucideIcon>> = {
+  rewards: Gift,
+  onramp: CreditCard,
+  offramp: CreditCard,
+  deposit: ArrowDownLeft,
+  withdraw: Wallet,
+  send: ArrowDownLeft,
+  swap: ArrowLeftRight,
+  history: History,
+  scan: ScanLine,
+  services: CreditCard,
+  giveaway: Gift,
+  notifications: Bell,
+  security: Shield,
+  kyc: FileCheck,
+};
+
+const FALLBACK_RECENT: RecentEntry[] = [
+  { screen: 'rewards', label: 'Rewards', at: 0 },
+  { screen: 'onramp', label: 'Buy crypto', at: 0 },
+  { screen: 'deposit', label: 'Deposit', at: 0 },
+  { screen: 'history', label: 'History', at: 0 },
 ];
 
-/**
- * Account hub (profile tab) — Bitget-style overview.
- * Settings is a separate screen opened from the gear icon.
- */
 export function ProfileScreen({ navigate, goBack }: ProfileScreenProps) {
-  const { email, username: sessionUsername, displayName: sessionDisplayName, status } = useAuth();
-  const { profile } = useMyProfile();
-  const { isApproved, isPending, isRejected } = useKycStatus();
-  const { totalValueUsd } = useWalletAssets();
+  const { email, username: sessionUsername, displayName: sessionDisplayName, status, userId } =
+    useAuth();
+  const { profile, loading: profileLoading } = useMyProfile();
+  const { isApproved, isPending, isRejected, loading: kycLoading } = useKycStatus();
+  const { totalValueUsd, loading: balLoading } = useWalletAssets();
   const { currency, convert } = useCurrency();
-  const { data: notifItems, unread } = useNotifications(8);
+  const { data: notifItems, unread, loading: notifLoading } = useNotifications(8);
+
+  const [recent, setRecent] = useState<RecentEntry[]>(() => readRecentlyUsed());
+
+  useEffect(() => {
+    const sync = () => setRecent(readRecentlyUsed());
+    window.addEventListener('convia-recently-used', sync);
+    window.addEventListener('storage', sync);
+    return () => {
+      window.removeEventListener('convia-recently-used', sync);
+      window.removeEventListener('storage', sync);
+    };
+  }, []);
+
+  // Warm profile-related data in background whenever this surface mounts / auth ready
+  useEffect(() => {
+    if (userId && status === 'authenticated') prefetchAppData(userId);
+  }, [userId, status]);
 
   const displayName =
     profile?.displayName || sessionDisplayName || profile?.username || sessionUsername || 'Convia user';
@@ -92,12 +129,13 @@ export function ProfileScreen({ navigate, goBack }: ProfileScreenProps) {
         : 'Verify identity';
 
   const recentNotifs = useMemo(() => (notifItems || []).slice(0, 3), [notifItems]);
+  const recentShow = recent.length > 0 ? recent.slice(0, 4) : FALLBACK_RECENT;
+  const showSkeleton = status === 'authenticated' && (profileLoading || balLoading) && !profile;
 
   return (
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
       <PageTop />
 
-      {/* Top bar: close · settings / support */}
       <div className="flex items-center justify-between px-4 pt-1 pb-3">
         <motion.button
           type="button"
@@ -133,7 +171,7 @@ export function ProfileScreen({ navigate, goBack }: ProfileScreenProps) {
         </div>
       </div>
 
-      {/* Identity row */}
+      {/* Identity */}
       <div className="px-4 mb-4">
         <div className="flex items-center gap-3">
           <motion.button
@@ -155,16 +193,21 @@ export function ProfileScreen({ navigate, goBack }: ProfileScreenProps) {
           </motion.button>
 
           <div className="flex-1 min-w-0">
-            <p
-              className="truncate"
-              style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 15 }}
-            >
-              {handle ? `@${handle}` : maskEmail(email || profile?.email)}
-            </p>
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginTop: 2 }}>{balStr}</p>
+            {showSkeleton ? (
+              <>
+                <div className="h-4 w-28 rounded mb-2" style={{ background: 'var(--muted)' }} />
+                <div className="h-3 w-16 rounded" style={{ background: 'var(--muted)' }} />
+              </>
+            ) : (
+              <>
+                <p className="truncate" style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 15 }}>
+                  {handle ? `@${handle}` : maskEmail(email || profile?.email)}
+                </p>
+                <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginTop: 2 }}>{balStr}</p>
+              </>
+            )}
           </div>
 
-          {/* KYC instead of “Add wallet” */}
           <motion.button
             type="button"
             whileTap={{ scale: 0.96 }}
@@ -178,14 +221,17 @@ export function ProfileScreen({ navigate, goBack }: ProfileScreenProps) {
               fontWeight: 600,
             }}
           >
-            <FileCheck size={14} style={{ color: isApproved ? 'var(--positive)' : 'var(--primary)' }} />
-            {kycLabel}
+            <FileCheck
+              size={14}
+              style={{ color: isApproved ? 'var(--positive)' : 'var(--primary)' }}
+            />
+            {kycLoading ? '…' : kycLabel}
           </motion.button>
         </div>
       </div>
 
       <div className="px-4 flex flex-col gap-3 pb-28">
-        {/* Notifications preview */}
+        {/* Notifications */}
         <motion.button
           type="button"
           whileTap={{ scale: 0.99 }}
@@ -197,15 +243,17 @@ export function ProfileScreen({ navigate, goBack }: ProfileScreenProps) {
             <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 15 }}>Notifications</p>
             <div className="flex items-center gap-1.5">
               {unread > 0 && (
-                <span
-                  className="w-2 h-2 rounded-full"
-                  style={{ background: 'var(--destructive)' }}
-                />
+                <span className="w-2 h-2 rounded-full" style={{ background: 'var(--destructive)' }} />
               )}
               <ChevronRight size={16} style={{ color: 'var(--muted-foreground)' }} />
             </div>
           </div>
-          {recentNotifs.length === 0 ? (
+          {notifLoading && recentNotifs.length === 0 ? (
+            <div className="space-y-2">
+              <div className="h-3 w-3/4 rounded" style={{ background: 'var(--muted)' }} />
+              <div className="h-3 w-1/2 rounded" style={{ background: 'var(--muted)' }} />
+            </div>
+          ) : recentNotifs.length === 0 ? (
             <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>No notifications yet</p>
           ) : (
             <div className="flex flex-col gap-3">
@@ -222,7 +270,7 @@ export function ProfileScreen({ navigate, goBack }: ProfileScreenProps) {
                       className="truncate"
                       style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: 500 }}
                     >
-                      {n.title || n.body || 'Update'}
+                      {n.title || n.body || n.message || 'Update'}
                     </p>
                   </div>
                   <span
@@ -242,7 +290,7 @@ export function ProfileScreen({ navigate, goBack }: ProfileScreenProps) {
           )}
         </motion.button>
 
-        {/* Recently used */}
+        {/* Recently used — live localStorage */}
         <div
           className="rounded-2xl p-4"
           style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
@@ -251,32 +299,35 @@ export function ProfileScreen({ navigate, goBack }: ProfileScreenProps) {
             Recently used
           </p>
           <div className="grid grid-cols-4 gap-2">
-            {RECENT_SHORTCUTS.map((s) => (
-              <motion.button
-                key={s.label}
-                type="button"
-                whileTap={{ scale: 0.94 }}
-                onClick={() => navigate(s.screen)}
-                className="flex flex-col items-center gap-2"
-              >
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center"
-                  style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+            {recentShow.map((s) => {
+              const Icon = ICON_BY_SCREEN[s.screen] || History;
+              return (
+                <motion.button
+                  key={`${s.screen}-${s.param || ''}-${s.at}`}
+                  type="button"
+                  whileTap={{ scale: 0.94 }}
+                  onClick={() => navigate(s.screen, s.param)}
+                  className="flex flex-col items-center gap-2"
                 >
-                  <s.Icon size={20} style={{ color: 'var(--primary)' }} />
-                </div>
-                <span
-                  className="text-center leading-tight"
-                  style={{ color: 'var(--foreground)', fontSize: 11, fontWeight: 500 }}
-                >
-                  {s.label}
-                </span>
-              </motion.button>
-            ))}
+                  <div
+                    className="w-12 h-12 rounded-full flex items-center justify-center"
+                    style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+                  >
+                    <Icon size={20} style={{ color: 'var(--primary)' }} />
+                  </div>
+                  <span
+                    className="text-center leading-tight truncate w-full"
+                    style={{ color: 'var(--foreground)', fontSize: 11, fontWeight: 500 }}
+                  >
+                    {s.label}
+                  </span>
+                </motion.button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Recent transactions teaser */}
+        {/* Recent transactions */}
         <motion.button
           type="button"
           whileTap={{ scale: 0.99 }}
@@ -290,27 +341,24 @@ export function ProfileScreen({ navigate, goBack }: ProfileScreenProps) {
             </p>
             <ChevronRight size={16} style={{ color: 'var(--muted-foreground)' }} />
           </div>
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 13, textAlign: 'center', padding: '16px 0 8px' }}>
+          <p
+            style={{
+              color: 'var(--muted-foreground)',
+              fontSize: 13,
+              textAlign: 'center',
+              padding: '16px 0 8px',
+            }}
+          >
             View full history
           </p>
         </motion.button>
 
-        {/* Quick links into settings areas */}
         <div
           className="rounded-2xl overflow-hidden"
           style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
         >
-          <Row
-            icon={Shield}
-            label="Security"
-            onClick={() => navigate('security')}
-          />
-          <Row
-            icon={Settings}
-            label="Settings"
-            onClick={() => navigate('settings')}
-            last
-          />
+          <Row icon={Shield} label="Security" onClick={() => navigate('security')} />
+          <Row icon={Settings} label="Settings" onClick={() => navigate('settings')} last />
         </div>
 
         <div className="pt-2">
