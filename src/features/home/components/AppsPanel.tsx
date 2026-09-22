@@ -8,9 +8,7 @@ type Item = {
   id: string;
   label: string;
   icon: DualIconKey;
-  /** Primary destination */
   screen?: Screen;
-  /** Deep param (e.g. data / airtime / electricity / bills) */
   param?: string;
   action?: 'send-sheet' | 'deposit-sheet';
 };
@@ -24,34 +22,40 @@ const SECTIONS: { title: string; items: Item[] }[] = [
       { id: 'buy', label: 'Buy crypto', icon: 'buy', screen: 'onramp' },
       { id: 'sell', label: 'Sell crypto', icon: 'sell', screen: 'offramp' },
       { id: 'swap', label: 'Swap', icon: 'swap', screen: 'swap' },
+      { id: 'history', label: 'History', icon: 'history', screen: 'history' },
     ],
   },
   {
-    title: 'Payment',
+    title: 'Bills & utilities',
     items: [
-      { id: 'qr', label: 'QR pay', icon: 'qr', screen: 'scan' },
-      { id: 'bank', label: 'Bank transfer', icon: 'bank', screen: 'onramp' },
-      { id: 'card', label: 'Card', icon: 'card', screen: 'onramp' },
       { id: 'airtime', label: 'Airtime', icon: 'airtime', screen: 'services', param: 'airtime' },
       { id: 'data', label: 'Data', icon: 'data', screen: 'services', param: 'data' },
       { id: 'power', label: 'Electricity', icon: 'power', screen: 'services', param: 'electricity' },
       { id: 'tv', label: 'TV & cable', icon: 'tv', screen: 'services', param: 'bills' },
+      { id: 'betting', label: 'Betting', icon: 'betting', screen: 'services', param: 'betting' },
     ],
   },
   {
-    title: 'Rewards',
+    title: 'Pay',
+    items: [
+      { id: 'qr', label: 'QR pay', icon: 'qr', screen: 'scan' },
+      { id: 'bank', label: 'Bank transfer', icon: 'bank', screen: 'onramp' },
+      { id: 'card', label: 'Card', icon: 'card', screen: 'onramp' },
+      { id: 'request', label: 'Request', icon: 'request', screen: 'request' },
+      { id: 'reqlink', label: 'Payment link', icon: 'reqlink', screen: 'request-link' },
+      { id: 'scan', label: 'Scanner', icon: 'scan', screen: 'scan' },
+    ],
+  },
+  {
+    title: 'Rewards & gifts',
     items: [
       { id: 'rewards', label: 'Rewards', icon: 'rewards', screen: 'rewards' },
       { id: 'gifts', label: 'Gifts', icon: 'gifts', screen: 'giveaway' },
-      { id: 'request', label: 'Request', icon: 'request', screen: 'request' },
-      { id: 'reqlink', label: 'Payment link', icon: 'reqlink', screen: 'request-link' },
     ],
   },
   {
-    title: 'Others',
+    title: 'Account',
     items: [
-      { id: 'history', label: 'History', icon: 'history', screen: 'history' },
-      { id: 'scan', label: 'Scanner', icon: 'scan', screen: 'scan' },
       { id: 'security', label: 'Security', icon: 'security', screen: 'security' },
       { id: 'support', label: 'Support', icon: 'support', screen: 'support-center' },
     ],
@@ -129,13 +133,13 @@ export function AppsPanel({ open, onClose, onNavigate, onOpenSend, onOpenDeposit
               <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 17 }}>More</p>
               <motion.button
                 type="button"
-                whileTap={{ scale: 0.9 }}
+                whileTap={{ scale: 0.92 }}
                 onClick={onClose}
-                className="w-9 h-9 rounded-full flex items-center justify-center"
-                style={{ background: 'var(--muted)' }}
+                className="flex items-center justify-center p-1"
+                style={{ background: 'transparent', border: 'none' }}
                 aria-label="Close"
               >
-                <X size={18} style={{ color: 'var(--foreground)' }} />
+                <X size={22} strokeWidth={2.35} style={{ color: 'var(--foreground)' }} />
               </motion.button>
             </div>
 
@@ -146,9 +150,10 @@ export function AppsPanel({ open, onClose, onNavigate, onOpenSend, onOpenDeposit
                     className="px-1 mb-3"
                     style={{
                       color: 'var(--muted-foreground)',
-                      fontSize: 13,
+                      fontSize: 12,
                       fontWeight: 600,
-                      letterSpacing: '0.02em',
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
                     }}
                   >
                     {sec.title}

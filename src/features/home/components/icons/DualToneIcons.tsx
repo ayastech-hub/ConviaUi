@@ -236,6 +236,24 @@ export function IconPower() {
   );
 }
 
+
+export function IconBetting() {
+  return (
+    <Svg>
+      <circle cx="14" cy="12" r="8" style={{ fill: 'var(--primary)' }} />
+      <circle cx="10.5" cy="12" r="8" style={{ fill: 'var(--foreground)' }} />
+      <path
+        d="M8.5 12h4M10.5 10v4"
+        fill="none"
+        stroke="var(--background)"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+      />
+      <circle cx="10.5" cy="12" r="5.2" fill="none" stroke="var(--background)" strokeWidth="1.4" opacity={0.7} />
+    </Svg>
+  );
+}
+
 export function IconTv() {
   return (
     <Svg>
@@ -356,6 +374,7 @@ export type DualIconKey =
   | 'data'
   | 'power'
   | 'tv'
+  | 'betting'
   | 'rewards'
   | 'gifts'
   | 'request'
@@ -379,6 +398,7 @@ const MAP: Record<DualIconKey, () => ReactNode> = {
   data: IconData,
   power: IconPower,
   tv: IconTv,
+  betting: IconBetting,
   rewards: IconRewards,
   gifts: IconGift,
   request: IconUsers,

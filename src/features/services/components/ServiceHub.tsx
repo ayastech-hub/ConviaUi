@@ -9,7 +9,7 @@ const DUAL: Record<string, DualIconKey> = {
   data: 'data',
   electricity: 'power',
   bills: 'tv',
-  betting: 'rewards',
+  betting: 'betting',
   vault: 'security',
   onramp: 'buy',
   offramp: 'sell',
