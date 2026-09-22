@@ -61,17 +61,13 @@ export function SwapAssetCard(props: Props) {
           type="button"
           whileTap={{ scale: 0.97 }}
           onClick={onOpenPicker}
-          className="flex items-center gap-2 shrink-0 rounded-full pl-1.5 pr-2.5 py-1.5"
-          style={{
-            background: 'var(--muted)',
-            border: '1px solid var(--border)',
-          }}
+          className="flex items-center gap-2.5 shrink-0"
         >
-          <AssetIcon symbol={asset.symbol} size={28} />
-          <span style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 16 }}>
+          <AssetIcon symbol={asset.symbol} size={36} />
+          <span style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 18 }}>
             {asset.symbol}
           </span>
-          <ChevronDown size={15} strokeWidth={2.2} style={{ color: 'var(--muted-foreground)' }} />
+          <ChevronDown size={16} style={{ color: 'var(--muted-foreground)' }} />
         </motion.button>
 
         {props.variant === 'from' ? (

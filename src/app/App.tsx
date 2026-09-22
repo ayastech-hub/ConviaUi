@@ -51,12 +51,11 @@ import { RequestLinkScreen } from '../features/requestLink/screens/RequestLinkSc
 import { PayScreen } from '../features/requestLink/screens/PayScreen';
 import { fetchPlatformStatus } from '../shared/api/platform';
 
-const MAIN_TABS: Screen[] = ['home', 'wallet']; // legacy tab ids for home hub
+const MAIN_TABS: Screen[] = ['home'];
 
 /** Screens that keep the floating bottom nav (static dock, not only home). */
 const NAV_VISIBLE: Screen[] = [
   'home',
-  'wallet',
   'explore',
   'services',
   'swap',
@@ -389,7 +388,6 @@ export default function App() {
           </motion.div>
         );
       case 'portfolio':
-        // Portfolio screen removed — stay on wallet hub
         return (
           <motion.div key="portfolio" {...fadeIn} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
             <HomeScreen navigate={navigate} darkMode={darkMode} toggleDark={toggleDark} notificationCount={0} />

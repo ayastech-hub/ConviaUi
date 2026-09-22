@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 
 import type { Transaction } from '../../../shared/data/mockData';
+import { getTxColor, getTxSign } from '../../../shared/utils/transactionHelpers';
 import { TransactionReceipt } from '../../../shared/components/TransactionReceipt';
 import { formatTokenAmount } from '../../../shared/utils/formatAmount';
 import { PageTop } from '../../../shared/components/PageTop';
@@ -800,10 +801,11 @@ function TransactionRow({
   const displayLabel = (tx as { title?: string }).title || m.label;
   const Icon = m.Icon;
 
+  const sign = getTxSign(tx.type);
   const amountPrimary =
     tx.type === 'swap'
       ? `${formatTokenAmount(tx.amount)} ${tx.asset || ''}`
-      : `${m.sign}${formatTokenAmount(tx.amount)} ${tx.asset || ''}`;
+      : `${sign}${formatTokenAmount(tx.amount)} ${tx.asset || ''}`;
 
   const amountSecondary =
     tx.type === 'swap'
@@ -812,8 +814,7 @@ function TransactionRow({
         ? format(tx.valueUSD)
         : null;
 
-  const amountTone =
-    m.sign === '+' ? 'var(--positive)' : 'var(--foreground)';
+  const amountTone = getTxColor(tx.type);
 
   return (
     <motion.button

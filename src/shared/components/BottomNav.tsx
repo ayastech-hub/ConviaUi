@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Wallet, ArrowLeftRight, Banknote, Compass } from 'lucide-react';
+import { Home, ArrowLeftRight, Banknote, Compass } from 'lucide-react';
 import type { Screen } from '../data/mockData';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -19,14 +19,14 @@ export function BottomNav({ activeTab, onNavigate, onSwap }: BottomNavProps) {
   const items: {
     id: string;
     label: string;
-    icon: typeof Wallet;
+    icon: typeof Home;
     action: () => void;
     active: boolean;
   }[] = [
     {
       id: 'wallet',
-      label: t('nav.wallet') || 'Wallet',
-      icon: Wallet,
+      label: t('nav.home') || 'Home',
+      icon: Home,
       action: () => onNavigate('home'),
       active: activeTab === 'home' || activeTab === 'wallet',
     },
