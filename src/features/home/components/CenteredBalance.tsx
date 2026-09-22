@@ -58,7 +58,7 @@ export function CenteredBalance({ balanceVisible, onToggle }: Props) {
   const showSkeleton = loading && status === 'authenticated' && totalUsd <= 0;
 
   return (
-    <div className="flex flex-col items-center px-5 pt-1 pb-6">
+    <div className="flex flex-col items-center px-5 pt-0 pb-4">
       {/* Currency picker — ABOVE the amount, muted vs digits */}
       <motion.button
         type="button"

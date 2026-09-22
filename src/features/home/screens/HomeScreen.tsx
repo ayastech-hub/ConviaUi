@@ -5,15 +5,15 @@ import { AccountStatusBanners } from '../../../shared/components/AccountStatusBa
 import { CenteredBalance } from '../components/CenteredBalance';
 import { HubActions } from '../components/HubActions';
 import { AppsPanel } from '../components/AppsPanel';
+import { FundOptionsSheet } from '../components/FundOptionsSheet';
 import { PromoBanner } from '../components/PromoBanner';
 import { HubAssetsList } from '../components/HubAssetsList';
 import { prefetchMarketPrices } from '../../../shared/query/prefetchAppData';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { useNotifications } from '../../../shared/hooks/useNotifications';
-import { Bell, History, ScanLine } from 'lucide-react';
+import { Bell, ScanLine, User } from 'lucide-react';
 import { motion } from 'motion/react';
-import { PageTop } from '../../../shared/components/PageTop';
 
 interface HomeScreenProps {
   navigate: (s: Screen, param?: string) => void;
@@ -24,11 +24,11 @@ interface HomeScreenProps {
 
 /**
  * Unified Home + Wallet hub.
- * Structure: centered balance → circular actions → promo banner → assets list.
- * Replaces the old split Home/Wallet tabs (same content, one surface).
+ * Compact top chrome (no title): Account | QR + Notifications
+ * Add funds / cash out open option sheets, not full pages first.
  */
 export function HomeScreen({ navigate, notificationCount: notificationCountProp }: HomeScreenProps) {
-  const { userId, status } = useAuth();
+  const { status } = useAuth();
   const [balanceVisible, setBalanceVisible] = useState(() => {
     try {
       return localStorage.getItem('convia.hideBalance') !== '1';
@@ -40,7 +40,9 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
     const sync = () => {
       try {
         setBalanceVisible(localStorage.getItem('convia.hideBalance') !== '1');
-      } catch { /* */ }
+      } catch {
+        /* */
+      }
     };
     window.addEventListener('convia-hide-balance', sync);
     window.addEventListener('storage', sync);
@@ -50,8 +52,9 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
     };
   }, []);
   const [hideSmall, setHideSmall] = useState(false);
-    const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);
+  const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);
   const [appsOpen, setAppsOpen] = useState(false);
+  const [fundSheet, setFundSheet] = useState<'deposit' | 'withdraw' | null>(null);
   const { assets: assetsRaw, loading } = useWalletAssets();
   const assets = Array.isArray(assetsRaw) ? assetsRaw : [];
   useEffect(() => {
@@ -60,36 +63,45 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
   }, [assets]);
 
   const { unread } = useNotifications(30);
-
-
   const notificationCount = unread || notificationCountProp || 0;
 
   return (
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
-      {/* Top chrome */}
-      <PageTop />
-      <div className="flex items-center justify-between px-5 mb-2">
+      {/* Tight status-bar only spacer — no extra PageTop gap */}
+      <div
+        aria-hidden
+        style={{
+          height: 'max(8px, env(safe-area-inset-top, 0px))',
+          flexShrink: 0,
+        }}
+      />
+
+      {/* Header: Account (left) · QR + Bell (right) — no title */}
+      <div className="flex items-center justify-between px-4 pt-1 pb-1">
         <motion.button
           type="button"
           whileTap={{ scale: 0.9 }}
-          onClick={() => navigate('scan')}
-          aria-label="Scan QR"
-          className="w-10 h-10 rounded-full flex items-center justify-center"
-          style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+          onClick={() => navigate('profile')}
+          aria-label="Account"
+          className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden"
+          style={{
+            background: 'color-mix(in oklab, var(--primary) 22%, var(--muted))',
+            border: '1px solid color-mix(in oklab, var(--primary) 35%, var(--border))',
+          }}
         >
-          <ScanLine size={18} style={{ color: 'var(--foreground)' }} />
+          <User size={18} style={{ color: 'var(--primary)' }} strokeWidth={2.2} />
         </motion.button>
-        <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 17 }}>Wallet</p>
+
         <div className="flex items-center gap-2">
           <motion.button
             type="button"
             whileTap={{ scale: 0.9 }}
-            onClick={() => navigate('history')}
-            aria-label="History"
+            onClick={() => navigate('scan')}
+            aria-label="Scan QR"
             className="w-10 h-10 rounded-full flex items-center justify-center"
             style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
           >
-            <History size={18} style={{ color: 'var(--foreground)' }} />
+            <ScanLine size={18} style={{ color: 'var(--foreground)' }} />
           </motion.button>
           <motion.button
             type="button"
@@ -120,20 +132,26 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
             try {
               localStorage.setItem('convia.hideBalance', next ? '0' : '1');
               window.dispatchEvent(new Event('convia-hide-balance'));
-            } catch { /* */ }
+            } catch {
+              /* */
+            }
             return next;
           });
         }}
       />
 
-      <HubActions onNavigate={navigate} onOpenApps={() => setAppsOpen(true)} />
+      <HubActions
+        onNavigate={navigate}
+        onOpenApps={() => setAppsOpen(true)}
+        onReceive={() => setFundSheet('deposit')}
+      />
 
-      {/* Add funds — primary CTA under actions */}
+      {/* Add funds → deposit options sheet */}
       <div className="px-5 mb-5">
         <motion.button
           type="button"
           whileTap={{ scale: 0.98 }}
-          onClick={() => navigate('onramp')}
+          onClick={() => setFundSheet('deposit')}
           className="w-full rounded-full flex items-center justify-center"
           style={{
             height: 48,
@@ -146,7 +164,6 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
           Add funds
         </motion.button>
       </div>
-
 
       <AccountStatusBanners onKyc={() => navigate('kyc')} />
 
@@ -165,6 +182,12 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
 
       <AppsPanel open={appsOpen} onClose={() => setAppsOpen(false)} onNavigate={navigate} />
 
+      <FundOptionsSheet
+        open={fundSheet !== null}
+        mode={fundSheet || 'deposit'}
+        onClose={() => setFundSheet(null)}
+        onNavigate={navigate}
+      />
     </div>
   );
 }
