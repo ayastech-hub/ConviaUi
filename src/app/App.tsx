@@ -42,6 +42,7 @@ import { SupportCenterScreen } from '../features/support/screens/SupportCenterSc
 import { NotificationsScreen } from '../features/notifications/screens/NotificationsScreen';
 import { RewardsScreen } from '../features/rewards/screens/RewardsScreen';
 import { ServicesScreen } from '../features/services/screens/ServicesScreen';
+import { PayHubScreen } from '../features/pay/screens/PayHubScreen';
 import { TokenDetailScreen } from '../features/wallet/screens/TokenDetailScreen';
 import { GiveawayScreen } from '../features/gifts/screens/GiveawayScreen';
 import { RequestLinkScreen } from '../features/requestLink/screens/RequestLinkScreen';
@@ -60,6 +61,7 @@ const NAV_VISIBLE: Screen[] = [
   'rewards',
   'notifications',
   'settings',
+  'pay-hub',
 ];
 
 function MaintenanceBanner() {
@@ -231,8 +233,8 @@ export default function App() {
       ? 'home'
       : current === 'profile' || current === 'settings' || current === 'security'
         ? 'profile'
-        : current === 'services'
-          ? 'services'
+        : current === 'pay-hub' || current === 'services'
+          ? 'pay-hub'
           : current === 'swap'
             ? 'swap'
             : 'home';
@@ -432,10 +434,16 @@ export default function App() {
             <PaymentMethodsScreen goBack={goBack} />
           </motion.div>
         );
+      case 'pay-hub':
+        return (
+          <motion.div key="pay-hub" {...slideRight} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
+            <PayHubScreen navigate={navigate} />
+          </motion.div>
+        );
       case 'services':
         return (
           <motion.div key="services" {...slideRight} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
-            <ServicesScreen navigate={navigate} goBack={goBack} switchTab={switchTab} />
+            <ServicesScreen navigate={navigate} goBack={goBack} switchTab={switchTab} initialService={navParam} />
           </motion.div>
         );
       case 'edit-profile':

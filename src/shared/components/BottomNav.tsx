@@ -1,10 +1,5 @@
 import { motion } from 'motion/react';
-import {
-  Wallet,
-  ArrowLeftRight,
-  Grid3x3,
-  User,
-} from 'lucide-react';
+import { Wallet, ArrowLeftRight, Banknote, User } from 'lucide-react';
 import type { Screen } from '../data/mockData';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -16,6 +11,7 @@ interface BottomNavProps {
 
 /**
  * Floating pill with liquid glass active indicator — light + dark via CSS vars.
+ * Tabs: Wallet · Swap · Pay · Profile  (More removed)
  */
 export function BottomNav({ activeTab, onNavigate, onSwap }: BottomNavProps) {
   const { t } = useLanguage();
@@ -42,11 +38,11 @@ export function BottomNav({ activeTab, onNavigate, onSwap }: BottomNavProps) {
       active: activeTab === 'swap',
     },
     {
-      id: 'more',
-      label: 'More',
-      icon: Grid3x3,
-      action: () => onNavigate('services'),
-      active: activeTab === 'services',
+      id: 'pay',
+      label: 'Pay',
+      icon: Banknote,
+      action: () => onNavigate('pay-hub'),
+      active: activeTab === 'pay-hub' || activeTab === 'services',
     },
     {
       id: 'profile',
@@ -87,43 +83,36 @@ export function BottomNav({ activeTab, onNavigate, onSwap }: BottomNavProps) {
               whileTap={{ scale: 0.9 }}
               aria-label={tab.label}
               aria-current={isActive ? 'page' : undefined}
-              className="relative flex flex-col items-center justify-center gap-1 flex-1 min-w-0 h-full rounded-full z-[1]"
-              style={{ background: 'transparent', paddingTop: 6, paddingBottom: 5 }}
+              className="relative flex flex-1 flex-col items-center justify-center gap-0.5 h-full rounded-full"
+              style={{ minWidth: 0 }}
             >
               {isActive && (
-                <motion.span
-                  layoutId="nav-liquid-glass"
-                  className="absolute rounded-full pointer-events-none"
-                  transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                <motion.div
+                  layoutId="nav-liquid"
+                  className="absolute inset-1 rounded-full"
                   style={{
-                    top: 3,
-                    bottom: 3,
-                    left: 2,
-                    right: 2,
-                    background: 'var(--liquid-pill-bg)',
-                    border: '1px solid var(--liquid-pill-border)',
-                    boxShadow: 'var(--liquid-pill-shadow)',
-                    backdropFilter: 'blur(12px) saturate(200%)',
-                    WebkitBackdropFilter: 'blur(12px) saturate(200%)',
+                    background: 'var(--liquid-active-bg)',
+                    border: '1px solid var(--liquid-active-border)',
+                    boxShadow: 'var(--liquid-active-shadow)',
                   }}
+                  transition={{ type: 'spring', stiffness: 380, damping: 28 }}
                 />
               )}
-              <Icon
-                size={20}
-                strokeWidth={isActive ? 2.3 : 1.6}
-                className="relative z-[1]"
-                style={{
-                  color: isActive ? 'var(--liquid-icon-active)' : 'var(--liquid-icon-inactive)',
-                }}
-              />
-              <span
-                className="relative z-[1] text-[9px] tracking-wide truncate max-w-full px-0.5"
-                style={{
-                  color: isActive ? 'var(--liquid-icon-active)' : 'var(--liquid-icon-inactive)',
-                  fontWeight: isActive ? 650 : 400,
-                }}
-              >
-                {tab.label}
+              <span className="relative z-10 flex flex-col items-center gap-0.5 pt-1 pb-0.5">
+                <Icon
+                  size={20}
+                  strokeWidth={isActive ? 2.4 : 2}
+                  style={{ color: isActive ? 'var(--primary)' : 'var(--muted-foreground)' }}
+                />
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: isActive ? 700 : 500,
+                    color: isActive ? 'var(--foreground)' : 'var(--muted-foreground)',
+                  }}
+                >
+                  {tab.label}
+                </span>
               </span>
             </motion.button>
           );

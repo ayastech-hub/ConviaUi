@@ -4,6 +4,7 @@ import { TransactionReceipt } from '../../../shared/components/TransactionReceip
 import { AccountStatusBanners } from '../../../shared/components/AccountStatusBanners';
 import { CenteredBalance } from '../components/CenteredBalance';
 import { HubActions } from '../components/HubActions';
+import { AppsPanel } from '../components/AppsPanel';
 import { PromoBanner } from '../components/PromoBanner';
 import { HubAssetsList } from '../components/HubAssetsList';
 import { prefetchMarketPrices } from '../../../shared/query/prefetchAppData';
@@ -50,6 +51,7 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
   }, []);
   const [hideSmall, setHideSmall] = useState(false);
     const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);
+  const [appsOpen, setAppsOpen] = useState(false);
   const { assets: assetsRaw, loading } = useWalletAssets();
   const assets = Array.isArray(assetsRaw) ? assetsRaw : [];
   useEffect(() => {
@@ -124,7 +126,26 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
         }}
       />
 
-      <HubActions onNavigate={navigate} />
+      <HubActions onNavigate={navigate} onOpenApps={() => setAppsOpen(true)} />
+
+      {/* Add funds — primary CTA under actions */}
+      <div className="px-5 mb-5">
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.98 }}
+          onClick={() => navigate('onramp')}
+          className="w-full rounded-full flex items-center justify-center"
+          style={{
+            height: 48,
+            background: 'var(--primary)',
+            color: 'var(--primary-foreground, #0a0a0a)',
+            fontWeight: 700,
+            fontSize: 15,
+          }}
+        >
+          Add funds
+        </motion.button>
+      </div>
 
 
       <AccountStatusBanners onKyc={() => navigate('kyc')} />
@@ -141,6 +162,8 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
       />
 
       <TransactionReceipt tx={receiptTx} open={!!receiptTx} onClose={() => setReceiptTx(null)} />
+
+      <AppsPanel open={appsOpen} onClose={() => setAppsOpen(false)} onNavigate={navigate} />
 
     </div>
   );

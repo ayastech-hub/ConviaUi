@@ -34,6 +34,7 @@ interface ServicesScreenProps {
   navigate: (s: Screen) => void;
   goBack: () => void;
   switchTab: (s: Screen) => void;
+  initialService?: string | null;
 }
 
 function toCategory(serviceId: string): string {
@@ -41,11 +42,11 @@ function toCategory(serviceId: string): string {
   return serviceId;
 }
 
-export function ServicesScreen({ navigate, switchTab }: ServicesScreenProps) {
+export function ServicesScreen({ navigate, switchTab, initialService }: ServicesScreenProps) {
   const { t } = useLanguage();
   const { userId } = useAuth();
   const { currency } = useCurrency();
-  const [activeService, setActiveService] = useState<string | null>(null);
+  const [activeService, setActiveService] = useState<string | null>(initialService || null);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [providerImage, setProviderImage] = useState<string | null>(null);
   const [selectedBillerCode, setSelectedBillerCode] = useState<string | null>(null);
