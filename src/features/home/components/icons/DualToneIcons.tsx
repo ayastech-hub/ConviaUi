@@ -47,57 +47,57 @@ export function DualIconBox({ children, size = 56 }: { children: ReactNode; size
   );
 }
 
-/** Split circle: left foreground, right primary */
-function SplitCircle({ children }: { children: ReactNode }) {
-  return (
-    <Svg>
-      <circle cx="12" cy="12" r="10" style={{ fill: 'var(--foreground)' }} />
-      <path d="M12 2a10 10 0 0 1 0 20V2z" style={{ fill: 'var(--primary)' }} />
-      {children}
-    </Svg>
-  );
-}
-
+/** Offset dual-tone: accent shadow behind, primary face in front (template style). */
 export function IconSend() {
   return (
-    <SplitCircle>
+    <Svg>
+      <circle cx="14" cy="12" r="8.2" style={{ fill: 'var(--primary)' }} />
+      <circle cx="10.5" cy="12" r="8.2" style={{ fill: 'var(--foreground)' }} />
       <path
-        d="M10 14.2 14.2 10M10.2 10h4v4"
+        d="M9.2 13.6 13.2 9.6M13 13.4V9.6H9.2"
         fill="none"
         stroke="var(--background)"
-        strokeWidth="2.2"
+        strokeWidth="1.9"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-    </SplitCircle>
+    </Svg>
   );
 }
 
 export function IconReceive() {
   return (
-    <SplitCircle>
+    <Svg>
+      <circle cx="14" cy="12" r="8.2" style={{ fill: 'var(--primary)' }} />
+      <circle cx="10.5" cy="12" r="8.2" style={{ fill: 'var(--foreground)' }} />
       <path
-        d="M14 9.8 9.8 14M13.8 14h-4v-4"
+        d="M13.2 10 9.2 14M10 10v4h4"
         fill="none"
         stroke="var(--background)"
-        strokeWidth="2.2"
+        strokeWidth="1.9"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-    </SplitCircle>
+    </Svg>
   );
 }
 
 export function IconHistory() {
   return (
     <Svg>
-      <rect x="3" y="3" width="18" height="18" rx="4" style={{ fill: 'var(--foreground)' }} />
-      <path d="M12 3h5a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4h-5V3z" style={{ fill: 'var(--primary)' }} />
       <path
-        d="M12 8v4.2L14.4 14"
+        d="M8 5.5a3 3 0 0 1 3-3h7a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-7a3 3 0 0 1-3-3v-12z"
+        style={{ fill: 'var(--primary)' }}
+      />
+      <path
+        d="M5 6a3 3 0 0 1 3-3h7a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V6z"
+        style={{ fill: 'var(--foreground)' }}
+      />
+      <path
+        d="M9.2 8v4.2h3.6"
         fill="none"
         stroke="var(--background)"
-        strokeWidth="2"
+        strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -108,10 +108,15 @@ export function IconHistory() {
 export function IconMore() {
   return (
     <Svg>
-      <rect x="3" y="3" width="8" height="8" rx="2" style={{ fill: 'var(--foreground)' }} />
-      <rect x="13" y="3" width="8" height="8" rx="2" style={{ fill: 'var(--primary)' }} />
-      <rect x="3" y="13" width="8" height="8" rx="2" style={{ fill: 'var(--primary)' }} />
-      <rect x="13" y="13" width="8" height="8" rx="2" style={{ fill: 'var(--foreground)' }} />
+      {/* accent offset squares */}
+      <rect x="5.5" y="3.5" width="7" height="7" rx="1.6" style={{ fill: 'var(--primary)' }} />
+      <rect x="13.5" y="5.5" width="7" height="7" rx="1.6" style={{ fill: 'var(--primary)' }} />
+      <rect x="5.5" y="13.5" width="7" height="7" rx="1.6" style={{ fill: 'var(--primary)' }} />
+      {/* primary front squares */}
+      <rect x="3.5" y="3.5" width="7" height="7" rx="1.6" style={{ fill: 'var(--foreground)' }} />
+      <rect x="13.5" y="3.5" width="7" height="7" rx="1.6" style={{ fill: 'var(--foreground)' }} />
+      <rect x="3.5" y="13.5" width="7" height="7" rx="1.6" style={{ fill: 'var(--foreground)' }} />
+      <rect x="13.5" y="13.5" width="7" height="7" rx="1.6" style={{ fill: 'var(--foreground)' }} />
     </Svg>
   );
 }

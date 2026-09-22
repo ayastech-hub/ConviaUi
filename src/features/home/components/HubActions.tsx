@@ -10,7 +10,8 @@ type Props = {
 };
 
 /**
- * Home quick actions — dual-tone pill chips always visible (2×2 / wrap).
+ * Compact dual-tone action pills in one horizontal row (template-style).
+ * Icon: offset accent behind + primary face (not half-split).
  */
 export function HubActions({ onNavigate, onOpenMore, onReceive, onSend }: Props) {
   const items: { label: string; icon: DualIconKey; action: () => void }[] = [
@@ -29,25 +30,44 @@ export function HubActions({ onNavigate, onOpenMore, onReceive, onSend }: Props)
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-2.5 px-4 mb-5">
+    <div
+      className="flex items-center gap-2 px-4 mb-4 w-full"
+      style={{ overflowX: 'auto', scrollbarWidth: 'none' }}
+    >
       {items.map((a) => (
         <motion.button
           key={a.label}
           type="button"
-          whileTap={{ scale: 0.97 }}
+          whileTap={{ scale: 0.96 }}
           onClick={a.action}
           aria-label={a.label}
-          className="flex items-center gap-3 rounded-full pl-2 pr-4 py-2 w-full"
+          className="flex items-center gap-1.5 shrink-0 rounded-full pl-1.5 pr-2.5 py-1"
           style={{
             background: 'var(--muted)',
             border: '1px solid var(--border)',
-            minHeight: 48,
+            minHeight: 34,
           }}
         >
-          <span className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 overflow-hidden">
-            <DualToneIcon name={a.icon} />
+          <span
+            className="flex items-center justify-center shrink-0"
+            style={{ width: 22, height: 22 }}
+          >
+            {/* scale dual icon down */}
+            <span style={{ transform: 'scale(0.72)', transformOrigin: 'center' }}>
+              <DualToneIcon name={a.icon} />
+            </span>
           </span>
-          <span style={{ color: 'var(--foreground)', fontSize: 14, fontWeight: 600 }}>{a.label}</span>
+          <span
+            style={{
+              color: 'var(--foreground)',
+              fontSize: 12,
+              fontWeight: 600,
+              letterSpacing: -0.1,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {a.label}
+          </span>
         </motion.button>
       ))}
     </div>
