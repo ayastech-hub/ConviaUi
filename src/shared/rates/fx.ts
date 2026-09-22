@@ -71,3 +71,21 @@ export function formatLocal(
     maximumFractionDigits: decimals,
   })}`;
 }
+
+/** Format a USD amount in the target currency (live rate required, else em dash). */
+export function formatUsdAsLocal(
+  usdAmount: number,
+  code: string,
+  symbol?: string,
+): string {
+  const c = (code || 'USD').toUpperCase();
+  if (c === 'USD') {
+    const n = Number(usdAmount);
+    const safe = Number.isFinite(n) ? n : 0;
+    const s = symbol || '$';
+    return `${s}${safe.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  const local = usdToLocal(usdAmount, c);
+  if (local <= 0 && !hasLiveRate(c)) return '—';
+  return formatLocal(local, c, symbol);
+}

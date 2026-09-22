@@ -11,31 +11,20 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   ChevronDown,
   Check,
-  ArrowUpRight,
-  ArrowDownLeft,
-  RefreshCw,
-  Plus,
-  Minus,
-  TrendingUp,
-  TrendingDown,
   Inbox,
   Search,
   X,
   CalendarDays,
   ChevronRight,
-  Smartphone,
-  Wifi,
-  Zap,
-  Tv,
-  Trophy,
-  Receipt,
-  Gift,
-  Link2,
-  Award,
 } from 'lucide-react';
 
 import type { Transaction } from '../../../shared/data/mockData';
 import { getTxColor, getTxSign } from '../../../shared/utils/transactionHelpers';
+import {
+  DualIconBox,
+  DualToneIcon,
+  type DualIconKey,
+} from '../../home/components/icons/DualToneIcons';
 import { TransactionReceipt } from '../../../shared/components/TransactionReceipt';
 import { formatTokenAmount } from '../../../shared/utils/formatAmount';
 import { PageTop } from '../../../shared/components/PageTop';
@@ -116,104 +105,25 @@ const QUICK_DATE_OPTIONS: {
   },
 ];
 
-const TX_META: Record<
-  string,
-  {
-    label: string;
-    Icon: typeof ArrowDownLeft;
-    sign: string;
-  }
-> = {
-  receive: {
-    label: 'Received',
-    Icon: ArrowDownLeft,
-    sign: '+',
-  },
-  send: {
-    label: 'Sent',
-    Icon: ArrowUpRight,
-    sign: '−',
-  },
-  swap: {
-    label: 'Swapped',
-    Icon: RefreshCw,
-    sign: '',
-  },
-  buy: {
-    label: 'Bought',
-    Icon: Plus,
-    sign: '+',
-  },
-  sell: {
-    label: 'Sold',
-    Icon: Minus,
-    sign: '−',
-  },
-  offramp: {
-    label: 'Cash out',
-    Icon: TrendingDown,
-    sign: '−',
-  },
-  onramp: {
-    label: 'Bought',
-    Icon: TrendingUp,
-    sign: '+',
-  },
-  deposit: {
-    label: 'Deposit',
-    Icon: ArrowDownLeft,
-    sign: '+',
-  },
-  withdraw: {
-    label: 'Withdraw',
-    Icon: ArrowUpRight,
-    sign: '−',
-  },
-  airtime: {
-    label: 'Airtime',
-    Icon: Smartphone,
-    sign: '−',
-  },
-  data: {
-    label: 'Mobile data',
-    Icon: Wifi,
-    sign: '−',
-  },
-  electricity: {
-    label: 'Electricity',
-    Icon: Zap,
-    sign: '−',
-  },
-  cable: {
-    label: 'TV & cable',
-    Icon: Tv,
-    sign: '−',
-  },
-  betting: {
-    label: 'Betting',
-    Icon: Trophy,
-    sign: '−',
-  },
-  bill: {
-    label: 'Bill payment',
-    Icon: Receipt,
-    sign: '−',
-  },
-  giveaway: {
-    label: 'Giveaway',
-    Icon: Gift,
-    sign: '',
-  },
-  request: {
-    label: 'Payment request',
-    Icon: Link2,
-    sign: '',
-  },
-  reward: {
-    label: 'Reward',
-    Icon: Award,
-    sign: '+',
-  },
+const TX_META: Record<string, { label: string; icon: DualIconKey }> = {
+  receive: { label: 'Received', icon: 'receive' },
+  send: { label: 'Sent', icon: 'send' },
+  swap: { label: 'Swapped', icon: 'swap' },
+  buy: { label: 'Bought', icon: 'buy' },
+  sell: { label: 'Sold', icon: 'sell' },
+  offramp: { label: 'Cash out', icon: 'sell' },
+  onramp: { label: 'Bought', icon: 'buy' },
+  deposit: { label: 'Deposit', icon: 'receive' },
+  withdraw: { label: 'Withdraw', icon: 'send' },
+  airtime: { label: 'Airtime', icon: 'airtime' },
+  data: { label: 'Mobile data', icon: 'data' },
+  electricity: { label: 'Electricity', icon: 'power' },
+  cable: { label: 'TV & cable', icon: 'tv' },
+  betting: { label: 'Betting', icon: 'betting' },
+  bill: { label: 'Bill payment', icon: 'tv' },
+  giveaway: { label: 'Giveaway', icon: 'gifts' },
+  request: { label: 'Payment request', icon: 'reqlink' },
+  reward: { label: 'Reward', icon: 'rewards' },
 };
 
 function meta(type: string) {
@@ -799,7 +709,6 @@ function TransactionRow({
 }) {
   const m = meta(tx.type);
   const displayLabel = (tx as { title?: string }).title || m.label;
-  const Icon = m.Icon;
 
   const sign = getTxSign(tx.type);
   const amountPrimary =
@@ -829,20 +738,11 @@ function TransactionRow({
           : '1px solid color-mix(in oklab, var(--border) 72%, transparent)',
       }}
     >
-      <div
-        className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl"
-        style={{
-          background: 'var(--muted)',
-          border:
-            '1px solid color-mix(in oklab, var(--border) 80%, transparent)',
-        }}
-      >
-        <Icon
-          size={16}
-          strokeWidth={2.2}
-          style={{ color: 'var(--muted-foreground)' }}
-        />
-      </div>
+      <DualIconBox size={40}>
+        <span style={{ transform: 'scale(0.72)', transformOrigin: 'center' }}>
+          <DualToneIcon name={m.icon} />
+        </span>
+      </DualIconBox>
 
       <div className="ml-3 min-w-0 flex-1 pr-3">
         <div
