@@ -10,7 +10,6 @@ import {
 import { listSupportedCountries } from '../api/banks';
 import { cacheGet, cacheSet } from '../cache/queryCache';
 import {
-  DEFAULT_USD_RATES,
   getRate,
   setLiveRates,
   usdToLocal,
@@ -43,7 +42,7 @@ function currencyFromCode(code: string): Currency {
   return {
     code: c,
     name: m.name || c,
-    symbol: m.symbol || (DEFAULT_USD_RATES[c] ? c : c),
+    symbol: m.symbol || c,
     rate: getRate(c) || (c === 'USD' ? 1 : m.rate) || 0,
     flag: m.flag || c.slice(0, 2),
   };

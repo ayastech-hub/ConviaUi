@@ -21,28 +21,31 @@ type Row = {
   screen: Screen;
 };
 
-const DEPOSIT_ROWS: Row[] = [
+const DEPOSIT_ROWS: (Row & { param?: string })[] = [
+  {
+    id: 'receive',
+    label: 'Deposit address',
+    sub: 'Receive crypto on-chain to your wallet',
+    badge: 'On-chain',
+    icon: 'receive',
+    screen: 'deposit',
+  },
   {
     id: 'card',
-    label: 'Credit/debit card',
-    sub: 'Buy with card — fast & simple',
+    label: 'Credit / debit card',
+    sub: 'Buy crypto with card',
     badge: 'Recommended',
     icon: 'card',
     screen: 'onramp',
+    param: 'card',
   },
   {
-    id: 'buy',
-    label: 'Buy crypto',
-    sub: 'Card, bank transfer, and more',
-    icon: 'buy',
+    id: 'bank',
+    label: 'Bank transfer',
+    sub: 'Pay from your local bank account',
+    icon: 'bank',
     screen: 'onramp',
-  },
-  {
-    id: 'receive',
-    label: 'Receive crypto assets',
-    sub: 'Send from another wallet or exchange',
-    icon: 'receive',
-    screen: 'deposit',
+    param: 'bank',
   },
 ];
 
@@ -75,9 +78,9 @@ export function FundOptionsSheet({ open, onClose, onNavigate, mode = 'deposit' }
   const rows = mode === 'send' ? SEND_ROWS : DEPOSIT_ROWS;
   const title = mode === 'send' ? 'Send / Withdraw' : 'Deposit';
 
-  const go = (screen: Screen) => {
+  const go = (screen: Screen, param?: string) => {
     onClose();
-    window.setTimeout(() => onNavigate(screen), 120);
+    window.setTimeout(() => onNavigate(screen, param), 120);
   };
 
   return (
@@ -137,7 +140,7 @@ export function FundOptionsSheet({ open, onClose, onNavigate, mode = 'deposit' }
                   key={row.id}
                   type="button"
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => go(row.screen)}
+                  onClick={() => go(row.screen, (row as { param?: string }).param)}
                   className="w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-left"
                   style={{
                     background: 'var(--muted)',

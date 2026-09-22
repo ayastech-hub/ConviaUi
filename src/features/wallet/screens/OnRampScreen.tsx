@@ -28,6 +28,7 @@ import { openInlineCardCheckout } from '../../../shared/payments/inlineCheckout'
 
 interface OnRampScreenProps {
   goBack: () => void;
+  /** Token symbol, or payment method hint: card | bank */
   presetSymbol?: string;
 }
 
@@ -35,6 +36,10 @@ interface OnRampScreenProps {
  * On-ramp: bank transfer (VA in-app) or card via PaymentIntent (provider-hosted — no PAN on Convia).
  */
 export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
+  const methodHint =
+    presetSymbol === 'card' || presetSymbol === 'bank' ? presetSymbol : undefined;
+  const tokenPreset =
+    methodHint ? undefined : presetSymbol;
   const { t } = useLanguage();
   const { assets: cryptoAssets } = useWalletAssets();
   const { userId, email: authEmail } = useAuth();
@@ -58,7 +63,7 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
         sparkline: [],
       },
   );
-  const [paymentMethod, setPaymentMethod] = useState<'bank' | 'card'>('bank');
+  const [paymentMethod, setPaymentMethod] = useState<'bank' | 'card'>(methodHint === 'card' ? 'card' : 'bank');
   const [cardPaymentId, setCardPaymentId] = useState<string | null>(null);
   const [amount, setAmount] = useState('');
   const [amountMode] = useState<'fiat' | 'usd'>('fiat'); // local fiat only for payment rails
@@ -76,10 +81,10 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
   const [paidToast, setPaidToast] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!presetSymbol || !cryptoAssets.length) return;
-    const hit = cryptoAssets.find((a) => a.symbol.toUpperCase() === presetSymbol.toUpperCase());
+    if (!tokenPreset || !cryptoAssets.length) return;
+    const hit = cryptoAssets.find((a) => a.symbol.toUpperCase() === tokenPreset.toUpperCase());
     if (hit && selectedAsset.symbol !== hit.symbol) setSelectedAsset(hit);
-  }, [presetSymbol, cryptoAssets]);
+  }, [tokenPreset, cryptoAssets]);
 
   // Always charge in country local currency (NGN/GHS/…), never display USD as the pay rail
   const payCurrency = localFiatForCountry(profile?.country || gates.country, 'NGN');

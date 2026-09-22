@@ -44,7 +44,7 @@ export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenP
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<{ code?: string; message?: string } | null>(null);
-  const [mode, setMode] = useState<'hub' | 'crypto'>(presetSymbol ? 'crypto' : 'hub');
+  const [mode, setMode] = useState<'hub' | 'crypto'>('crypto');
   const [liveMin, setLiveMin] = useState<{ native: number; usd: number; conf: number } | null>(null);
 
   const fallbackNet = NETWORKS[network] || NETWORKS.Ethereum || Object.values(NETWORKS)[0];
@@ -143,49 +143,9 @@ export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenP
     }
   };
 
-  if (mode === 'hub' && !presetSymbol) {
-    return (
-      <div className="flex flex-col h-full min-h-0" style={{ background: 'var(--background)' }}>
-        <PageTop />
-        <div className="flex items-center gap-3 px-5 mb-2">
-          <BackButton onClick={goBack} />
-          <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20 }}>Deposit</h2>
-        </div>
-        <div className="flex-1 overflow-y-auto px-5 pb-10 pt-2">
-          <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginBottom: 16 }}>
-            Choose how you want to add funds
-          </p>
-          <MethodOptionRow
-            title="Crypto deposit"
-            subtitle="Receive on-chain to your Convia address"
-            Icon={Coins}
-            onClick={() => setMode('crypto')}
-          />
-          <MethodOptionRow
-            title="Buy with fiat"
-            subtitle="Bank transfer or card"
-            Icon={CreditCard}
-            onClick={() => go('onramp')}
-          />
-          <MethodOrDivider />
-          <MethodOptionRow
-            title="Request"
-            subtitle="Ask someone to send you crypto"
-            Icon={HandCoins}
-            onClick={() => go('request')}
-          />
-          <MethodOptionRow
-            title="Request link"
-            subtitle="Share a payment link"
-            Icon={Link2}
-            onClick={() => go('request-link')}
-          />
-        </div>
-      </div>
-    );
-  }
+  // Hub removed — fund sheet already chose on-chain vs buy.
 
-  if (!asset) {
+if (!asset) {
     if (presetSymbol) {
       return (
         <div className="flex flex-col h-full items-center justify-center" style={{ background: 'var(--background)' }}>
@@ -196,7 +156,7 @@ export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenP
     return (
       <TokenSelectionList
         assets={cryptoAssets.length ? cryptoAssets : []}
-        goBack={() => setMode('hub')}
+        goBack={goBack}
         onSelect={handleAssetSelect}
       />
     );
