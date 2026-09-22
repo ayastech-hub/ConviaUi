@@ -7,6 +7,12 @@ export type FxCode = string;
 
 export type RateTable = Record<string, number>;
 
+/** Preset airtime quick-select amounts for service inputs. */
+export const localAirtimeAmounts = [100, 200, 500, 1000, 2000, 5000];
+
+/** General preset quick-select amounts for service inputs. */
+export const localQuickAmounts = [50, 100, 250, 500, 1000];
+
 /** Only USD is known until API / setLiveRates fills the rest. */
 let liveRates: RateTable = { USD: 1 };
 
