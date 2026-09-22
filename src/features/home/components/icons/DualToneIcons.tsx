@@ -124,34 +124,9 @@ export function IconMore() {
 export function IconBuy() {
   return (
     <Svg>
-      {/* Offset Cyan Card Shadow */}
-      <path
-        style={{ fill: 'var(--primary)' }}
-        transform="translate(3.5, 1.5)"
-        d="M6 5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-7l-5-5H6z"
-      />
-      {/* White Foreground Card with top-right corner cut */}
-      <path
-        style={{ fill: 'var(--foreground)' }}
-        d="M6 5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-7l-5-5H6z"
-      />
-      {/* Dark $ Cutout in the center */}
-      <path
-        d="M10.5 9v6 M8.8 10.7c0-.7.7-1.2 1.7-1.2s1.7.5 1.7 1.2s-.6.9-1.7 1.1s-1.7.5-1.7 1.2s.7 1.2 1.7 1.2s1.7-.5 1.7-1.2"
-        fill="none"
-        stroke="var(--background)"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-      {/* Cyan Arrow Pointing DOWN-LEFT (Inward) into the cut corner */}
-      <path
-        d="M19 3 L14.5 7.5 M14.5 7.5 V4 M14.5 7.5 H18"
-        fill="none"
-        stroke="var(--primary)"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <rect x="3" y="5" width="18" height="14" rx="2.5" style={{ fill: 'var(--foreground)' }} />
+      <path d="M3 5h18v4H3z" style={{ fill: 'var(--primary)' }} />
+      <circle cx="8" cy="14" r="1.4" style={{ fill: 'var(--background)' }} />
     </Svg>
   );
 }
@@ -159,33 +134,14 @@ export function IconBuy() {
 export function IconSell() {
   return (
     <Svg>
-      {/* Offset Cyan Card Shadow */}
+      <circle cx="12" cy="12" r="9" style={{ fill: 'var(--foreground)' }} />
+      <path d="M12 3a9 9 0 0 1 0 18V3z" style={{ fill: 'var(--primary)' }} />
       <path
-        style={{ fill: 'var(--primary)' }}
-        transform="translate(3.5, 1.5)"
-        d="M6 5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-7l-5-5H6z"
-      />
-      {/* White Foreground Card with top-right corner cut */}
-      <path
-        style={{ fill: 'var(--foreground)' }}
-        d="M6 5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-7l-5-5H6z"
-      />
-      {/* Dark $ Cutout in the center */}
-      <path
-        d="M10.5 9v6 M8.8 10.7c0-.7.7-1.2 1.7-1.2s1.7.5 1.7 1.2s-.6.9-1.7 1.1s-1.7.5-1.7 1.2s.7 1.2 1.7 1.2s1.7-.5 1.7-1.2"
+        d="M12 7v10M9.6 9.2c0-.9 1.1-1.6 2.4-1.6s2.4.7 2.4 1.6c0 .9-.9 1.3-2.4 1.6-1.5.3-2.4.9-2.4 2s1.1 1.6 2.4 1.6 2.4-.7 2.4-1.6"
         fill="none"
         stroke="var(--background)"
-        strokeWidth="1.6"
+        strokeWidth="1.7"
         strokeLinecap="round"
-      />
-      {/* Cyan Arrow Pointing UP-RIGHT (Outward) away from the cut corner */}
-      <path
-        d="M14.5 7.5 L19 3 M19 3 V6.5 M19 3 H15.5"
-        fill="none"
-        stroke="var(--primary)"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
       />
     </Svg>
   );
@@ -271,6 +227,7 @@ export function IconPower() {
     </Svg>
   );
 }
+
 
 export function IconBetting() {
   return (
