@@ -42,28 +42,37 @@ export function DualIconBox({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Dual-tone circle: left half foreground, right half primary + arrow cutout */
 export function IconSend() {
   return (
-    <svg {...svgProps}>
-      <path style={primary} d="M4 12l16-8-8 16-1.5-6.5L4 12z" />
-      <path style={accent} d="M10.5 13.5L20 4l-9.5 9.5z" />
+    <svg {...svgProps} viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10" fill="var(--foreground)" />
+      <path d="M12 2a10 10 0 010 20V2z" fill="var(--primary)" />
+      <path
+        d="M10.2 13.8L14.5 9.5M10.5 9.5h4v4"
+        fill="none"
+        stroke="var(--background)"
+        strokeWidth="2.1"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
 export function IconReceive() {
   return (
-    <svg {...svgProps}>
+    <svg {...svgProps} viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10" fill="var(--foreground)" />
+      <path d="M12 2a10 10 0 010 20V2z" fill="var(--primary)" />
       <path
-        style={primary}
-        d="M12 3v12m0 0l-4-4m4 4l4-4"
+        d="M13.8 10.2L9.5 14.5M13.5 14.5h-4v-4"
         fill="none"
-        stroke="var(--foreground)"
-        strokeWidth="2.2"
+        stroke="var(--background)"
+        strokeWidth="2.1"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <path style={accent} d="M5 19h14v2H5z" />
     </svg>
   );
 }
@@ -253,14 +262,16 @@ export function IconLink() {
 
 export function IconHistory() {
   return (
-    <svg {...svgProps}>
-      <circle cx="12" cy="12" r="9" fill="none" stroke="var(--foreground)" strokeWidth="1.8" />
+    <svg {...svgProps} viewBox="0 0 24 24">
+      <rect x="3" y="3" width="18" height="18" rx="4" fill="var(--foreground)" />
+      <rect x="12" y="3" width="9" height="18" rx="0" fill="var(--primary)" />
       <path
-        d="M12 7v5l3.5 2"
+        d="M12 8v4.5l2.5 1.5"
         fill="none"
-        stroke="var(--primary)"
-        strokeWidth="1.8"
+        stroke="var(--background)"
+        strokeWidth="2"
         strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );
@@ -309,6 +320,17 @@ export function IconSupport() {
   );
 }
 
+export function IconMore() {
+  return (
+    <svg {...svgProps} viewBox="0 0 24 24">
+      <rect x="3" y="3" width="8" height="8" rx="2" fill="var(--foreground)" />
+      <rect x="13" y="3" width="8" height="8" rx="2" fill="var(--primary)" />
+      <rect x="3" y="13" width="8" height="8" rx="2" fill="var(--primary)" />
+      <rect x="13" y="13" width="8" height="8" rx="2" fill="var(--foreground)" />
+    </svg>
+  );
+}
+
 export type DualIconKey =
   | 'send'
   | 'receive'
@@ -329,7 +351,8 @@ export type DualIconKey =
   | 'history'
   | 'scan'
   | 'security'
-  | 'support';
+  | 'support'
+  | 'more';
 
 const MAP: Record<DualIconKey, () => JSX.Element> = {
   send: IconSend,
@@ -352,6 +375,7 @@ const MAP: Record<DualIconKey, () => JSX.Element> = {
   scan: IconScan,
   security: IconShield,
   support: IconSupport,
+  more: IconMore,
 };
 
 export function DualToneIcon({ name }: { name: DualIconKey }) {
