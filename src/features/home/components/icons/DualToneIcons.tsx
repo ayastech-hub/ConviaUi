@@ -208,21 +208,13 @@ export function IconPhone() {
 export function IconData() {
   return (
     <Svg>
-      <path
-        d="M5 13a7 7 0 0 1 14 0"
-        fill="none"
-        stroke="var(--foreground)"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M8 13a4 4 0 0 1 8 0"
-        fill="none"
-        stroke="var(--primary)"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <circle cx="12" cy="13" r="1.5" style={{ fill: 'var(--primary)' }} />
+      <circle cx="14" cy="12" r="8.2" style={{ fill: 'var(--primary)' }} />
+      <circle cx="10.5" cy="12" r="8.2" style={{ fill: 'var(--foreground)' }} />
+      {/* signal bars cut from face */}
+      <rect x="8.2" y="13.2" width="1.7" height="3.2" rx="0.5" style={{ fill: 'var(--background)' }} />
+      <rect x="10.6" y="11.4" width="1.7" height="5" rx="0.5" style={{ fill: 'var(--background)' }} />
+      <rect x="13" y="9.2" width="1.7" height="7.2" rx="0.5" style={{ fill: 'var(--background)' }} />
+      <rect x="15.4" y="7.2" width="1.7" height="9.2" rx="0.5" style={{ fill: 'var(--background)' }} />
     </Svg>
   );
 }

@@ -26,6 +26,7 @@ const LABELS: Partial<Record<Screen, string>> = {
   electricity: 'Electricity',
   tv: 'TV & cable',
   betting: 'Betting',
+  rates: 'Rates',
   giveaway: 'Gifts',
   request: 'Request',
   'request-link': 'Pay link',

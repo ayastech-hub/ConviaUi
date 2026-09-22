@@ -15,6 +15,7 @@ import { setupNotificationNavigation } from '../shared/native/notificationNaviga
 import { OnboardingScreen } from '../features/onboarding/screens/OnboardingScreen';
 import { AuthScreen } from '../features/auth/screens/AuthScreen';
 import { HomeScreen } from '../features/home/screens/HomeScreen';
+import { RatesScreen } from '../features/rates/screens/RatesScreen';
 import { ExploreScreen } from '../features/explore/screens/ExploreScreen';
 
 import { SendScreen } from '../features/wallet/screens/SendScreen';
@@ -272,6 +273,12 @@ export default function App() {
         return (
           <motion.div key="profile" {...slideRight} className="absolute inset-0 flex flex-col">
             <ProfileScreen navigate={navigate} goBack={goBack} darkMode={darkMode} toggleDark={toggleDark} />
+          </motion.div>
+        );
+      case 'rates':
+        return (
+          <motion.div key="rates" {...slideRight} className="absolute inset-0 flex flex-col">
+            <RatesScreen goBack={goBack} />
           </motion.div>
         );
       case 'explore':

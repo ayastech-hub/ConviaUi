@@ -39,7 +39,8 @@ export type Screen =
   | 'request-link'
   | 'pay'
   | 'pay-hub'
-  | 'explore';
+  | 'explore'
+  | 'rates';
 
 export interface Asset {
   id: string;

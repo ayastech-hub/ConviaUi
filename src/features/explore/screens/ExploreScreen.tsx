@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
 import { PageTop } from '../../../shared/components/PageTop';
 import { ConviaAvatar } from '../../../shared/components/ConviaAvatar';
@@ -85,6 +85,7 @@ const TOOLS: Feat[] = [
   { label: 'Request', icon: 'request', screen: 'request' },
   { label: 'Rewards', icon: 'rewards', screen: 'rewards' },
   { label: 'History', icon: 'history', screen: 'history' },
+  { label: 'Rates', icon: 'history', screen: 'rates' },
   { label: 'Support', icon: 'support', screen: 'support-center' },
 ];
 
@@ -328,18 +329,8 @@ export function ExploreScreen({ navigate }: Props) {
 
       {/* Lifestyle / bills grid */}
       <div className="px-4 mb-5">
-        <div className="flex items-center justify-between px-0.5 mb-3">
+        <div className="px-0.5 mb-3">
           <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 16 }}>Lifestyle</p>
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('airtime')}
-            className="flex items-center gap-0.5"
-            style={{ color: 'var(--muted-foreground)', fontSize: 13, fontWeight: 500 }}
-          >
-            See all
-            <ChevronRight size={16} />
-          </motion.button>
         </div>
         <div className="grid grid-cols-3 gap-2.5">
           {LIFESTYLE.map((f) => (

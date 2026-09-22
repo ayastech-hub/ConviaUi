@@ -22,6 +22,7 @@ const SECTIONS: { title: string; items: Item[] }[] = [
       { id: 'buy', label: 'Buy crypto', icon: 'buy', screen: 'onramp' },
       { id: 'sell', label: 'Sell crypto', icon: 'sell', screen: 'offramp' },
       { id: 'swap', label: 'Swap', icon: 'swap', screen: 'swap' },
+      { id: 'rates', label: 'Rates', icon: 'history', screen: 'rates' },
       { id: 'history', label: 'History', icon: 'history', screen: 'history' },
     ],
   },
