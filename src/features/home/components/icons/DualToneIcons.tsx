@@ -124,9 +124,30 @@ export function IconMore() {
 export function IconBuy() {
   return (
     <Svg>
-      <rect x="3" y="5" width="18" height="14" rx="2.5" style={{ fill: 'var(--foreground)' }} />
-      <path d="M3 5h18v4H3z" style={{ fill: 'var(--primary)' }} />
-      <circle cx="8" cy="14" r="1.4" style={{ fill: 'var(--background)' }} />
+      {/* Accent backing circle on top-right */}
+      <circle cx="15.5" cy="8.5" r="5" style={{ fill: 'var(--primary)' }} />
+      {/* Tag/Note body with bottom-right inward arrow cutout */}
+      <path
+        style={{ fill: 'var(--foreground)' }}
+        d="M5 6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6.5a2 2 0 0 1-2 2h-3l-3.5 3.5a1 1 0 0 1-1.7-.7V14.5H7a2 2 0 0 1-2-2V6z"
+      />
+      {/* Inward Arrow pointing into the tag */}
+      <path
+        d="M14.5 14.5 18 11M15 11h3v3"
+        fill="none"
+        stroke="var(--background)"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* Dollar sign ($) cutout on front */}
+      <path
+        d="M10 6.5v6M8.8 8.2c0-.7.7-1.2 1.7-1.2s1.7.5 1.7 1.2-.6.9-1.7 1.1-1.7.5-1.7 1.2.7 1.2 1.7 1.2 1.7-.5 1.7-1.2"
+        fill="none"
+        stroke="var(--background)"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
     </Svg>
   );
 }
@@ -134,13 +155,28 @@ export function IconBuy() {
 export function IconSell() {
   return (
     <Svg>
-      <circle cx="12" cy="12" r="9" style={{ fill: 'var(--foreground)' }} />
-      <path d="M12 3a9 9 0 0 1 0 18V3z" style={{ fill: 'var(--primary)' }} />
+      {/* Accent backing circle on top-right */}
+      <circle cx="15.5" cy="8.5" r="5" style={{ fill: 'var(--primary)' }} />
+      {/* Tag/Note body with top-right outward arrow cutout */}
       <path
-        d="M12 7v10M9.6 9.2c0-.9 1.1-1.6 2.4-1.6s2.4.7 2.4 1.6c0 .9-.9 1.3-2.4 1.6-1.5.3-2.4.9-2.4 2s1.1 1.6 2.4 1.6 2.4-.7 2.4-1.6"
+        style={{ fill: 'var(--foreground)' }}
+        d="M5 8a2 2 0 0 1 2-2h6.5a2 2 0 0 1 2 2v2a1 1 0 0 0 1 1h2a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8z"
+      />
+      {/* Outward Arrow pointing out of top-right */}
+      <path
+        d="M14.5 11.5 18 8M15.5 8H18v2.5"
         fill="none"
         stroke="var(--background)"
-        strokeWidth="1.7"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* Dollar sign ($) cutout on front */}
+      <path
+        d="M9.5 8.5v6M8.3 10.2c0-.7.7-1.2 1.7-1.2s1.7.5 1.7 1.2-.6.9-1.7 1.1-1.7.5-1.7 1.2.7 1.2 1.7 1.2 1.7-.5 1.7-1.2"
+        fill="none"
+        stroke="var(--background)"
+        strokeWidth="1.4"
         strokeLinecap="round"
       />
     </Svg>
@@ -227,7 +263,6 @@ export function IconPower() {
     </Svg>
   );
 }
-
 
 export function IconBetting() {
   return (
