@@ -1,12 +1,5 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import {
-  ArrowDownToLine,
-  ArrowUpFromLine,
-  CreditCard,
-  CircleDollarSign,
-  RefreshCw,
-} from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
 import { AssetIcon } from '../../../shared/components/AssetIcon';
 import { PageTop } from '../../../shared/components/PageTop';
@@ -14,6 +7,7 @@ import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { PriceChart } from '../components/token/PriceChart';
 import { BackButton } from '../../../shared/components/BackButton';
+import { DualIconBox, DualToneIcon, type DualIconKey } from '../../home/components/icons/DualToneIcons';
 
 type Range = '24H' | '7D' | '30D';
 
@@ -39,12 +33,12 @@ function buildSeries(price: number, changePct: number, points: number, rangeScal
   return out;
 }
 
-const ACTIONS: { label: string; screen: Screen; Icon: typeof ArrowDownToLine }[] = [
-  { label: 'Deposit', screen: 'deposit', Icon: ArrowDownToLine },
-  { label: 'Withdraw', screen: 'withdraw', Icon: ArrowUpFromLine },
-  { label: 'Buy', screen: 'onramp', Icon: CreditCard },
-  { label: 'Sell', screen: 'offramp', Icon: CircleDollarSign },
-  { label: 'Swap', screen: 'swap', Icon: RefreshCw },
+const ACTIONS: { label: string; screen: Screen; icon: DualIconKey }[] = [
+  { label: 'Deposit', screen: 'deposit', icon: 'receive' },
+  { label: 'Withdraw', screen: 'withdraw', icon: 'send' },
+  { label: 'Buy', screen: 'onramp', icon: 'buy' },
+  { label: 'Sell', screen: 'offramp', icon: 'sell' },
+  { label: 'Swap', screen: 'swap', icon: 'swap' },
 ];
 
 /** Token market + holdings detail. */
@@ -173,7 +167,7 @@ export function TokenDetailScreen({ symbol, goBack, navigate }: TokenDetailScree
       {/* Actions */}
       <div className="px-5 mb-5">
         <div className="grid grid-cols-5 gap-2">
-          {ACTIONS.map(({ label, screen, Icon }) => (
+          {ACTIONS.map(({ label, screen, icon }) => (
             <motion.button
               key={label}
               type="button"
@@ -181,15 +175,14 @@ export function TokenDetailScreen({ symbol, goBack, navigate }: TokenDetailScree
               onClick={() => go(screen)}
               className="flex flex-col items-center gap-1.5"
             >
-              <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
-              >
-                <Icon size={18} style={{ color: 'var(--foreground)' }} />
-              </div>
-              <span style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 650 }}>{label}</span>
+              <DualIconBox size={48}>
+                <span style={{ transform: 'scale(0.88)', transformOrigin: 'center' }}>
+                  <DualToneIcon name={icon} />
+                </span>
+              </DualIconBox>
+              <span style={{ color: 'var(--foreground)', fontSize: 12, fontWeight: 600 }}>{label}</span>
             </motion.button>
-          ))}
+          ))
         </div>
       </div>
 

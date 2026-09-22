@@ -178,6 +178,7 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
 
       <AccountStatusBanners onKyc={() => navigate('kyc')} />
 
+      <div className="mt-3 mb-1" />
       <PromoBanner onNavigate={navigate} />
 
       <HubAssetsList

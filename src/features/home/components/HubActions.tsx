@@ -9,9 +9,7 @@ type Props = {
   onSend?: () => void;
 };
 
-/**
- * Compact dual-tone pills in one row. More = icon-only so it fits on mobile.
- */
+/** Dual-tone pills — slightly larger for readability on mobile. */
 export function HubActions({ onNavigate, onOpenMore, onReceive, onSend }: Props) {
   const labeled: { label: string; icon: DualIconKey; action: () => void }[] = [
     {
@@ -28,7 +26,7 @@ export function HubActions({ onNavigate, onOpenMore, onReceive, onSend }: Props)
   ];
 
   return (
-    <div className="flex items-center gap-1.5 px-4 mb-4 w-full min-w-0">
+    <div className="flex items-center gap-2 px-4 mb-5 w-full min-w-0">
       {labeled.map((a) => (
         <motion.button
           key={a.label}
@@ -36,23 +34,23 @@ export function HubActions({ onNavigate, onOpenMore, onReceive, onSend }: Props)
           whileTap={{ scale: 0.96 }}
           onClick={a.action}
           aria-label={a.label}
-          className="flex items-center gap-1.5 flex-1 min-w-0 rounded-full pl-1 pr-2 py-1 justify-center"
+          className="flex items-center gap-2 flex-1 min-w-0 rounded-full pl-1.5 pr-2.5 py-1.5 justify-center"
           style={{
             background: 'var(--muted)',
             border: '1px solid var(--border)',
-            minHeight: 34,
+            minHeight: 42,
             maxWidth: '100%',
           }}
         >
-          <span className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
-            <span style={{ transform: 'scale(0.68)', transformOrigin: 'center' }}>
+          <span className="flex items-center justify-center shrink-0" style={{ width: 26, height: 26 }}>
+            <span style={{ transform: 'scale(0.9)', transformOrigin: 'center' }}>
               <DualToneIcon name={a.icon} />
             </span>
           </span>
           <span
             style={{
               color: 'var(--foreground)',
-              fontSize: 11.5,
+              fontSize: 13,
               fontWeight: 600,
               letterSpacing: -0.15,
               whiteSpace: 'nowrap',
@@ -65,7 +63,6 @@ export function HubActions({ onNavigate, onOpenMore, onReceive, onSend }: Props)
         </motion.button>
       ))}
 
-      {/* More — icon only */}
       <motion.button
         type="button"
         whileTap={{ scale: 0.94 }}
@@ -73,13 +70,13 @@ export function HubActions({ onNavigate, onOpenMore, onReceive, onSend }: Props)
         aria-label="More"
         className="shrink-0 rounded-full flex items-center justify-center"
         style={{
-          width: 34,
-          height: 34,
+          width: 42,
+          height: 42,
           background: 'var(--muted)',
           border: '1px solid var(--border)',
         }}
       >
-        <span style={{ transform: 'scale(0.65)', transformOrigin: 'center' }}>
+        <span style={{ transform: 'scale(0.85)', transformOrigin: 'center' }}>
           <DualToneIcon name="more" />
         </span>
       </motion.button>
