@@ -20,6 +20,7 @@ import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
 import { useNotifications } from '../../../shared/hooks/useNotifications';
 import { PageTop } from '../../../shared/components/PageTop';
+import { ConviaAvatar } from '../../../shared/components/ConviaAvatar';
 import { SignOutButton } from '../components/SignOutButton';
 import { readRecentlyUsed, type RecentEntry } from '../../../shared/utils/recentlyUsed';
 import { prefetchAppData } from '../../../shared/query/prefetchAppData';
@@ -199,7 +200,7 @@ export function ProfileScreen({ navigate, goBack }: ProfileScreenProps) {
             {avatarUrl ? (
               <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
             ) : (
-              <span style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 15 }}>{initials}</span>
+              <ConviaAvatar size={48} />
             )}
           </motion.button>
 

@@ -12,7 +12,8 @@ import { prefetchMarketPrices } from '../../../shared/query/prefetchAppData';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { useNotifications } from '../../../shared/hooks/useNotifications';
-import { Bell, ScanLine, User } from 'lucide-react';
+import { Bell, ScanLine } from 'lucide-react';
+import { ConviaAvatar } from '../../../shared/components/ConviaAvatar';
 import { motion } from 'motion/react';
 
 interface HomeScreenProps {
@@ -55,8 +56,14 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
   const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);
   const [appsOpen, setAppsOpen] = useState(false);
   const [fundSheet, setFundSheet] = useState<'deposit' | 'send' | null>(null);
-  const { assets: assetsRaw, loading } = useWalletAssets();
+  const { assets: assetsRaw, loading, totalValueUsd } = useWalletAssets();
   const assets = Array.isArray(assetsRaw) ? assetsRaw : [];
+  /** Only after portfolio settles — avoid flashing Add funds for funded users. */
+  const hasFunds =
+    !loading &&
+    ((Number(totalValueUsd) || 0) > 0.005 ||
+      assets.some((a) => (Number(a.balance) || 0) > 0));
+  const showAddFunds = !loading && !hasFunds;
   useEffect(() => {
     const syms = assets.map((a) => a.symbol).filter(Boolean);
     if (syms.length) prefetchMarketPrices(syms);
@@ -85,11 +92,12 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
           aria-label="Account"
           className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden"
           style={{
-            background: 'color-mix(in oklab, var(--primary) 22%, var(--muted))',
-            border: '1px solid color-mix(in oklab, var(--primary) 35%, var(--border))',
+            background: 'transparent',
+            border: 'none',
+            padding: 0,
           }}
         >
-          <User size={18} style={{ color: 'var(--primary)' }} strokeWidth={2.2} />
+          <ConviaAvatar size={36} />
         </motion.button>
 
         <div className="flex items-center gap-3">
@@ -147,24 +155,26 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
         onSend={() => setFundSheet('send')}
       />
 
-      {/* Add funds → deposit options sheet */}
-      <div className="px-5 mb-5">
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setFundSheet('deposit')}
-          className="w-full rounded-full flex items-center justify-center"
-          style={{
-            height: 48,
-            background: 'var(--primary)',
-            color: 'var(--primary-foreground, #0a0a0a)',
-            fontWeight: 700,
-            fontSize: 15,
-          }}
-        >
-          Add funds
-        </motion.button>
-      </div>
+      {/* Add funds — only when balances loaded and wallet is empty */}
+      {showAddFunds ? (
+        <div className="px-5 mb-5">
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setFundSheet('deposit')}
+            className="w-full rounded-full flex items-center justify-center"
+            style={{
+              height: 48,
+              background: 'var(--primary)',
+              color: 'var(--primary-foreground, #0a0a0a)',
+              fontWeight: 700,
+              fontSize: 15,
+            }}
+          >
+            Add funds
+          </motion.button>
+        </div>
+      ) : null}
 
       <AccountStatusBanners onKyc={() => navigate('kyc')} />
 
