@@ -54,6 +54,11 @@ function initialsOf(name: string) {
 
 function dualKeyFor(entry: RecentEntry): DualIconKey {
   const { screen, param } = entry;
+  if (screen === 'airtime') return 'airtime';
+  if (screen === 'data') return 'data';
+  if (screen === 'electricity') return 'power';
+  if (screen === 'tv') return 'tv';
+  if (screen === 'betting') return 'betting';
   if (screen === 'services') {
     const p = (param || '').toLowerCase();
     if (p.includes('data')) return 'data';

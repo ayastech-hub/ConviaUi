@@ -57,7 +57,6 @@ const MAIN_TABS: Screen[] = ['home'];
 const NAV_VISIBLE: Screen[] = [
   'home',
   'explore',
-  'services',
   'swap',
   'rewards',
   'notifications',
@@ -235,7 +234,12 @@ export default function App() {
       ? 'home'
       : current === 'explore'
         ? 'explore'
-        : current === 'pay-hub' || current === 'services'
+        : current === 'pay-hub' ||
+            current === 'airtime' ||
+            current === 'data' ||
+            current === 'electricity' ||
+            current === 'tv' ||
+            current === 'betting'
           ? 'pay-hub'
           : current === 'swap'
             ? 'swap'
@@ -447,10 +451,31 @@ export default function App() {
             <PayHubScreen navigate={navigate} />
           </motion.div>
         );
-      case 'services':
+      case 'airtime':
+      case 'data':
+      case 'electricity':
+      case 'tv':
+      case 'betting':
         return (
-          <motion.div key={`services-${navParam || 'hub'}`} {...slideRight} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
-            <ServicesScreen navigate={navigate} goBack={goBack} switchTab={switchTab} initialService={navParam} />
+          <motion.div key={`util-${current}`} {...slideRight} className="absolute inset-0 flex flex-col">
+            <ServicesScreen navigate={navigate} goBack={goBack} serviceId={current === 'tv' ? 'bills' : current} />
+          </motion.div>
+        );
+      case 'services':
+        // Legacy deep link → airtime
+        return (
+          <motion.div key="services-legacy" {...slideRight} className="absolute inset-0 flex flex-col">
+            <ServicesScreen
+              navigate={navigate}
+              goBack={goBack}
+              serviceId={
+                navParam === 'bills' || navParam === 'tv'
+                  ? 'bills'
+                  : navParam === 'data' || navParam === 'electricity' || navParam === 'betting' || navParam === 'airtime'
+                    ? navParam
+                    : 'airtime'
+              }
+            />
           </motion.div>
         );
       case 'edit-profile':

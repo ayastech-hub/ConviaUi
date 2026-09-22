@@ -167,6 +167,11 @@ export function prefetchForScreen(screen: string, userId: string | null | undefi
       });
       break;
     case 'services':
+    case 'airtime':
+    case 'data':
+    case 'electricity':
+    case 'tv':
+    case 'betting':
       void prefetchBillsCatalog('NG');
       break;
     case 'swap':

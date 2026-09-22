@@ -28,11 +28,11 @@ const SECTIONS: { title: string; items: Item[] }[] = [
   {
     title: 'Bills & utilities',
     items: [
-      { id: 'airtime', label: 'Airtime', icon: 'airtime', screen: 'services', param: 'airtime' },
-      { id: 'data', label: 'Data', icon: 'data', screen: 'services', param: 'data' },
-      { id: 'power', label: 'Electricity', icon: 'power', screen: 'services', param: 'electricity' },
-      { id: 'tv', label: 'TV & cable', icon: 'tv', screen: 'services', param: 'bills' },
-      { id: 'betting', label: 'Betting', icon: 'betting', screen: 'services', param: 'betting' },
+      { id: 'airtime', label: 'Airtime', icon: 'airtime', screen: 'airtime' },
+      { id: 'data', label: 'Data', icon: 'data', screen: 'data' },
+      { id: 'power', label: 'Electricity', icon: 'power', screen: 'electricity' },
+      { id: 'tv', label: 'TV & cable', icon: 'tv', screen: 'tv' },
+      { id: 'betting', label: 'Betting', icon: 'betting', screen: 'betting' },
     ],
   },
   {

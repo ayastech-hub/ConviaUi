@@ -22,7 +22,7 @@ type Row = {
 
 const QUICK: { label: string; icon: DualIconKey; screen: Screen; param?: string }[] = [
   { label: 'QR pay', icon: 'qr', screen: 'scan' },
-  { label: 'Mobile top-up', icon: 'airtime', screen: 'services', param: 'airtime' },
+  { label: 'Mobile top-up', icon: 'airtime', screen: 'airtime' },
   { label: 'Card', icon: 'card', screen: 'onramp' },
   { label: 'Pay link', icon: 'reqlink', screen: 'request-link' },
 ];
@@ -41,11 +41,11 @@ const SECTIONS: { title: string; items: Row[] }[] = [
   {
     title: 'Bills & top-up',
     items: [
-      { label: 'Airtime', sub: 'Mobile top-up', icon: 'airtime', screen: 'services', param: 'airtime' },
-      { label: 'Data', sub: 'Mobile data bundles', icon: 'data', screen: 'services', param: 'data' },
-      { label: 'Electricity', sub: 'Prepaid & postpaid', icon: 'power', screen: 'services', param: 'electricity' },
-      { label: 'TV & cable', sub: 'DSTV, GOtv and more', icon: 'tv', screen: 'services', param: 'bills' },
-      { label: 'Betting', sub: 'Fund betting accounts', icon: 'betting', screen: 'services', param: 'betting' },
+      { label: 'Airtime', sub: 'Mobile top-up', icon: 'airtime', screen: 'airtime' },
+      { label: 'Data', sub: 'Mobile data bundles', icon: 'data', screen: 'data' },
+      { label: 'Electricity', sub: 'Prepaid & postpaid', icon: 'power', screen: 'electricity' },
+      { label: 'TV & cable', sub: 'DSTV, GOtv and more', icon: 'tv', screen: 'tv' },
+      { label: 'Betting', sub: 'Fund betting accounts', icon: 'betting', screen: 'betting' },
     ],
   },
   {

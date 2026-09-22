@@ -4,7 +4,6 @@ import { motion } from 'motion/react';
 import { ArrowLeft, Loader, Lock } from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
 import { SERVICE_GROUPS, isBillService, type ServiceItem } from '../components/serviceData';
-import { ServiceHub } from '../components/ServiceHub';
 import { ProviderSelector } from '../components/ProviderSelector';
 import { ServiceAmountInput } from '../components/ServiceAmountInput';
 import { PaymentSummaryCard } from '../components/PaymentSummaryCard';
@@ -33,20 +32,22 @@ import { NetworkSheet } from '../components/NetworkSheet';
 interface ServicesScreenProps {
   navigate: (s: Screen) => void;
   goBack: () => void;
-  switchTab: (s: Screen) => void;
-  initialService?: string | null;
+  /** Fixed utility: airtime | data | electricity | bills (tv) | betting */
+  serviceId: string;
 }
 
 function toCategory(serviceId: string): string {
-  if (serviceId === 'bills') return 'cable';
+  if (serviceId === 'bills' || serviceId === 'tv') return 'cable';
   return serviceId;
 }
 
-export function ServicesScreen({ navigate, switchTab, initialService }: ServicesScreenProps) {
+/** Single utility flow — no services hub. */
+export function ServicesScreen({ navigate, goBack, serviceId }: ServicesScreenProps) {
   const { t } = useLanguage();
   const { userId } = useAuth();
   const { currency } = useCurrency();
-  const [activeService, setActiveService] = useState<string | null>(initialService || null);
+  const resolvedId = serviceId === 'tv' ? 'bills' : serviceId;
+  const [activeService, setActiveService] = useState<string | null>(resolvedId);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [providerImage, setProviderImage] = useState<string | null>(null);
   const [selectedBillerCode, setSelectedBillerCode] = useState<string | null>(null);
@@ -60,7 +61,7 @@ export function ServicesScreen({ navigate, switchTab, initialService }: Services
   const [customAmount, setCustomAmount] = useState('');
   const [meterNumber, setMeterNumber] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [step, setStep] = useState<'hub' | 'detail' | 'confirm' | 'success'>('hub');
+  const [step, setStep] = useState<'detail' | 'confirm' | 'success'>('detail');
   const [successInfo, setSuccessInfo] = useState<ServiceSuccessInfo | null>(null);
   const [billers, setBillers] = useState<Biller[]>([]);
   const [billerCurrency, setBillerCurrency] = useState('NGN');
@@ -79,10 +80,9 @@ export function ServicesScreen({ navigate, switchTab, initialService }: Services
     if (marketCountries.length && !country) setCountry(marketCountries[0].code);
   }, [marketCountries, country]);
 
-  /** Deep-link from More / Pay: open the service form, not the hub catalog. */
+  /** Always open the fixed utility form (hub removed). */
   useEffect(() => {
-    if (!initialService) return;
-    const id = initialService;
+    const id = serviceId === 'tv' ? 'bills' : serviceId;
     const item = SERVICE_GROUPS.flatMap((g) => g.items).find((i) => i.id === id);
     if (!item || !isBillService(id)) return;
     setActiveService(id);
@@ -119,7 +119,7 @@ export function ServicesScreen({ navigate, switchTab, initialService }: Services
       setProviderImage(null);
     }
     setStep('detail');
-  }, [initialService]);
+  }, [serviceId]);
 
   const activeItem = SERVICE_GROUPS.flatMap((g) => g.items).find((i) => i.id === activeService);
   const localCurrency = (billerCurrency || currency.code || 'NGN').toUpperCase();
@@ -381,7 +381,7 @@ export function ServicesScreen({ navigate, switchTab, initialService }: Services
   };
 
   const reset = () => {
-    setStep('hub');
+    goBack();
     setActiveService(null);
     setSelectedProvider(null);
     setProviderImage(null);
@@ -405,7 +405,7 @@ export function ServicesScreen({ navigate, switchTab, initialService }: Services
     <div className="flex flex-col h-full min-h-0 overflow-hidden" style={{ background: 'var(--background)' }}>
       <PageTop />
       <div className="px-4 pt-2 pb-3 flex items-center gap-3 shrink-0">
-        {step !== 'hub' && (
+        {true && (
           <button
             type="button"
             onClick={() => {
@@ -421,7 +421,7 @@ export function ServicesScreen({ navigate, switchTab, initialService }: Services
           </button>
         )}
         <h1 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 20 }}>
-          {step === 'hub' ? t('services.title') || 'Services' : step === 'success' ? 'Done' : step === 'confirm' ? 'Confirm' : activeItem?.label || 'Service'}
+          {step === 'success' ? 'Done' : step === 'confirm' ? 'Confirm' : activeItem?.label || 'Service'}
         </h1>
       </div>
 
@@ -436,13 +436,6 @@ export function ServicesScreen({ navigate, switchTab, initialService }: Services
       )}
 
       <div className="px-4 flex-1 min-h-0 overflow-y-auto overscroll-contain pb-6">
-        {step === 'hub' && (
-          <>
-            <WalletFeatureBanner feature="bills" />
-            <ServiceHub onSelectService={handleServiceClick} />
-          </>
-        )}
-
         {step === 'detail' && activeItem && activeService && (
           <div className="flex flex-col gap-4">
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-5">
@@ -552,7 +545,7 @@ export function ServicesScreen({ navigate, switchTab, initialService }: Services
           <ServicePaymentSuccess
             info={successInfo}
             onNewPayment={reset}
-            onBackToHome={() => switchTab('home')}
+            onBackToHome={() => navigate('home')}
           />
         )}
       </div>

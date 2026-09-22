@@ -32,6 +32,11 @@ const VALID_SCREENS = new Set<string>([
   'request-link',
   'pay',
   'services',
+  'airtime',
+  'data',
+  'electricity',
+  'tv',
+  'betting',
   'token',
 ]);
 

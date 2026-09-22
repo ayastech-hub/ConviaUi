@@ -42,7 +42,7 @@ export function BottomNav({ activeTab, onNavigate, onSwap }: BottomNavProps) {
       label: 'Pay',
       icon: Banknote,
       action: () => onNavigate('pay-hub'),
-      active: activeTab === 'pay-hub' || activeTab === 'services',
+      active: activeTab === 'pay-hub' || activeTab === 'airtime' || activeTab === 'data' || activeTab === 'electricity' || activeTab === 'tv' || activeTab === 'betting',
     },
     {
       id: 'explore',

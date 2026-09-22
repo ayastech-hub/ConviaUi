@@ -29,7 +29,7 @@ type HeroSlide = {
 
 const QUICK: Feat[] = [
   { label: 'QR pay', icon: 'qr', screen: 'scan' },
-  { label: 'Mobile top-up', icon: 'airtime', screen: 'services', param: 'airtime' },
+  { label: 'Mobile top-up', icon: 'airtime', screen: 'airtime' },
   { label: 'Card', icon: 'card', screen: 'onramp' },
 ];
 
@@ -63,18 +63,17 @@ const HERO: HeroSlide[] = [
     title: 'Pay bills from crypto',
     sub: 'Airtime, data, power, TV — settled from your balance.',
     cta: 'Pay bills',
-    screen: 'services',
-    param: 'airtime',
+    screen: 'airtime',
     accent: '#34d399',
   },
 ];
 
 const LIFESTYLE: Feat[] = [
-  { label: 'Airtime', icon: 'airtime', screen: 'services', param: 'airtime' },
-  { label: 'Data', icon: 'data', screen: 'services', param: 'data' },
-  { label: 'Electricity', icon: 'power', screen: 'services', param: 'electricity' },
-  { label: 'TV & cable', icon: 'tv', screen: 'services', param: 'bills' },
-  { label: 'Betting', icon: 'betting', screen: 'services', param: 'betting' },
+  { label: 'Airtime', icon: 'airtime', screen: 'airtime' },
+  { label: 'Data', icon: 'data', screen: 'data' },
+  { label: 'Electricity', icon: 'power', screen: 'electricity' },
+  { label: 'TV & cable', icon: 'tv', screen: 'tv' },
+  { label: 'Betting', icon: 'betting', screen: 'betting' },
   { label: 'Gifts', icon: 'gifts', screen: 'giveaway' },
 ];
 
@@ -334,7 +333,7 @@ export function ExploreScreen({ navigate }: Props) {
           <motion.button
             type="button"
             whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('services')}
+            onClick={() => navigate('airtime')}
             className="flex items-center gap-0.5"
             style={{ color: 'var(--muted-foreground)', fontSize: 13, fontWeight: 500 }}
           >
