@@ -6,6 +6,7 @@ import { BackButton } from '../../../shared/components/BackButton';
 import { useCurrency, type Currency } from '../../../shared/context/CurrencyContext';
 import { convertRate } from '../../../shared/api/rates';
 import { getAllRates, getRate } from '../../../shared/rates/fx';
+import { CountryFlag } from '../../../shared/components/CountryFlag';
 
 type Props = {
   goBack: () => void;
@@ -252,13 +253,10 @@ export function RatesScreen({ goBack }: Props) {
               >
                 <div className="flex items-center gap-3">
                   <span
-                    className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold"
-                    style={{
-                      background: 'color-mix(in oklab, var(--primary) 18%, var(--muted))',
-                      color: 'var(--primary)',
-                    }}
+                    className="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden"
+                    style={{ background: 'var(--muted)' }}
                   >
-                    {c.code.slice(0, 2)}
+                    <CountryFlag code={c.code} size={22} />
                   </span>
                   <span style={{ color: 'var(--foreground)', fontWeight: 650, fontSize: 14.5 }}>
                     {c.code}
@@ -314,13 +312,10 @@ export function RatesScreen({ goBack }: Props) {
                   }}
                 >
                   <span
-                    className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold"
-                    style={{
-                      background: 'var(--muted)',
-                      color: 'var(--foreground)',
-                    }}
+                    className="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden"
+                    style={{ background: 'var(--muted)' }}
                   >
-                    {c.code.slice(0, 2)}
+                    <CountryFlag code={c.code} size={22} />
                   </span>
                   <span style={{ color: 'var(--foreground)', fontWeight: 650 }}>{c.code}</span>
                   <span className="ml-auto tabular-nums" style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>
@@ -346,15 +341,7 @@ function CurrencyChip({ code, onClick }: { code: string; onClick: () => void }) 
       className="flex items-center gap-1.5 shrink-0 rounded-full pl-2 pr-2.5 py-1.5"
       style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
     >
-      <span
-        className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
-        style={{
-          background: 'color-mix(in oklab, var(--primary) 22%, var(--card))',
-          color: 'var(--primary)',
-        }}
-      >
-        {code.slice(0, 2)}
-      </span>
+      <CountryFlag code={code} size={18} />
       <span style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 14 }}>{code}</span>
       <ChevronDown size={14} style={{ color: 'var(--muted-foreground)' }} />
     </motion.button>

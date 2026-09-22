@@ -5,6 +5,7 @@ import type { Screen } from '../../../shared/data/mockData';
 import { PageTop } from '../../../shared/components/PageTop';
 import { ConviaAvatar } from '../../../shared/components/ConviaAvatar';
 import { DualIconBox, DualToneIcon, type DualIconKey } from '../../home/components/icons/DualToneIcons';
+import { CountryFlag } from '../../../shared/components/CountryFlag';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { AssetIcon } from '../../../shared/components/AssetIcon';
 import { useCurrency } from '../../../shared/context/CurrencyContext';
@@ -205,15 +206,7 @@ export function ExploreScreen({ navigate }: Props) {
             border: '1px solid var(--border)',
           }}
         >
-          <span
-            className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
-            style={{
-              background: 'color-mix(in oklab, var(--primary) 25%, var(--card))',
-              color: 'var(--primary)',
-            }}
-          >
-            {currency.code.slice(0, 2)}
-          </span>
+          <CountryFlag code={currency.code} size={18} />
           <span style={{ color: 'var(--foreground)', fontSize: 12, fontWeight: 600 }}>{currency.code}</span>
           <ChevronDown size={14} style={{ color: 'var(--muted-foreground)' }} />
         </motion.button>

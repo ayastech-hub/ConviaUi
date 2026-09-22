@@ -4,8 +4,10 @@ import { Check, ChevronDown, Globe, Search, AlertCircle } from 'lucide-react';
 
 export type CountryOption = { code: string; name: string };
 
+import { flagUrl } from '../../../shared/utils/countryFlags';
+
 function flagSrc(code: string) {
-  return `https://flagcdn.com/w40/${code.toLowerCase()}.png`;
+  return flagUrl(code, 40);
 }
 
 interface CountrySelectProps {

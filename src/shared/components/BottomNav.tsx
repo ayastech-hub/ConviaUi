@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Home, ArrowLeftRight, Banknote, Compass } from 'lucide-react';
+import { Home, ArrowLeftRight, HandCoins, Compass } from 'lucide-react';
 import type { Screen } from '../data/mockData';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -40,7 +40,7 @@ export function BottomNav({ activeTab, onNavigate, onSwap }: BottomNavProps) {
     {
       id: 'pay',
       label: 'Pay',
-      icon: Banknote,
+      icon: HandCoins,
       action: () => onNavigate('pay-hub'),
       active: activeTab === 'pay-hub' || activeTab === 'airtime' || activeTab === 'data' || activeTab === 'electricity' || activeTab === 'tv' || activeTab === 'betting',
     },
