@@ -124,29 +124,33 @@ export function IconMore() {
 export function IconBuy() {
   return (
     <Svg>
-      {/* Accent backing circle on top-right */}
-      <circle cx="15.5" cy="8.5" r="5" style={{ fill: 'var(--primary)' }} />
-      {/* Tag/Note body with bottom-right inward arrow cutout */}
+      {/* Offset Cyan Card Shadow */}
+      <path
+        style={{ fill: 'var(--primary)' }}
+        transform="translate(3.5, 1.5)"
+        d="M6 5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-7l-5-5H6z"
+      />
+      {/* White Foreground Card with top-right corner cut */}
       <path
         style={{ fill: 'var(--foreground)' }}
-        d="M5 6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6.5a2 2 0 0 1-2 2h-3l-3.5 3.5a1 1 0 0 1-1.7-.7V14.5H7a2 2 0 0 1-2-2V6z"
+        d="M6 5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-7l-5-5H6z"
       />
-      {/* Inward Arrow pointing into the tag */}
+      {/* Dark $ Cutout in the center */}
       <path
-        d="M14.5 14.5 18 11M15 11h3v3"
+        d="M10.5 9v6 M8.8 10.7c0-.7.7-1.2 1.7-1.2s1.7.5 1.7 1.2s-.6.9-1.7 1.1s-1.7.5-1.7 1.2s.7 1.2 1.7 1.2s1.7-.5 1.7-1.2"
         fill="none"
         stroke="var(--background)"
-        strokeWidth="1.8"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      {/* Cyan Arrow Pointing DOWN-LEFT (Inward) into the cut corner */}
+      <path
+        d="M19 3 L14.5 7.5 M14.5 7.5 V4 M14.5 7.5 H18"
+        fill="none"
+        stroke="var(--primary)"
+        strokeWidth="2.2"
         strokeLinecap="round"
         strokeLinejoin="round"
-      />
-      {/* Dollar sign ($) cutout on front */}
-      <path
-        d="M10 6.5v6M8.8 8.2c0-.7.7-1.2 1.7-1.2s1.7.5 1.7 1.2-.6.9-1.7 1.1-1.7.5-1.7 1.2.7 1.2 1.7 1.2 1.7-.5 1.7-1.2"
-        fill="none"
-        stroke="var(--background)"
-        strokeWidth="1.4"
-        strokeLinecap="round"
       />
     </Svg>
   );
@@ -155,29 +159,33 @@ export function IconBuy() {
 export function IconSell() {
   return (
     <Svg>
-      {/* Accent backing circle on top-right */}
-      <circle cx="15.5" cy="8.5" r="5" style={{ fill: 'var(--primary)' }} />
-      {/* Tag/Note body with top-right outward arrow cutout */}
+      {/* Offset Cyan Card Shadow */}
+      <path
+        style={{ fill: 'var(--primary)' }}
+        transform="translate(3.5, 1.5)"
+        d="M6 5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-7l-5-5H6z"
+      />
+      {/* White Foreground Card with top-right corner cut */}
       <path
         style={{ fill: 'var(--foreground)' }}
-        d="M5 8a2 2 0 0 1 2-2h6.5a2 2 0 0 1 2 2v2a1 1 0 0 0 1 1h2a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8z"
+        d="M6 5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-7l-5-5H6z"
       />
-      {/* Outward Arrow pointing out of top-right */}
+      {/* Dark $ Cutout in the center */}
       <path
-        d="M14.5 11.5 18 8M15.5 8H18v2.5"
+        d="M10.5 9v6 M8.8 10.7c0-.7.7-1.2 1.7-1.2s1.7.5 1.7 1.2s-.6.9-1.7 1.1s-1.7.5-1.7 1.2s.7 1.2 1.7 1.2s1.7-.5 1.7-1.2"
         fill="none"
         stroke="var(--background)"
-        strokeWidth="1.8"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      {/* Cyan Arrow Pointing UP-RIGHT (Outward) away from the cut corner */}
+      <path
+        d="M14.5 7.5 L19 3 M19 3 V6.5 M19 3 H15.5"
+        fill="none"
+        stroke="var(--primary)"
+        strokeWidth="2.2"
         strokeLinecap="round"
         strokeLinejoin="round"
-      />
-      {/* Dollar sign ($) cutout on front */}
-      <path
-        d="M9.5 8.5v6M8.3 10.2c0-.7.7-1.2 1.7-1.2s1.7.5 1.7 1.2-.6.9-1.7 1.1-1.7.5-1.7 1.2.7 1.2 1.7 1.2 1.7-.5 1.7-1.2"
-        fill="none"
-        stroke="var(--background)"
-        strokeWidth="1.4"
-        strokeLinecap="round"
       />
     </Svg>
   );
