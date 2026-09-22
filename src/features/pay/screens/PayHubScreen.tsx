@@ -1,7 +1,12 @@
+import { useState } from 'react';
 import { motion } from 'motion/react';
+import { ChevronDown } from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
 import { PageTop } from '../../../shared/components/PageTop';
+import { ConviaAvatar } from '../../../shared/components/ConviaAvatar';
 import { DualIconBox, DualToneIcon, type DualIconKey } from '../../home/components/icons/DualToneIcons';
+import { useCurrency } from '../../../shared/context/CurrencyContext';
+import { CurrencyPickerView } from '../../profile/components/CurrencyPickerView';
 
 type Props = {
   navigate: (s: Screen, param?: string) => void;
@@ -17,9 +22,9 @@ type Row = {
 
 const QUICK: { label: string; icon: DualIconKey; screen: Screen; param?: string }[] = [
   { label: 'QR pay', icon: 'qr', screen: 'scan' },
-  { label: 'Request', icon: 'request', screen: 'request' },
+  { label: 'Mobile top-up', icon: 'airtime', screen: 'services', param: 'airtime' },
+  { label: 'Card', icon: 'card', screen: 'onramp' },
   { label: 'Pay link', icon: 'reqlink', screen: 'request-link' },
-  { label: 'Betting', icon: 'betting', screen: 'services', param: 'betting' },
 ];
 
 const SECTIONS: { title: string; items: Row[] }[] = [
@@ -47,52 +52,105 @@ const SECTIONS: { title: string; items: Row[] }[] = [
     title: 'Share',
     items: [
       { label: 'Gifts', sub: 'Create or claim a giveaway', icon: 'gifts', screen: 'giveaway' },
+      { label: 'Rewards', sub: 'Tasks and referral bonuses', icon: 'rewards', screen: 'rewards' },
     ],
   },
 ];
 
 export function PayHubScreen({ navigate }: Props) {
+  const { currency, setCurrency } = useCurrency();
+  const [showCurrency, setShowCurrency] = useState(false);
+
+  if (showCurrency) {
+    return (
+      <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
+        <PageTop />
+        <CurrencyPickerView
+          currentCode={currency.code}
+          onSelect={(c) => {
+            setCurrency(c);
+            setShowCurrency(false);
+          }}
+          onBack={() => setShowCurrency(false)}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
       <PageTop />
 
-      <div className="px-5 pt-1 pb-4">
-        <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 22, letterSpacing: -0.4 }}>
-          Pay
-        </p>
+      {/* Account + currency — same pattern as Explore */}
+      <div className="flex items-center justify-between px-4 pt-1 pb-2">
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.94 }}
+          onClick={() => navigate('profile')}
+          aria-label="Account"
+          className="flex items-center justify-center"
+          style={{ background: 'transparent', border: 'none', padding: 0 }}
+        >
+          <ConviaAvatar size={36} />
+        </motion.button>
+
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.96 }}
+          onClick={() => setShowCurrency(true)}
+          className="flex items-center gap-1.5 rounded-full pl-1.5 pr-2.5 py-1"
+          style={{
+            background: 'var(--muted)',
+            border: '1px solid var(--border)',
+          }}
+        >
+          <span
+            className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
+            style={{
+              background: 'color-mix(in oklab, var(--primary) 25%, var(--card))',
+              color: 'var(--primary)',
+            }}
+          >
+            {currency.code.slice(0, 2)}
+          </span>
+          <span style={{ color: 'var(--foreground)', fontSize: 12, fontWeight: 600 }}>{currency.code}</span>
+          <ChevronDown size={14} style={{ color: 'var(--muted-foreground)' }} />
+        </motion.button>
+      </div>
+
+      <div className="px-5 pb-3">
+        <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 22, letterSpacing: -0.4 }}>Pay</p>
         <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginTop: 4, lineHeight: 1.35 }}>
-          Transfers, bills, payment links, and more from your balance
+          Transfers, bills, and links from your balance
         </p>
       </div>
 
-      {/* Quick actions */}
-      <div className="px-4 mb-5">
-        <div
-          className="grid grid-cols-4 gap-2 rounded-2xl p-3"
-          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-        >
-          {QUICK.map((f) => (
-            <motion.button
-              key={f.label}
-              type="button"
-              whileTap={{ scale: 0.94 }}
-              onClick={() => navigate(f.screen, f.param)}
-              className="flex flex-col items-center gap-2 py-1"
-            >
-              <DualIconBox size={48}>
-                <span style={{ transform: 'scale(0.88)', transformOrigin: 'center' }}>
-                  <DualToneIcon name={f.icon} />
-                </span>
-              </DualIconBox>
-              <span
-                className="text-center leading-tight"
-                style={{ color: 'var(--foreground)', fontSize: 11, fontWeight: 600 }}
-              >
-                {f.label}
-              </span>
-            </motion.button>
-          ))}
-        </div>
+      {/* Quick pills */}
+      <div
+        className="flex gap-2 px-4 mb-5 overflow-x-auto"
+        style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+      >
+        {QUICK.map((q) => (
+          <motion.button
+            key={q.label}
+            type="button"
+            whileTap={{ scale: 0.96 }}
+            onClick={() => navigate(q.screen, q.param)}
+            className="flex items-center gap-2 shrink-0 rounded-full pl-1.5 pr-3 py-1.5"
+            style={{
+              background: 'var(--muted)',
+              border: '1px solid var(--border)',
+              minHeight: 40,
+            }}
+          >
+            <span style={{ transform: 'scale(0.72)', transformOrigin: 'center' }}>
+              <DualToneIcon name={q.icon} />
+            </span>
+            <span style={{ color: 'var(--foreground)', fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap' }}>
+              {q.label}
+            </span>
+          </motion.button>
+        ))}
       </div>
 
       <div className="px-4 pb-28 flex flex-col gap-4">
@@ -122,7 +180,8 @@ export function PayHubScreen({ navigate }: Props) {
                   onClick={() => navigate(row.screen, row.param)}
                   className="w-full flex items-center gap-3 px-3.5 py-3.5 text-left"
                   style={{
-                    borderTop: i === 0 ? undefined : '1px solid color-mix(in oklab, var(--border) 85%, transparent)',
+                    borderTop:
+                      i === 0 ? undefined : '1px solid color-mix(in oklab, var(--border) 85%, transparent)',
                   }}
                 >
                   <DualIconBox size={44}>
