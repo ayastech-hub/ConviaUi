@@ -1,3 +1,4 @@
+import { FeatureGated } from '../shared/components/FeatureGated';
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -298,7 +299,9 @@ export default function App() {
       case 'send':
         return (
           <motion.div key="send" {...slideRight} className="absolute inset-0">
+            <FeatureGated screen="send" goBack={goBack}>
             <SendScreen navigate={navigate} goBack={goBack} />
+            </FeatureGated>
           </motion.div>
         );
       case 'receive':
@@ -329,19 +332,25 @@ export default function App() {
       case 'swap':
         return (
           <motion.div key="swap" {...slideRight} className="absolute inset-0 flex flex-col" style={{ paddingBottom: LAYOUT.bottomNav }}>
+            <FeatureGated screen="swap" goBack={goBack}>
             <SwapScreen goBack={goBack} navigate={navigate} presetSymbol={navParam} />
+            </FeatureGated>
           </motion.div>
         );
       case 'offramp':
         return (
           <motion.div key="offramp" {...slideRight} className="absolute inset-0">
+            <FeatureGated screen="offramp" goBack={goBack}>
             <OffRampScreen goBack={goBack} navigate={navigate} presetSymbol={navParam} />
+            </FeatureGated>
           </motion.div>
         );
       case 'onramp':
         return (
           <motion.div key="onramp" {...slideRight} className="absolute inset-0">
+            <FeatureGated screen="onramp" goBack={goBack}>
             <OnRampScreen goBack={goBack} presetSymbol={navParam} />
+            </FeatureGated>
           </motion.div>
         );
       case 'deposit':
@@ -353,7 +362,9 @@ export default function App() {
       case 'withdraw':
         return (
           <motion.div key="withdraw" {...slideRight} className="absolute inset-0">
+            <FeatureGated screen="withdraw" goBack={goBack}>
             <WithdrawScreen goBack={goBack} navigate={navigate} presetSymbol={navParam} />
+            </FeatureGated>
           </motion.div>
         );
       case 'notifications':
@@ -465,7 +476,9 @@ export default function App() {
       case 'betting':
         return (
           <motion.div key={`util-${current}`} {...slideRight} className="absolute inset-0 flex flex-col">
-            <ServicesScreen navigate={navigate} goBack={goBack} serviceId={current === 'tv' ? 'bills' : current} />
+            <FeatureGated screen={current === 'tv' ? 'tv' : current} goBack={goBack}>
+              <ServicesScreen navigate={navigate} goBack={goBack} serviceId={current === 'tv' ? 'bills' : current} />
+            </FeatureGated>
           </motion.div>
         );
       case 'services':
