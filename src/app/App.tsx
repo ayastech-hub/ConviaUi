@@ -66,32 +66,94 @@ const NAV_VISIBLE: Screen[] = [
   'pay-hub',
 ];
 
-function MaintenanceBanner() {
-  const [msg, setMsg] = useState<string | null>(null);
+/**
+ * When platform maintenance is on: hide the whole app and show only this screen.
+ * No tabs, no balances, no trading — full block until admin turns maintenance off.
+ */
+function MaintenanceGate({ children }: { children: React.ReactNode }) {
+  const [state, setState] = useState<{
+    loading: boolean;
+    maintenance: boolean;
+    message: string | null;
+  }>({ loading: true, maintenance: false, message: null });
+
   useEffect(() => {
     let alive = true;
     const load = () => {
-      void fetchPlatformStatus().then((s) => {
-        if (!alive) return;
-        setMsg(s.maintenance ? s.message || 'Maintenance in progress.' : null);
-      });
+      void fetchPlatformStatus()
+        .then((s) => {
+          if (!alive) return;
+          setState({
+            loading: false,
+            maintenance: !!s.maintenance,
+            message: s.maintenance
+              ? s.message || 'We are performing scheduled maintenance. Please try again shortly.'
+              : null,
+          });
+        })
+        .catch(() => {
+          if (!alive) return;
+          // Fail open if status endpoint is unreachable (avoid locking everyone out on network blip)
+          setState((prev) => ({ ...prev, loading: false }));
+        });
     };
     load();
-    const id = window.setInterval(load, 60_000);
+    const id = window.setInterval(load, 30_000);
     return () => {
       alive = false;
       window.clearInterval(id);
     };
   }, []);
-  if (!msg) return null;
-  return (
-    <div
-      role="status"
-      className="z-[100] w-full shrink-0 bg-amber-500 px-4 py-2.5 text-center text-sm font-medium text-black"
-    >
-      {msg}
-    </div>
-  );
+
+  if (state.loading) {
+    return (
+      <div
+        className="flex h-full w-full items-center justify-center"
+        style={{ background: 'var(--background)', minHeight: '100dvh' }}
+      >
+        <div
+          className="h-8 w-8 rounded-full border-2 border-t-transparent animate-spin"
+          style={{ borderColor: 'var(--muted-foreground)', borderTopColor: 'transparent' }}
+        />
+      </div>
+    );
+  }
+
+  if (state.maintenance) {
+    return (
+      <div
+        className="flex h-full w-full flex-col items-center justify-center px-8 text-center"
+        style={{ background: 'var(--background)', minHeight: '100dvh' }}
+        role="alert"
+      >
+        <div
+          className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl"
+          style={{
+            background: 'color-mix(in oklab, var(--warning, #f59e0b) 16%, var(--card))',
+            border: '1px solid color-mix(in oklab, var(--warning, #f59e0b) 35%, var(--border))',
+          }}
+        >
+          <span style={{ fontSize: 28 }} aria-hidden>
+            🛠️
+          </span>
+        </div>
+        <p style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 22, letterSpacing: -0.3 }}>
+          Under maintenance
+        </p>
+        <p
+          className="mt-3 max-w-sm"
+          style={{ color: 'var(--muted-foreground)', fontSize: 14.5, lineHeight: 1.55 }}
+        >
+          {state.message}
+        </p>
+        <p className="mt-8" style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
+          This page refreshes automatically when service returns.
+        </p>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
 }
 
 
@@ -537,29 +599,30 @@ export default function App() {
 
   return (
     <div className={darkMode ? 'dark' : ''} style={{ width: '100%', height: '100%' }}>
-      {/* Fills the browser viewport directly — no phone-frame mockup */}
-      <div
-        className="relative flex flex-col overflow-hidden"
-        style={{
-          width: '100vw',
-          height: '100dvh',
-          background: 'var(--background)',
-        }}
-      >
-        <div className="relative flex-1 overflow-hidden" style={{ background: 'var(--background)' }}>
-          <AnimatePresence mode="wait">{renderScreen()}</AnimatePresence>
-        </div>
-
-        {showNav && (
-          <div className="absolute bottom-0 left-0 right-0 z-40">
-            <BottomNav
-              activeTab={activeTab as Screen}
-              onNavigate={switchTab}
-              onSwap={() => { navigate('swap'); }}
-            />
+      <MaintenanceGate>
+        <div
+          className="relative flex flex-col overflow-hidden"
+          style={{
+            width: '100vw',
+            height: '100dvh',
+            background: 'var(--background)',
+          }}
+        >
+          <div className="relative flex-1 overflow-hidden" style={{ background: 'var(--background)' }}>
+            <AnimatePresence mode="wait">{renderScreen()}</AnimatePresence>
           </div>
-        )}
-      </div>
+
+          {showNav && (
+            <div className="absolute bottom-0 left-0 right-0 z-40">
+              <BottomNav
+                activeTab={activeTab as Screen}
+                onNavigate={switchTab}
+                onSwap={() => { navigate('swap'); }}
+              />
+            </div>
+          )}
+        </div>
+      </MaintenanceGate>
     </div>
   );
 }
