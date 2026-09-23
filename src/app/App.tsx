@@ -67,15 +67,12 @@ const NAV_VISIBLE: Screen[] = [
 ];
 
 /**
- * When platform maintenance is on: hide the whole app and show only this screen.
- * No tabs, no balances, no trading — full block until admin turns maintenance off.
+ * Maintenance check runs in the background after first paint.
+ * App always loads immediately; if maintenance is on, we swap to the block screen.
  */
-function MaintenanceGate({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<{
-    loading: boolean;
-    maintenance: boolean;
-    message: string | null;
-  }>({ loading: true, maintenance: false, message: null });
+function MaintenanceGate({ children }: { children: import('react').ReactNode }) {
+  const [maintenance, setMaintenance] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -83,43 +80,31 @@ function MaintenanceGate({ children }: { children: React.ReactNode }) {
       void fetchPlatformStatus()
         .then((s) => {
           if (!alive) return;
-          setState({
-            loading: false,
-            maintenance: !!s.maintenance,
-            message: s.maintenance
-              ? s.message || 'We are performing scheduled maintenance. Please try again shortly.'
-              : null,
-          });
+          if (s.maintenance) {
+            setMaintenance(true);
+            setMessage(
+              s.message || 'We are performing scheduled maintenance. Please try again shortly.',
+            );
+          } else {
+            setMaintenance(false);
+            setMessage(null);
+          }
         })
         .catch(() => {
-          if (!alive) return;
-          // Fail open if status endpoint is unreachable (avoid locking everyone out on network blip)
-          setState((prev) => ({ ...prev, loading: false }));
+          /* fail open — keep app usable if status check fails */
         });
     };
-    load();
-    const id = window.setInterval(load, 30_000);
+    // After paint — do not block first render
+    const t = window.setTimeout(load, 0);
+    const id = window.setInterval(load, 60_000);
     return () => {
       alive = false;
+      window.clearTimeout(t);
       window.clearInterval(id);
     };
   }, []);
 
-  if (state.loading) {
-    return (
-      <div
-        className="flex h-full w-full items-center justify-center"
-        style={{ background: 'var(--background)', minHeight: '100dvh' }}
-      >
-        <div
-          className="h-8 w-8 rounded-full border-2 border-t-transparent animate-spin"
-          style={{ borderColor: 'var(--muted-foreground)', borderTopColor: 'transparent' }}
-        />
-      </div>
-    );
-  }
-
-  if (state.maintenance) {
+  if (maintenance) {
     return (
       <div
         className="flex h-full w-full flex-col items-center justify-center px-8 text-center"
@@ -144,7 +129,7 @@ function MaintenanceGate({ children }: { children: React.ReactNode }) {
           className="mt-3 max-w-sm"
           style={{ color: 'var(--muted-foreground)', fontSize: 14.5, lineHeight: 1.55 }}
         >
-          {state.message}
+          {message}
         </p>
         <p className="mt-8" style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>
           This page refreshes automatically when service returns.
