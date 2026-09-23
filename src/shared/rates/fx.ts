@@ -1,19 +1,21 @@
 /**
  * Central FX rates — USD is the base (rate = 1).
- * Live rates come from the API only. Missing rates are unavailable (not guessed).
+ * Live rates come from the API. Missing rates stay 0 (unavailable) until synced.
  */
 
 export type FxCode = string;
-
 export type RateTable = Record<string, number>;
 
-/** Preset airtime quick-select amounts for service inputs. */
-export const localAirtimeAmounts = [100, 200, 500, 1000, 2000, 5000];
+/** Suggested airtime chips in local currency units. */
+export function localAirtimeAmounts(_code?: string): number[] {
+  return [100, 200, 500, 1000, 2000, 5000];
+}
 
-/** General preset quick-select amounts for service inputs. */
-export const localQuickAmounts = [50, 100, 250, 500, 1000];
+/** Suggested utility chips in local currency units. */
+export function localQuickAmounts(_code?: string): number[] {
+  return [50, 100, 250, 500, 1000, 2000, 5000];
+}
 
-/** Only USD is known until API / setLiveRates fills the rest. */
 let liveRates: RateTable = { USD: 1 };
 
 /** Replace/merge rates from API (USD base: units of local per 1 USD). */
@@ -38,7 +40,7 @@ export function hasLiveRate(code: string): boolean {
   return Number.isFinite(n) && (n as number) > 0;
 }
 
-/** Units of local per 1 USD. Returns 0 if unavailable (do not invent rates). */
+/** Units of local per 1 USD. Returns 0 if unavailable. */
 export function getRate(code: string): number {
   const c = (code || 'USD').toUpperCase();
   if (c === 'USD') return 1;
@@ -61,11 +63,7 @@ export function localToUsd(localAmount: number, code: string): number {
   return r > 0 ? Number(localAmount) / r : 0;
 }
 
-export function formatLocal(
-  localAmount: number,
-  code: string,
-  symbol?: string,
-): string {
+export function formatLocal(localAmount: number, code: string, symbol?: string): string {
   const r = getRate(code);
   if (r <= 0 && code.toUpperCase() !== 'USD') return '—';
   const decimals = r > 50 ? 0 : 2;
@@ -78,12 +76,7 @@ export function formatLocal(
   })}`;
 }
 
-/** Format a USD amount in the target currency (live rate required, else em dash). */
-export function formatUsdAsLocal(
-  usdAmount: number,
-  code: string,
-  symbol?: string,
-): string {
+export function formatUsdAsLocal(usdAmount: number, code: string, symbol?: string): string {
   const c = (code || 'USD').toUpperCase();
   if (c === 'USD') {
     const n = Number(usdAmount);

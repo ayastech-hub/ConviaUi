@@ -48,6 +48,7 @@ export function ServicesScreen({ navigate, goBack, serviceId }: ServicesScreenPr
   const { currency } = useCurrency();
   const resolvedId = serviceId === 'tv' ? 'bills' : serviceId;
   const [activeService, setActiveService] = useState<string | null>(resolvedId);
+  useEffect(() => { setActiveService(resolvedId); }, [resolvedId]);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [providerImage, setProviderImage] = useState<string | null>(null);
   const [selectedBillerCode, setSelectedBillerCode] = useState<string | null>(null);
@@ -382,7 +383,7 @@ export function ServicesScreen({ navigate, goBack, serviceId }: ServicesScreenPr
 
   const reset = () => {
     goBack();
-    setActiveService(null);
+    setActiveService(resolvedId);
     setSelectedProvider(null);
     setProviderImage(null);
     setSelectedBillerCode(null);

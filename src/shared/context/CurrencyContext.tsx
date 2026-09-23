@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import { listSupportedCountries } from '../api/banks';
+import { convertRate } from '../api/rates';
 import { cacheGet, cacheSet } from '../cache/queryCache';
 import {
   getRate,
@@ -97,10 +98,27 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
           const cur = String(r.currency || '').toUpperCase();
           if (cur) codes.add(cur);
         }
-        const list = [...codes].map(currencyFromCode);
+        // Live FX from /rates/convert (USD base) — never invent rates.
+        const rateEntries: Record<string, number> = { USD: 1 };
+        await Promise.all(
+          [...codes]
+            .filter((c) => c !== 'USD')
+            .map(async (code) => {
+              try {
+                const res = await convertRate({ from: 'USD', to: code, amount: '1' });
+                const r = Number(res?.rate);
+                if (Number.isFinite(r) && r > 0) rateEntries[code] = r;
+              } catch {
+                /* leave unavailable */
+              }
+            }),
+        );
+        setLiveRates(rateEntries);
+        const list = [...codes].map((code) => {
+          const base = currencyFromCode(code);
+          return { ...base, rate: rateEntries[code] ?? base.rate ?? 0 };
+        });
         if (!cancelled && list.length) {
-          // Keep central rate table in sync (USD base)
-          setLiveRates(Object.fromEntries(list.map((c) => [c.code, c.rate])));
           cacheSet(CACHE_KEY, list);
           setCurrencies(list);
           setCurrencyState((prev) => list.find((c) => c.code === prev.code) || list[0]);
