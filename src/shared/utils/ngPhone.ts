@@ -31,14 +31,32 @@ export const DATA_BILLER: Record<string, { code: string; name: string }> = {
 export type NgOperator = keyof typeof PREFIXES;
 
 export function digitsOnly(v: string): string {
-  return v.replace(/\D/g, '');
+  return String(v || '').replace(/\D/g, '');
 }
 
-/** Normalize to local 11-digit form starting with 0 when possible. */
+/**
+ * Normalize any common NG form to local 11 digits starting with 0.
+ * Handles: +234…, 234…, 0803…, 803… (10 digits without leading 0).
+ */
 export function normalizeNgMobile(raw: string): string {
   let d = digitsOnly(raw);
-  if (d.startsWith('234') && d.length >= 13) d = `0${d.slice(3)}`;
-  return d.slice(0, 11);
+
+  // +234 / 234 country code → national number
+  if (d.startsWith('234')) {
+    d = d.slice(3);
+  }
+
+  // 10-digit without leading 0 (e.g. 8031234567 from contacts)
+  if (d.length === 10 && /^[789]/.test(d)) {
+    d = `0${d}`;
+  }
+
+  // Cap at 11 (0 + 10)
+  if (d.length > 11) {
+    d = d.slice(0, 11);
+  }
+
+  return d;
 }
 
 export function detectNgOperator(phone: string): NgOperator | null {
@@ -53,10 +71,11 @@ export function detectNgOperator(phone: string): NgOperator | null {
 
 export function isValidNgMobile(phone: string): boolean {
   const d = normalizeNgMobile(phone);
-  return /^0\d{10}$/.test(d);
+  return /^0[789]\d{9}$/.test(d);
 }
 
 export function formatNgMobileDisplay(phone: string): string {
   const d = normalizeNgMobile(phone);
+  if (d.length < 4) return d;
   return [d.slice(0, 4), d.slice(4, 7), d.slice(7, 11)].filter(Boolean).join(' ');
 }

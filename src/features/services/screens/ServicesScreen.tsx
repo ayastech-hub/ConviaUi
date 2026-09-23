@@ -1,3 +1,4 @@
+import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'motion/react';
@@ -62,6 +63,7 @@ export function ServicesScreen({ navigate, goBack, serviceId }: ServicesScreenPr
   const [customAmount, setCustomAmount] = useState('');
   const [meterNumber, setMeterNumber] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [payAsset, setPayAsset] = useState<'USDT' | 'USDC' | 'BTC'>('USDT');
   const [step, setStep] = useState<'detail' | 'confirm' | 'success'>('detail');
   const [successInfo, setSuccessInfo] = useState<ServiceSuccessInfo | null>(null);
   const [billers, setBillers] = useState<Biller[]>([]);
@@ -75,6 +77,14 @@ export function ServicesScreen({ navigate, goBack, serviceId }: ServicesScreenPr
   const [pinError, setPinError] = useState('');
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
   const { countries: marketCountries } = useSupportedCountries();
+  const { assets: walletAssets } = useWalletAssets();
+  const balanceFor = (sym: string) => {
+    const row = (walletAssets || []).find((a: { symbol?: string; balance?: number | string }) =>
+      String(a.symbol || '').toUpperCase() === sym,
+    );
+    const n = Number(row?.balance ?? 0);
+    return Number.isFinite(n) ? n : 0;
+  };
   const [country, setCountry] = useState('');
 
   useEffect(() => {
@@ -334,7 +344,7 @@ export function ServicesScreen({ navigate, goBack, serviceId }: ServicesScreenPr
         billerCode: selectedBillerCode,
         customerRef,
         amount: '0',
-        asset: 'USDT',
+        asset: payAsset,
         localAmount: localAmountStr,
         localCurrency,
         productCode:
@@ -357,7 +367,7 @@ export function ServicesScreen({ navigate, goBack, serviceId }: ServicesScreenPr
         localAmount: res.localAmount || localAmountStr,
         localCurrency: res.localCurrency || localCurrency,
         cryptoAmount: res.amount,
-        cryptoAsset: res.asset || 'USDT',
+        cryptoAsset: res.asset || payAsset,
         status,
         externalRef: res.externalRef || undefined,
         failureReason: res.failureReason || undefined,
@@ -482,6 +492,62 @@ export function ServicesScreen({ navigate, goBack, serviceId }: ServicesScreenPr
                         Minimum amount is {localCurrency} {minLocalAmount.toLocaleString()}
                       </p>
                     )}
+
+                    <div
+                      className="rounded-2xl p-3 mb-3"
+                      style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+                    >
+                      <p
+                        style={{
+                          color: 'var(--muted-foreground)',
+                          fontSize: 11,
+                          fontWeight: 600,
+                          letterSpacing: '0.04em',
+                          marginBottom: 8,
+                        }}
+                      >
+                        PAY WITH
+                      </p>
+                      <div className="flex gap-2">
+                        {(['USDT', 'USDC', 'BTC'] as const).map((sym) => {
+                          const on = payAsset === sym;
+                          const bal = balanceFor(sym);
+                          return (
+                            <button
+                              key={sym}
+                              type="button"
+                              onClick={() => setPayAsset(sym)}
+                              className="flex-1 rounded-xl py-2.5 px-1 flex flex-col items-center gap-0.5"
+                              style={{
+                                background: on
+                                  ? 'color-mix(in oklab, var(--primary) 14%, var(--card))'
+                                  : 'var(--secondary)',
+                                border: on
+                                  ? '1.5px solid var(--primary)'
+                                  : '1.5px solid var(--border)',
+                              }}
+                            >
+                              <span
+                                style={{
+                                  color: on ? 'var(--primary)' : 'var(--foreground)',
+                                  fontSize: 13,
+                                  fontWeight: 800,
+                                }}
+                              >
+                                {sym}
+                              </span>
+                              <span style={{ color: 'var(--muted-foreground)', fontSize: 10, fontWeight: 500 }}>
+                                {bal > 0
+                                  ? bal >= 1
+                                    ? bal.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                                    : bal.toLocaleString(undefined, { maximumFractionDigits: 6 })
+                                  : '0'}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                     <PaymentSummaryCard
                       provider={selectedProvider || ''}
                       serviceLabel={activeItem.label}
@@ -521,7 +587,7 @@ export function ServicesScreen({ navigate, goBack, serviceId }: ServicesScreenPr
               })()}
             </p>
             <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginBottom: 24 }}>
-              To {customerRef} · debited from USDT balance
+              To {customerRef} · debited from {payAsset} balance
             </p>
             <PinBoxes value={pin} onChange={setPin} error={pinError} length={6} />
             <motion.button

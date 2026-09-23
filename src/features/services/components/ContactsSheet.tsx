@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, User } from 'lucide-react';
 import { loadDeviceContacts, isNativeShell } from '../../../shared/native/nativeShell';
+import { normalizeNgMobile } from '../../../shared/utils/ngPhone';
 
 type Contact = { name: string; phone: string };
 
@@ -31,7 +32,7 @@ export function ContactsSheet({ open, onClose, onPick }: Props) {
           if (rows.length) {
             setContacts(rows.map((r) => ({
               name: r.name,
-              phone: r.phone.startsWith('0') ? r.phone : r.phone.length === 10 ? `0${r.phone}` : r.phone,
+              phone: normalizeNgMobile(r.phone),
             })));
             setStatus('ready');
             return;
@@ -54,10 +55,10 @@ export function ContactsSheet({ open, onClose, onPick }: Props) {
         for (const c of selected || []) {
           const tel = Array.isArray(c.tel) ? c.tel[0] : c.tel;
           const name = Array.isArray(c.name) ? c.name[0] : c.name;
-          if (tel) rows.push({ name: String(name || 'Contact'), phone: String(tel).replace(/\D/g, '').slice(-11) });
+          if (tel) rows.push({ name: String(name || 'Contact'), phone: normalizeNgMobile(String(tel)) });
         }
         if (rows.length) {
-          onPick(rows[0].phone.startsWith('0') ? rows[0].phone : `0${rows[0].phone}`);
+          onPick(normalizeNgMobile(rows[0].phone));
           onClose();
           return;
         }
@@ -117,7 +118,7 @@ export function ContactsSheet({ open, onClose, onPick }: Props) {
                 key={c.phone}
                 type="button"
                 onClick={() => {
-                  onPick(c.phone.startsWith('0') ? c.phone : `0${c.phone}`);
+                  onPick(normalizeNgMobile(c.phone));
                   onClose();
                 }}
                 className="w-full flex items-center gap-3 py-3.5 text-left"

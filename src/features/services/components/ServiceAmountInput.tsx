@@ -301,7 +301,7 @@ export function ServiceAmountInput({
         open={contactsOpen}
         onClose={() => setContactsOpen(false)}
         onPick={(phone) => {
-          if (needsPhone) setPhoneNumber(phone);
+          if (needsPhone) setPhoneNumber(normalizeNgMobile(phone));
           else if (needsMeter) setMeterNumber(phone);
         }}
       />
