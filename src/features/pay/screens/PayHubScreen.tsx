@@ -1,6 +1,14 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronRight,
+  Smartphone,
+  QrCode,
+  Link2,
+  Zap,
+  ArrowUpRight,
+} from 'lucide-react';
 import type { Screen } from '../../../shared/data/mockData';
 import { PageTop } from '../../../shared/components/PageTop';
 import { ConviaAvatar } from '../../../shared/components/ConviaAvatar';
@@ -38,61 +46,327 @@ const TRANSFER: GridItem[] = [
   { label: 'Scan QR', icon: 'qr', screen: 'scan' },
 ];
 
-type Hero = {
+/** Theme-only accents — matches home PromoBanner */
+type PaySlide = {
   id: string;
-  kicker: string;
+  label: string;
   title: string;
-  sub: string;
-  cta: string;
+  description: string;
   screen: Screen;
-  accent: string;
-  icon: DualIconKey;
+  accent: string; // CSS var only
 };
 
-const HERO: Hero[] = [
+const SLIDES: PaySlide[] = [
   {
     id: 'bills',
-    kicker: 'Everyday payments',
-    title: 'Pay bills from your balance',
-    sub: 'Airtime, data, power and TV — settled in seconds.',
-    cta: 'Pay airtime',
+    label: 'BILLS & AIRTIME',
+    title: 'Pay from your balance',
+    description: 'Airtime, data, power and TV in seconds.',
     screen: 'airtime',
     accent: 'var(--primary)',
-    icon: 'airtime',
   },
   {
     id: 'qr',
-    kicker: 'Instant',
-    title: 'Scan to pay or receive',
-    sub: 'No long addresses. Point, confirm, done.',
-    cta: 'Open scanner',
+    label: 'SCAN & PAY',
+    title: 'Pay with QR',
+    description: 'No long addresses — scan and confirm.',
     screen: 'scan',
-    accent: '#38bdf8',
-    icon: 'qr',
+    accent: 'var(--primary)',
   },
   {
     id: 'link',
-    kicker: 'Collect',
+    label: 'PAYMENT LINK',
     title: 'Get paid with a link',
-    sub: 'Share once. Receive crypto when they pay.',
-    cta: 'Create link',
+    description: 'Share once. Receive when they pay.',
     screen: 'request-link',
-    accent: '#a78bfa',
-    icon: 'reqlink',
+    accent: 'var(--positive, #16A34A)',
+  },
+  {
+    id: 'buy',
+    label: 'BUY CRYPTO',
+    title: 'Fund your wallet',
+    description: 'Card or bank — crypto lands in Convia.',
+    screen: 'onramp',
+    accent: 'var(--foreground)',
   },
 ];
+
+const N = SLIDES.length;
+const AUTO_MS = 5000;
+const SWIPE = 40;
+
+function BillsArt({ accent }: { accent: string }) {
+  return (
+    <div className="relative w-[76px] h-[62px]" aria-hidden>
+      <motion.div
+        animate={{ y: [0, -3, 0], rotate: [-3, 2, -3] }}
+        transition={{ duration: 3.6, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute right-0 top-0 w-[54px] h-[54px] rounded-2xl flex items-center justify-center"
+        style={{
+          background: `color-mix(in srgb, ${accent} 14%, var(--card))`,
+          border: `1px solid color-mix(in srgb, ${accent} 28%, var(--border))`,
+          boxShadow: `0 8px 22px color-mix(in srgb, ${accent} 16%, transparent)`,
+        }}
+      >
+        <Smartphone size={22} strokeWidth={1.7} style={{ color: accent }} />
+      </motion.div>
+      <motion.div
+        animate={{ y: [0, 3, 0] }}
+        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute left-0 bottom-0 flex items-center gap-1 px-1.5 py-1 rounded-md"
+        style={{
+          background: 'var(--card)',
+          border: '1px solid var(--border)',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+        }}
+      >
+        <Zap size={8} style={{ color: accent }} />
+        <span className="text-[6px] font-bold" style={{ color: 'var(--foreground)' }}>
+          LIVE
+        </span>
+      </motion.div>
+    </div>
+  );
+}
+
+function QrArt({ accent }: { accent: string }) {
+  return (
+    <div className="relative w-[76px] h-[62px]" aria-hidden>
+      <motion.div
+        animate={{ y: [0, -3, 0] }}
+        transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute right-0 top-0 w-[54px] h-[54px] rounded-xl flex items-center justify-center"
+        style={{
+          background: `color-mix(in srgb, ${accent} 10%, var(--card))`,
+          border: `1px solid color-mix(in srgb, ${accent} 26%, var(--border))`,
+          boxShadow: '0 8px 22px rgba(0,0,0,0.12)',
+        }}
+      >
+        <QrCode size={24} strokeWidth={1.6} style={{ color: accent }} />
+      </motion.div>
+    </div>
+  );
+}
+
+function LinkArt({ accent }: { accent: string }) {
+  return (
+    <div className="relative w-[76px] h-[62px]" aria-hidden>
+      <motion.div
+        animate={{ y: [0, -3, 0], rotate: [0, 3, 0] }}
+        transition={{ duration: 3.6, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute right-0 top-0 w-[54px] h-[54px] rounded-full flex items-center justify-center"
+        style={{
+          background: `color-mix(in srgb, ${accent} 12%, var(--card))`,
+          border: `1px solid color-mix(in srgb, ${accent} 28%, var(--border))`,
+          boxShadow: `0 8px 22px color-mix(in srgb, ${accent} 14%, transparent)`,
+        }}
+      >
+        <Link2 size={22} strokeWidth={1.7} style={{ color: accent }} />
+      </motion.div>
+      <motion.div
+        animate={{ y: [0, 3, 0] }}
+        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute left-0 bottom-0 w-7 h-7 rounded-lg flex items-center justify-center"
+        style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+      >
+        <ArrowUpRight size={12} style={{ color: accent }} />
+      </motion.div>
+    </div>
+  );
+}
+
+function BuyArt({ accent }: { accent: string }) {
+  return (
+    <div className="relative w-[76px] h-[62px]" aria-hidden>
+      <motion.div
+        animate={{ y: [0, -3, 0] }}
+        transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute right-0 top-0 w-[54px] h-[54px] rounded-xl flex items-center justify-center"
+        style={{
+          background: `color-mix(in srgb, ${accent} 8%, var(--card))`,
+          border: '1px solid var(--border)',
+          boxShadow: '0 8px 22px rgba(0,0,0,0.12)',
+        }}
+      >
+        <Zap size={24} strokeWidth={1.7} style={{ color: accent }} />
+      </motion.div>
+    </div>
+  );
+}
+
+function SlideArt({ slide }: { slide: PaySlide }) {
+  switch (slide.id) {
+    case 'bills':
+      return <BillsArt accent={slide.accent} />;
+    case 'qr':
+      return <QrArt accent={slide.accent} />;
+    case 'link':
+      return <LinkArt accent={slide.accent} />;
+    default:
+      return <BuyArt accent={slide.accent} />;
+  }
+}
+
+function PayPromoBanner({ onNavigate }: { onNavigate: (s: Screen) => void }) {
+  const [active, setActive] = useState(0);
+  const paused = useRef(false);
+  const touchX = useRef<number | null>(null);
+  const mouseX = useRef<number | null>(null);
+  const dragged = useRef(false);
+
+  const go = useCallback((i: number) => setActive(((i % N) + N) % N), []);
+  const next = useCallback(() => setActive((c) => (c + 1) % N), []);
+  const prev = useCallback(() => setActive((c) => (c - 1 + N) % N), []);
+
+  useEffect(() => {
+    const t = window.setInterval(() => {
+      if (!paused.current) setActive((c) => (c + 1) % N);
+    }, AUTO_MS);
+    return () => window.clearInterval(t);
+  }, []);
+
+  const slide = SLIDES[active];
+
+  return (
+    <div className="w-full">
+      <div
+        className="relative overflow-hidden rounded-2xl select-none"
+        style={{
+          background: 'var(--card)',
+          border: '1px solid var(--border)',
+          boxShadow: '0 1px 0 color-mix(in srgb, var(--foreground) 4%, transparent)',
+        }}
+        onTouchStart={(e) => {
+          paused.current = true;
+          dragged.current = false;
+          touchX.current = e.touches[0].clientX;
+        }}
+        onTouchEnd={(e) => {
+          paused.current = false;
+          if (touchX.current == null) return;
+          const d = e.changedTouches[0].clientX - touchX.current;
+          touchX.current = null;
+          if (Math.abs(d) < SWIPE) return;
+          dragged.current = true;
+          if (d < 0) next();
+          else prev();
+        }}
+        onMouseDown={(e) => {
+          paused.current = true;
+          dragged.current = false;
+          mouseX.current = e.clientX;
+        }}
+        onMouseUp={(e) => {
+          paused.current = false;
+          if (mouseX.current == null) return;
+          const d = e.clientX - mouseX.current;
+          mouseX.current = null;
+          if (Math.abs(d) < SWIPE) return;
+          dragged.current = true;
+          if (d < 0) next();
+          else prev();
+        }}
+        onClick={() => {
+          if (dragged.current) return;
+          onNavigate(slide.screen);
+        }}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') onNavigate(slide.screen);
+        }}
+      >
+        {/* Soft primary wash — brand only */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: `radial-gradient(ellipse 80% 90% at 100% 50%, color-mix(in srgb, var(--primary) 14%, transparent), transparent 55%)`,
+          }}
+        />
+
+        <div className="relative z-[1] flex items-center gap-3 px-4 py-3.5 min-h-[96px]">
+          <div className="min-w-0 flex-1">
+            <p
+              style={{
+                color: slide.accent === 'var(--foreground)' ? 'var(--muted-foreground)' : slide.accent,
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+              }}
+            >
+              {slide.label}
+            </p>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={slide.id}
+                initial={{ opacity: 0, x: 8 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -6 }}
+                transition={{ duration: 0.22 }}
+              >
+                <h3
+                  className="mt-1"
+                  style={{
+                    color: 'var(--foreground)',
+                    fontSize: 16,
+                    fontWeight: 800,
+                    letterSpacing: -0.3,
+                    lineHeight: 1.25,
+                  }}
+                >
+                  {slide.title}
+                </h3>
+                <p
+                  className="mt-0.5"
+                  style={{
+                    color: 'var(--muted-foreground)',
+                    fontSize: 12,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {slide.description}
+                </p>
+              </motion.div>
+            </AnimatePresence>
+            <div className="mt-2.5 flex items-center gap-1" style={{ color: 'var(--primary)' }}>
+              <span style={{ fontSize: 12, fontWeight: 700 }}>Open</span>
+              <ChevronRight size={14} strokeWidth={2.5} />
+            </div>
+          </div>
+          <SlideArt slide={slide} />
+        </div>
+      </div>
+
+      {/* Dots — primary only */}
+      <div className="flex items-center justify-center gap-1.5 mt-3">
+        {SLIDES.map((s, i) => (
+          <button
+            key={s.id}
+            type="button"
+            aria-label={`Slide ${i + 1}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              go(i);
+            }}
+            className="rounded-full transition-all"
+            style={{
+              width: i === active ? 14 : 6,
+              height: 6,
+              background: i === active ? 'var(--primary)' : 'var(--border)',
+              border: 'none',
+              padding: 0,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function SectionTitle({ title, action }: { title: string; action?: { label: string; onClick: () => void } }) {
   return (
     <div className="flex items-center justify-between mb-3 px-0.5">
-      <h2
-        style={{
-          color: 'var(--foreground)',
-          fontSize: 15,
-          fontWeight: 700,
-          letterSpacing: -0.2,
-        }}
-      >
+      <h2 style={{ color: 'var(--foreground)', fontSize: 15, fontWeight: 700, letterSpacing: -0.2 }}>
         {title}
       </h2>
       {action && (
@@ -139,169 +413,9 @@ function ActionGrid({ items, navigate }: { items: GridItem[]; navigate: Props['n
   );
 }
 
-/** Enterprise hero — gradient card, dual-tone mark, clear CTA */
-function PayHero({
-  slide,
-  index,
-  total,
-  onCta,
-  onDot,
-}: {
-  slide: Hero;
-  index: number;
-  total: number;
-  onCta: () => void;
-  onDot: (i: number) => void;
-}) {
-  return (
-    <div className="relative overflow-hidden rounded-[22px]" style={{ minHeight: 168 }}>
-      {/* Base surface */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: 'var(--card)',
-          border: '1px solid var(--border)',
-          borderRadius: 22,
-        }}
-      />
-      {/* Soft brand wash */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `
-            radial-gradient(ellipse 90% 80% at 100% 0%, color-mix(in oklab, ${slide.accent} 28%, transparent), transparent 55%),
-            radial-gradient(ellipse 70% 60% at 0% 100%, color-mix(in oklab, var(--primary) 12%, transparent), transparent 50%)
-          `,
-          borderRadius: 22,
-        }}
-      />
-      {/* Fine grid texture */}
-      <div
-        className="absolute inset-0 opacity-[0.04] pointer-events-none"
-        style={{
-          backgroundImage:
-            'linear-gradient(var(--foreground) 1px, transparent 1px), linear-gradient(90deg, var(--foreground) 1px, transparent 1px)',
-          backgroundSize: '20px 20px',
-          borderRadius: 22,
-        }}
-      />
-
-      <div className="relative z-[1] flex flex-col justify-between p-4 min-h-[168px]">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <p
-              style={{
-                color: slide.accent,
-                fontSize: 11,
-                fontWeight: 700,
-                letterSpacing: '0.06em',
-                textTransform: 'uppercase',
-              }}
-            >
-              {slide.kicker}
-            </p>
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={slide.id}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.28 }}
-              >
-                <h3
-                  className="mt-1.5"
-                  style={{
-                    color: 'var(--foreground)',
-                    fontSize: 18,
-                    fontWeight: 800,
-                    letterSpacing: -0.4,
-                    lineHeight: 1.25,
-                  }}
-                >
-                  {slide.title}
-                </h3>
-                <p
-                  className="mt-1.5"
-                  style={{
-                    color: 'var(--muted-foreground)',
-                    fontSize: 12.5,
-                    lineHeight: 1.45,
-                    maxWidth: '92%',
-                  }}
-                >
-                  {slide.sub}
-                </p>
-              </motion.div>
-            </AnimatePresence>
-          </div>
-
-          {/* Decorative icon plate */}
-          <div
-            className="shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center"
-            style={{
-              background: `color-mix(in oklab, ${slide.accent} 16%, var(--card))`,
-              border: `1px solid color-mix(in oklab, ${slide.accent} 32%, var(--border))`,
-              boxShadow: `0 8px 24px color-mix(in oklab, ${slide.accent} 18%, transparent)`,
-            }}
-          >
-            <span style={{ transform: 'scale(1.05)' }}>
-              <DualToneIcon name={slide.icon} />
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between mt-4">
-          <div className="flex items-center gap-1.5">
-            {Array.from({ length: total }).map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                aria-label={`Slide ${i + 1}`}
-                onClick={() => onDot(i)}
-                className="rounded-full transition-all"
-                style={{
-                  width: i === index ? 16 : 6,
-                  height: 6,
-                  background: i === index ? slide.accent : 'var(--border)',
-                  border: 'none',
-                  padding: 0,
-                }}
-              />
-            ))}
-          </div>
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.97 }}
-            onClick={onCta}
-            className="rounded-full px-4 py-2 flex items-center gap-1"
-            style={{
-              background: 'var(--primary)',
-              color: 'var(--primary-foreground, #fff)',
-              fontSize: 12.5,
-              fontWeight: 700,
-              border: 'none',
-            }}
-          >
-            {slide.cta}
-            <ChevronRight size={14} strokeWidth={2.6} />
-          </motion.button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function PayHubScreen({ navigate }: Props) {
   const { currency, setCurrency } = useCurrency();
   const [showCurrency, setShowCurrency] = useState(false);
-  const [heroIdx, setHeroIdx] = useState(0);
-  const slide = HERO[heroIdx % HERO.length];
-
-  const nextHero = useCallback(() => setHeroIdx((i) => (i + 1) % HERO.length), []);
-  useEffect(() => {
-    const t = window.setInterval(nextHero, 6000);
-    return () => window.clearInterval(t);
-  }, [nextHero]);
 
   if (showCurrency) {
     return (
@@ -323,7 +437,6 @@ export function PayHubScreen({ navigate }: Props) {
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
       <PageTop />
 
-      {/* Header */}
       <div className="flex items-center justify-between px-4 pt-1 pb-3">
         <motion.button
           type="button"
@@ -350,7 +463,7 @@ export function PayHubScreen({ navigate }: Props) {
           onClick={() => setShowCurrency(true)}
           className="flex items-center gap-1.5 rounded-full pl-1.5 pr-2.5 py-1"
           style={{
-            background: 'color-mix(in oklab, var(--card) 90%, var(--foreground))',
+            background: 'var(--secondary)',
             border: '1px solid var(--border)',
           }}
         >
@@ -361,56 +474,25 @@ export function PayHubScreen({ navigate }: Props) {
       </div>
 
       <div className="px-4 pb-28 flex flex-col gap-6">
-        {/* Banner */}
-        <PayHero
-          slide={slide}
-          index={heroIdx % HERO.length}
-          total={HERO.length}
-          onCta={() => navigate(slide.screen)}
-          onDot={(i) => setHeroIdx(i)}
-        />
+        <PayPromoBanner onNavigate={(s) => navigate(s)} />
 
-        {/* Quick actions */}
         <section>
           <SectionTitle title="Quick actions" />
-          <div
-            className="rounded-[20px] p-4"
-            style={{
-              background: 'var(--card)',
-              border: '1px solid var(--border)',
-            }}
-          >
+          <div className="rounded-[20px] p-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
             <ActionGrid items={QUICK} navigate={navigate} />
           </div>
         </section>
 
-        {/* Bills */}
         <section>
-          <SectionTitle
-            title="Bills & services"
-            action={{ label: 'Airtime', onClick: () => navigate('airtime') }}
-          />
-          <div
-            className="rounded-[20px] p-4"
-            style={{
-              background: 'var(--card)',
-              border: '1px solid var(--border)',
-            }}
-          >
+          <SectionTitle title="Bills & services" action={{ label: 'Airtime', onClick: () => navigate('airtime') }} />
+          <div className="rounded-[20px] p-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
             <ActionGrid items={BILLS} navigate={navigate} />
           </div>
         </section>
 
-        {/* Transfer / collect */}
         <section>
           <SectionTitle title="Send & collect" />
-          <div
-            className="rounded-[20px] p-4"
-            style={{
-              background: 'var(--card)',
-              border: '1px solid var(--border)',
-            }}
-          >
+          <div className="rounded-[20px] p-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
             <ActionGrid items={TRANSFER} navigate={navigate} />
           </div>
         </section>
