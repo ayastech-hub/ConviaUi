@@ -12,7 +12,8 @@ import { prefetchMarketPrices } from '../../../shared/query/prefetchAppData';
 import { useWalletAssets } from '../../../shared/hooks/useWalletAssets';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { useNotifications } from '../../../shared/hooks/useNotifications';
-import { Bell, ScanLine, ChevronDown } from 'lucide-react';
+import { Bell, ScanLine } from 'lucide-react';
+import { ConviaAvatar } from '../../../shared/components/ConviaAvatar';
 import { motion } from 'motion/react';
 
 interface HomeScreenProps {
@@ -28,17 +29,7 @@ interface HomeScreenProps {
  * Add funds / cash out open option sheets, not full pages first.
  */
 export function HomeScreen({ navigate, notificationCount: notificationCountProp }: HomeScreenProps) {
-  const { status, username, displayName, email } = useAuth();
-
-  /** First name for greeting — max 12 chars so the chip stays readable. */
-  const firstName = (() => {
-    const raw = (displayName || username || (email ? email.split('@')[0] : '') || '').trim();
-    if (!raw) return 'there';
-    const first = raw.split(/\s+/)[0] || raw;
-    const cleaned = first.replace(/^@/, '');
-    if (cleaned.length <= 12) return cleaned;
-    return `${cleaned.slice(0, 11)}…`;
-  })();
+  const { status } = useAuth();
 
   const [balanceVisible, setBalanceVisible] = useState(() => {
     try {
@@ -93,38 +84,21 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
         }}
       />
 
-      {/* Header: Account chip (clearly tappable) · QR + Bell */}
+      {/* Header: avatar only (profile) · QR + Bell */}
       <div className="flex items-center justify-between px-4 pt-1 pb-1">
         <motion.button
           type="button"
-          whileTap={{ scale: 0.97 }}
+          whileTap={{ scale: 0.92 }}
           onClick={() => navigate('profile')}
-          aria-label="Open account"
-          className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full max-w-[52%]"
+          aria-label="Account"
+          className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden"
           style={{
-            background: 'var(--muted)',
-            border: '1px solid var(--border)',
+            background: 'transparent',
+            border: 'none',
+            padding: 0,
           }}
         >
-          <span
-            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 tabular-nums"
-            style={{
-              background: 'color-mix(in oklab, var(--primary) 22%, var(--card))',
-              color: 'var(--primary)',
-              fontWeight: 800,
-              fontSize: 13,
-              border: '1.5px solid color-mix(in oklab, var(--primary) 40%, var(--border))',
-            }}
-          >
-            {(firstName !== 'there' ? firstName : 'C').charAt(0).toUpperCase()}
-          </span>
-          <span
-            className="truncate"
-            style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13.5, maxWidth: 128 }}
-          >
-            Hi, {firstName}
-          </span>
-          <ChevronDown size={14} strokeWidth={2.4} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
+          <ConviaAvatar size={36} />
         </motion.button>
 
         <div className="flex items-center gap-3">
