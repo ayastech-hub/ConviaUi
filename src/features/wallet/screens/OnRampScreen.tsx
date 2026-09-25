@@ -1,3 +1,4 @@
+import { fetchFiatLimits, limitFor } from '../../../shared/api/fiatLimits';
 import { useEffect, useState } from 'react';
 import { type Asset } from '../../../shared/data/mockData';
 import { motion, AnimatePresence } from 'motion/react';
@@ -66,6 +67,10 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
   const [paymentMethod, setPaymentMethod] = useState<'bank' | 'card'>(methodHint === 'card' ? 'card' : 'bank');
   const [cardPaymentId, setCardPaymentId] = useState<string | null>(null);
   const [amount, setAmount] = useState('');
+  const [limits, setLimits] = useState<Awaited<ReturnType<typeof fetchFiatLimits>> | null>(null);
+  useEffect(() => {
+    void fetchFiatLimits().then(setLimits).catch(() => undefined);
+  }, []);
   const [amountMode] = useState<'fiat' | 'usd'>('fiat'); // local fiat only for payment rails
   const [step, setStep] = useState<'form' | 'review' | 'processing' | 'done'>(
     'form',
@@ -424,7 +429,8 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
       <div className="flex-1 overflow-y-auto px-5">
         <AnimatePresence mode="wait">
           {step === 'form' && (
-            <OnRampFormStep
+            {/* min from API */}<OnRampFormStep
+              minFiat={limitFor(limits, (typeof fiatCurrency !== 'undefined' ? fiatCurrency : currency.code)).onrampMin}
               currency={payCurrencyDisplay}
               format={format}
               amount={amount}

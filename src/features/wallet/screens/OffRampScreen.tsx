@@ -1,3 +1,4 @@
+import { fetchFiatLimits, limitFor } from '../../../shared/api/fiatLimits';
 import { useState, useEffect } from 'react';
 import { AnimatePresence } from 'motion/react';
 import { type Screen, type Asset } from '../../../shared/data/mockData';
@@ -88,6 +89,10 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
   );
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [amount, setAmount] = useState('');
+  const [limits, setLimits] = useState<Awaited<ReturnType<typeof fetchFiatLimits>> | null>(null);
+  useEffect(() => {
+    void fetchFiatLimits().then(setLimits).catch(() => undefined);
+  }, []);
   const [step, setStep] = useState<Step>('form');
   const [showTokenDropdown, setShowTokenDropdown] = useState(false);
   const [showAccountDropdown, setShowAccountDropdown] = useState(false);
@@ -147,6 +152,8 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
 
   const fee = Number(amount) * selectedAsset.price * 0.015;
   const youGet = Math.max(0, (Number(amount) * selectedAsset.price - fee) * payRate);
+  const offrampMin = limitFor(limits, currency.code).offrampMin;
+  const belowOfframpMin = offrampMin > 0 && youGet > 0 && youGet < offrampMin;
   const selectedAccount = bankAccounts.find((a) => a.id === selectedAccountId);
   const rateLabel =
     selectedAsset.price > 0 && payRate > 0
@@ -317,7 +324,7 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
               youGet={youGet}
               onPreview={() => {
                 if (!gates.canOfframp) return;
-                if (Number(amount) > 0 && selectedAccountId) {
+                if (Number(amount) > 0 && selectedAccountId && !belowOfframpMin) {
                   setApiError(null);
                   setStep('review');
                 }

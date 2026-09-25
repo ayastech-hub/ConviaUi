@@ -12,6 +12,8 @@ interface OnRampFormStepProps {
   format: (n: number) => string;
   amount: string;
   setAmount: (v: string) => void;
+  /** Local-currency minimum buy */
+  minFiat?: number;
   amountMode: 'fiat' | 'usd';
   setAmountMode: (m: 'fiat' | 'usd') => void;
   usdAmount: number;
@@ -41,23 +43,32 @@ interface OnRampFormStepProps {
 const QUICK_USD = [10, 25, 50, 100];
 
 /** Suggested buy amounts in local currency (≈ $5–$50 band where sensible). */
-function quickAmountsForCurrency(code: string): number[] {
+function quickAmountsForCurrency(code: string, minFiat = 0): number[] {
+  let base: number[];
   switch (code.toUpperCase()) {
     case 'USD':
-      return QUICK_USD;
+      base = QUICK_USD;
+      break;
     case 'NGN':
-      return [5000, 10000, 25000, 50000];
+      base = [500, 2000, 5000, 10000, 25000];
+      break;
     case 'GHS':
-      return [50, 100, 250, 500];
+      base = [20, 50, 100, 250];
+      break;
     case 'KES':
-      return [1000, 2500, 5000, 10000];
+      base = [100, 500, 1000, 2500];
+      break;
     case 'ZAR':
-      return [150, 300, 750, 1500];
+      base = [50, 150, 300, 750];
+      break;
     case 'UGX':
-      return [25000, 50000, 100000, 250000];
+      base = [5000, 20000, 50000, 100000];
+      break;
     default:
-      return [5000, 10000, 25000, 50000];
+      base = [500, 2000, 5000, 10000];
   }
+  const filtered = base.filter((n) => n >= minFiat);
+  return filtered.length ? filtered : base;
 }
 
 /** Buy form — amount, asset, quote, payment. No marketing copy. */
@@ -66,6 +77,7 @@ export function OnRampFormStep({
   format,
   amount,
   setAmount,
+  minFiat = 0,
   amountMode,
   setAmountMode,
   rampAssets,
@@ -91,8 +103,10 @@ export function OnRampFormStep({
   submitting,
 }: OnRampFormStepProps) {
   const paySymbol = amountMode === 'usd' ? '$' : currency.symbol;
-  const quick = amountMode === 'usd' ? QUICK_USD : quickAmountsForCurrency(currency.code);
-  const canContinue = Number(amount) > 0 && !quoting && !!quote && !submitting;
+  const quick = amountMode === 'usd' ? QUICK_USD : quickAmountsForCurrency(currency.code, minFiat);
+  const amtNum = Number(amount) || 0;
+  const belowMin = amountMode === 'fiat' && minFiat > 0 && amtNum > 0 && amtNum < minFiat;
+  const canContinue = amtNum > 0 && !belowMin && !quoting && !!quote && !submitting;
 
   return (
     <motion.div
@@ -163,6 +177,11 @@ export function OnRampFormStep({
             </button>
           ))}
         </div>
+        {minFiat > 0 && amountMode === 'fiat' && (
+          <p style={{ color: belowMin ? 'var(--destructive)' : 'var(--muted-foreground)', fontSize: 12, marginTop: 8 }}>
+            Minimum {currency.symbol}{minFiat.toLocaleString()}
+          </p>
+        )}
       </div>
 
       {/* Asset */}
