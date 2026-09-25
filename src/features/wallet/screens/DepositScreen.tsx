@@ -41,6 +41,10 @@ export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenP
   const [error, setError] = useState<{ code?: string; message?: string } | null>(null);
   const [liveMin, setLiveMin] = useState<{ native: number; usd: number; conf: number } | null>(null);
   const [pendingChain, setPendingChain] = useState('');
+  /** Preloaded deposit info per chainKey — fetch in background on coin select */
+  const [addrCache, setAddrCache] = useState<
+    Record<string, { address: string; native: number; usd: number; conf: number }>
+  >({});
 
   const depositChains = useMemo(() => {
     if (!asset) return [] as string[];
@@ -59,19 +63,23 @@ export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenP
     return depositChains.map((k) => {
       const info = networkInfoForKey(k);
       const floor = ASSET_MIN_DEPOSIT[asset.symbol.toUpperCase()] ?? 0;
+      const cached = addrCache[k];
+      const conf =
+        (cached && cached.conf > 0 && cached.conf) ||
+        (liveMin && network === k && liveMin.conf > 0 && liveMin.conf) ||
+        info.confirmations;
+      const minD =
+        (cached && cached.native > 0 && cached.native) ||
+        (liveMin && network === k && liveMin.native > 0 && liveMin.native) ||
+        (floor > 0 ? floor : info.minDeposit);
       return {
         chainKey: k,
-        confirmations: liveMin && network === k && liveMin.conf > 0 ? liveMin.conf : info.confirmations,
-        minDeposit:
-          liveMin && network === k && liveMin.native > 0
-            ? liveMin.native
-            : floor > 0
-              ? floor
-              : info.minDeposit,
+        confirmations: conf,
+        minDeposit: minD,
         recentlyUsed: last === k,
       };
     });
-  }, [asset, depositChains, liveMin, network]);
+  }, [asset, depositChains, liveMin, network, addrCache]);
 
   const netInfo = network ? networkInfoForKey(network) : null;
   const minShow =
@@ -89,8 +97,40 @@ export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenP
     setLiveMin(null);
     setConfirmed(false);
     setError(null);
+    setAddrCache({});
     setStep('detail');
+    setChainOpen(true); // auto-open chain picker; user may dismiss
   };
+
+
+  // Background: preload deposit address + mins for every chain of this asset
+  useEffect(() => {
+    if (!userId || !asset || !depositChains.length) return;
+    let cancelled = false;
+    const depositSym = asset.symbol.toUpperCase() === 'USD' ? 'USDT' : asset.symbol;
+    void (async () => {
+      const results: Record<string, { address: string; native: number; usd: number; conf: number }> = {};
+      await Promise.all(
+        depositChains.map(async (ck) => {
+          try {
+            const info = await fetchDepositInfo(userId, depositSym, ck);
+            results[ck] = {
+              address: info.address,
+              native: Number(info.minimumDeposit) || 0,
+              usd: Number(info.minimumDepositUsd) || 0,
+              conf: Number(info.requiredConfirmations) || 0,
+            };
+          } catch {
+            /* leave missing — will retry on confirm */
+          }
+        }),
+      );
+      if (!cancelled) setAddrCache((prev) => ({ ...prev, ...results }));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, asset, depositChains]);
 
   useEffect(() => {
     if (!presetSymbol || !cryptoAssets.length) return;
@@ -101,23 +141,37 @@ export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenP
 
   const loadAddress = useCallback(async () => {
     if (!userId || !asset || !network || !confirmed) return;
-    setLoading(true);
     setError(null);
-    setAddress('');
     const resolved = resolveChain(network);
     const chainKey = resolved.chainKey;
     const chainFamily = resolved.chainFamily;
+    const cached = addrCache[chainKey];
+    if (cached?.address) {
+      setAddress(cached.address);
+      setLiveMin({
+        native: cached.native > 0 ? cached.native : 0,
+        usd: cached.usd > 0 ? cached.usd : 0,
+        conf: cached.conf > 0 ? cached.conf : 0,
+      });
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setAddress('');
     try {
       const depositSym = asset.symbol.toUpperCase() === 'USD' ? 'USDT' : asset.symbol;
       const info = await fetchDepositInfo(userId, depositSym, chainKey);
       setAddress(info.address);
       const native = Number(info.minimumDeposit);
       const usd = Number(info.minimumDepositUsd);
-      setLiveMin({
+      const row = {
+        address: info.address,
         native: Number.isFinite(native) && native > 0 ? native : 0,
         usd: Number.isFinite(usd) && usd > 0 ? usd : 0,
         conf: Number(info.requiredConfirmations) || 0,
-      });
+      };
+      setLiveMin({ native: row.native, usd: row.usd, conf: row.conf });
+      setAddrCache((prev) => ({ ...prev, [chainKey]: row }));
     } catch (err) {
       try {
         const addrs = await fetchAddresses(userId);
@@ -136,7 +190,7 @@ export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenP
     } finally {
       setLoading(false);
     }
-  }, [userId, asset, network, confirmed]);
+  }, [userId, asset, network, confirmed, addrCache]);
 
   useEffect(() => {
     void loadAddress();
@@ -151,8 +205,19 @@ export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenP
     setNoticeOpen(false);
     setNetwork(pendingChain);
     setConfirmed(true);
-    setAddress('');
-    setLiveMin(null);
+    const cached = addrCache[pendingChain];
+    if (cached?.address) {
+      setAddress(cached.address);
+      setLiveMin({
+        native: cached.native > 0 ? cached.native : 0,
+        usd: cached.usd > 0 ? cached.usd : 0,
+        conf: cached.conf > 0 ? cached.conf : 0,
+      });
+      setLoading(false);
+    } else {
+      setAddress('');
+      setLiveMin(null);
+    }
     try {
       localStorage.setItem('convia_last_deposit_chain', pendingChain);
     } catch {

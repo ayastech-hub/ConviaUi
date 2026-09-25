@@ -286,13 +286,12 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
         withdrawalRequestId?: string;
       };
 
+      // Never wait for on-chain finality in the UI — backend finishes in background.
       const hash = res.txHash || '';
       const status =
-        res.status === 'completed' || hash
+        res.status === 'completed' && hash
           ? 'confirmed'
-          : res.status === 'pending_funding' || res.status === 'processing'
-            ? 'pending'
-            : 'pending';
+          : 'pending';
       setReceiptTx({
         id: String(res.withdrawalRequestId || 'wd-' + Date.now()),
         type: 'withdraw',

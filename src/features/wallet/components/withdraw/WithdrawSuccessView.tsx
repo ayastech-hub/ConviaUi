@@ -30,10 +30,16 @@ export function WithdrawSuccessView({
         <div className="w-24 h-24 rounded-full mx-auto mb-6 flex items-center justify-center" style={{ background: 'var(--muted)' }}>
           <CheckCircle2 size={52} style={{ color: 'var(--positive)' }} />
         </div>
-        <h2 style={{ color: 'var(--foreground)', fontWeight: 800, marginBottom: 8, fontSize: 22 }}>{t('withdraw.submitted')}</h2>
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 14, marginBottom: 4 }}>{amount} {symbol} sent to</p>
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontFamily: 'monospace', marginBottom: 4 }}>{address.slice(0, 16)}...{address.slice(-8)}</p>
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginBottom: 28 }}>{chain}</p>
+        <h2 style={{ color: 'var(--foreground)', fontWeight: 800, marginBottom: 8, fontSize: 22 }}>{receiptTx?.status === 'pending' || !receiptTx?.hash ? 'Withdrawal submitted' : t('withdraw.submitted')}</h2>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 14, marginBottom: 4 }}>{amount} {symbol} · {chain}</p>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontFamily: 'monospace', marginBottom: 4 }}>
+          {address.length > 24 ? `${address.slice(0, 14)}…${address.slice(-8)}` : address}
+        </p>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginBottom: 28 }}>
+          {receiptTx?.status === 'pending' || !receiptTx?.hash
+            ? 'Processing on-chain. You will be notified when it completes.'
+            : 'Broadcast submitted.'}
+        </p>
 
         <motion.button
           whileTap={{ scale: 0.97 }}
