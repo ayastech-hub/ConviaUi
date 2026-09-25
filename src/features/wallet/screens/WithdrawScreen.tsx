@@ -11,7 +11,7 @@ import { WithdrawProcessingStep } from '../components/withdraw/WithdrawProcessin
 import { WithdrawSuccessView } from '../components/withdraw/WithdrawSuccessView';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { useAuth } from '../../../shared/context/AuthContext';
-import { withdrawCrypto, quoteWithdrawCrypto, type WithdrawQuote } from '../../../shared/api/wallet';
+import { withdrawCrypto, quoteWithdrawCrypto, fetchDepositInfo, type WithdrawQuote } from '../../../shared/api/wallet';
 import { newIdempotencyKey } from '../../../shared/api/client';
 import { useAccountGates } from '../../../shared/hooks/useAccountGates';
 import { queryClient, queryKeys } from '../../../shared/query/queryClient';
@@ -163,6 +163,59 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
       handleSelectAsset(hit);
     }
   }, [presetSymbol, assets]);
+
+
+  useEffect(() => {
+    if (!userId || !selectedAsset || !amount || Number(amount) <= 0) {
+      setFeeQuote(null);
+      return;
+    }
+    const resolved = resolveChain(selectedChain || withdrawChainKeys[0] || 'ethereum');
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void quoteWithdrawCrypto({
+        userId,
+        asset: selectedAsset.symbol,
+        amount: String(amount),
+        chainKey: resolved.chainKey,
+      })
+        .then((q) => {
+          if (!cancelled) setFeeQuote(q);
+        })
+        .catch(() => {
+          if (!cancelled) setFeeQuote(null);
+        });
+    }, 400);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [userId, selectedAsset, amount, selectedChain, withdrawChainKeys]);
+
+  useEffect(() => {
+    if (!userId || !selectedAsset) {
+      setMinWithdraw(0);
+      return;
+    }
+    const resolved = resolveChain(selectedChain || withdrawChainKeys[0] || 'ethereum');
+    let cancelled = false;
+    void fetchDepositInfo(userId, selectedAsset.symbol, resolved.chainKey)
+      .then((info) => {
+        if (cancelled) return;
+        setMinWithdraw(Number(info.minWithdrawal) || 0);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        const sym = selectedAsset.symbol.toUpperCase();
+        if (sym === 'TON') setMinWithdraw(0.2);
+        else if (['USDT', 'USDC', 'USD'].includes(sym)) setMinWithdraw(3);
+        else if (sym === 'TRX') setMinWithdraw(50);
+        else setMinWithdraw(0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, selectedAsset, selectedChain, withdrawChainKeys]);
 
   const validateAddress = (val: string) => {
     setAddress(val);
