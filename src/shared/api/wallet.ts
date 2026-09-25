@@ -45,6 +45,24 @@ export function fetchBalances(userId: string) {
   return api.get<WalletBalancesResponse>(`/wallets/${userId}/balances`);
 }
 
+export type WithdrawQuote = {
+  feeQuoteId: string;
+  expiresAt?: string;
+  networkFeeUsd: string;
+  platformFeeUsd: string;
+  totalFeeUsd: string;
+  totalFeeAmountInAsset: string;
+};
+
+export function quoteWithdrawCrypto(body: {
+  userId: string;
+  asset: string;
+  amount: string;
+  chainKey: string;
+}) {
+  return api.post<WithdrawQuote>('/crypto/withdraw/quote', body);
+}
+
 export function withdrawCrypto(body: {
   userId: string;
   destinationAddress: string;

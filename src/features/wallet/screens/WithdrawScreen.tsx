@@ -11,7 +11,7 @@ import { WithdrawProcessingStep } from '../components/withdraw/WithdrawProcessin
 import { WithdrawSuccessView } from '../components/withdraw/WithdrawSuccessView';
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { useAuth } from '../../../shared/context/AuthContext';
-import { withdrawCrypto } from '../../../shared/api/wallet';
+import { withdrawCrypto, quoteWithdrawCrypto, type WithdrawQuote } from '../../../shared/api/wallet';
 import { newIdempotencyKey } from '../../../shared/api/client';
 import { useAccountGates } from '../../../shared/hooks/useAccountGates';
 import { queryClient, queryKeys } from '../../../shared/query/queryClient';
@@ -93,6 +93,8 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
   const [address, setAddress] = useState('');
   const [amount, setAmount] = useState('');
   const [error, setError] = useState('');
+  const [feeQuote, setFeeQuote] = useState<WithdrawQuote | null>(null);
+  const [minWithdraw, setMinWithdraw] = useState(0);
   const [apiError, setApiError] = useState<{ code?: string; message?: string } | null>(null);
   const [pin, setPin] = useState<string[]>(Array(6).fill(''));
   const idempotencyRef = useRef<string | null>(null);
@@ -182,6 +184,10 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
       setError(`Insufficient balance. Max: ${selectedAsset.balance}`);
       return;
     }
+    if (minWithdraw > 0 && n < minWithdraw) {
+      setError(`Minimum withdrawal is ${minWithdraw} ${selectedAsset?.symbol || ''}`);
+      return;
+    }
     setError('');
   };
 
@@ -227,6 +233,7 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
         chainKey: resolved.chainKey,
         chainFamily: resolved.chainFamily || chainFamilyForKey(resolved.chainKey),
         pin: pinStr,
+        feeQuoteId: feeQuote?.feeQuoteId,
         idempotencyKey: idempotencyRef.current,
       })) as {
         txHash?: string;
@@ -442,8 +449,8 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
         amount={amount}
         onAmountChange={validateAmount}
         error={error}
-        fee={fee}
-        feeUSD={feeUSD}
+        fee={feeQuote ? Number(feeQuote.totalFeeAmountInAsset) || 0 : 0}
+        feeUSD={feeQuote ? Number(feeQuote.totalFeeUsd) || 0 : 0}
         onChangeAsset={() => { if (!presetSymbol) setStep('select'); }}
         onBack={() => (presetSymbol ? goBack() : setStep('select'))}
         onContinue={async () => {
