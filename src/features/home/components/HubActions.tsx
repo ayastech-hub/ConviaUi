@@ -15,7 +15,7 @@ export function HubActions({ onNavigate, onOpenMore, onReceive, onSend }: Props)
     {
       label: 'Send',
       icon: 'send',
-      action: () => (onSend ? onSend() : onNavigate('send')),
+      action: () => (onSend ? onSend() : onNavigate('withdraw')),
     },
     {
       label: 'Receive',

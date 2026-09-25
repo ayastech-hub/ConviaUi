@@ -19,7 +19,6 @@ import { HomeScreen } from '../features/home/screens/HomeScreen';
 import { RatesScreen } from '../features/rates/screens/RatesScreen';
 import { ExploreScreen } from '../features/explore/screens/ExploreScreen';
 
-import { SendScreen } from '../features/wallet/screens/SendScreen';
 import { RequestMoneyScreen } from '../features/wallet/screens/RequestMoneyScreen';
 import { ScanScreen } from '../features/wallet/screens/ScanScreen';
 import { SwapScreen } from '../features/wallet/screens/SwapScreen';
@@ -344,10 +343,11 @@ export default function App() {
           </div>
         );
       case 'send':
+        // Legacy "send" route → unified withdraw (on-chain + internal)
         return (
-          <motion.div key="send" {...slideRight} className="absolute inset-0">
-            <FeatureGated screen="send" goBack={goBack}>
-            <SendScreen navigate={navigate} goBack={goBack} />
+          <motion.div key="withdraw-from-send" {...slideRight} className="absolute inset-0">
+            <FeatureGated screen="withdraw" goBack={goBack}>
+              <WithdrawScreen goBack={goBack} navigate={navigate} presetSymbol={navParam} />
             </FeatureGated>
           </motion.div>
         );

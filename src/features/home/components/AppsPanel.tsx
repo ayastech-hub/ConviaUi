@@ -74,7 +74,7 @@ type Props = {
 export function AppsPanel({ open, onClose, onNavigate, onOpenSend, onOpenDeposit }: Props) {
   const go = (item: Item) => {
     trackRecentUse(
-      (item.screen || (item.action === 'send-sheet' ? 'send' : 'deposit')) as Screen,
+      (item.screen || (item.action === 'send-sheet' ? 'withdraw' : 'deposit')) as Screen,
       item.param,
       item.label,
     );

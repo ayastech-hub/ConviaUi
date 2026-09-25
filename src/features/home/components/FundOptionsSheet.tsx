@@ -49,21 +49,23 @@ const DEPOSIT_ROWS: (Row & { param?: string })[] = [
   },
 ];
 
-const SEND_ROWS: Row[] = [
+const SEND_ROWS: (Row & { param?: string })[] = [
   {
-    id: 'internal',
-    label: 'Send to Convia user',
-    sub: 'Instant transfer by username',
-    badge: 'Instant',
-    icon: 'request',
-    screen: 'send',
-  },
-  {
-    id: 'external',
-    label: 'External wallet',
-    sub: 'Withdraw crypto on-chain',
+    id: 'onchain',
+    label: 'On-Chain',
+    sub: 'Withdraw crypto to an external address',
     icon: 'send',
     screen: 'withdraw',
+    param: 'onchain',
+  },
+  {
+    id: 'internal',
+    label: 'Internal Transfer',
+    sub: 'Send to a Convia user — 0 fee',
+    badge: 'Zero fee',
+    icon: 'request',
+    screen: 'withdraw',
+    param: 'internal',
   },
   {
     id: 'bank',

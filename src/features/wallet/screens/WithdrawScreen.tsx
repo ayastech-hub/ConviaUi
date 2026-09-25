@@ -37,7 +37,8 @@ type Step =
 
 interface WithdrawScreenProps {
   goBack: () => void;
-  navigate?: (s: import('../../../shared/data/mockData').Screen) => void;
+  navigate?: (s: import('../../../shared/data/mockData').Screen, param?: string) => void;
+  /** Token symbol, or method hint: onchain | internal */
   presetSymbol?: string;
 }
 
@@ -108,15 +109,40 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
     setFeeQuote(null);
     setError('');
     setApiError(null);
+    const pref = (presetSymbol || '').toLowerCase();
+    if (pref === 'onchain') {
+      setMode('onchain');
+      setMethodOpen(false);
+      setStep('onchain');
+      return;
+    }
+    if (pref === 'internal') {
+      setMode('internal');
+      setMethodOpen(false);
+      setStep('internal');
+      return;
+    }
     setMethodOpen(true);
   };
 
   useEffect(() => {
-    if (!presetSymbol || !assets.length) return;
+    if (!presetSymbol) return;
+    const p = presetSymbol.toLowerCase();
+    if (p === 'onchain' || p === 'internal') {
+      // Method shortcut from home sheet — stay on select; after coin pick skip method sheet
+      return;
+    }
+    if (!assets.length) return;
     const hit = assets.find((a) => a.symbol.toUpperCase() === presetSymbol.toUpperCase());
     if (hit && selectedAsset?.symbol !== hit.symbol) handleSelectAsset(hit);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [presetSymbol, assets]);
+
+  const preferredMethod = useMemo(() => {
+    const p = (presetSymbol || '').toLowerCase();
+    if (p === 'onchain' || p === 'internal') return p as 'onchain' | 'internal';
+    return null;
+  }, [presetSymbol]);
 
   // Build chain fee rows (fee estimated when amount present)
   useEffect(() => {

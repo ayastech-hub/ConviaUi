@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
 import { networkInfoForKey } from '../deposit/types';
+import { AssetIcon } from '../../../../shared/components/AssetIcon';
 
 export type ChainFeeRow = {
   chainKey: string;
@@ -81,11 +82,17 @@ export function WithdrawChainPicker({ open, symbol, chains, selected, onSelect, 
                     border: active ? '1px solid var(--primary)' : '1px solid var(--border)',
                   }}
                 >
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'var(--muted)' }}
-                  >
-                    <span style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 11 }}>
+                  <div className="relative flex-shrink-0">
+                    <AssetIcon symbol={symbol} size={40} />
+                    <span
+                      className="absolute -bottom-0.5 -right-0.5 px-1 rounded text-[8px] font-bold"
+                      style={{
+                        background: 'var(--card)',
+                        color: 'var(--muted-foreground)',
+                        border: '1px solid var(--border)',
+                        lineHeight: 1.4,
+                      }}
+                    >
                       {(info.label || info.name).slice(0, 4)}
                     </span>
                   </div>

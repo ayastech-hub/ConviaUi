@@ -19,10 +19,10 @@ export function ScanScreen({ goBack, navigate }: Props) {
           const parsed = parseQRPayload(result);
           if (parsed) setSendPrefill(parsed);
           else setSendPrefill({ address: result.trim() });
-          navigate('send');
+          navigate('withdraw');
         }}
         onClose={goBack}
-        onManualEntry={() => navigate('send')}
+        onManualEntry={() => navigate('withdraw')}
       />
     </div>
   );
