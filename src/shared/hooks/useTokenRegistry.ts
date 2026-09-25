@@ -16,7 +16,6 @@ import { queryKeys } from '../query/queryClient';
 export const CANONICAL_ASSETS: Array<{ symbol: string; name: string }> = [
   { symbol: 'USDT', name: 'Tether USD' },
   { symbol: 'USDC', name: 'USD Coin' },
-  { symbol: 'USD', name: 'US Dollar' },
   { symbol: 'BTC', name: 'Bitcoin' },
   { symbol: 'ETH', name: 'Ethereum' },
   { symbol: 'SOL', name: 'Solana' },
@@ -125,10 +124,12 @@ export function useTokenRegistry() {
     }
 
     for (const t of tokens) {
+      if (t.symbol.toUpperCase() === 'USD') continue; // USDT family only
       const a = tokenToAsset(t);
       const prev = bySym.get(a.symbol);
       bySym.set(a.symbol, prev ? { ...prev, ...a, balance: prev.balance, valueUSD: prev.valueUSD } : a);
     }
+    bySym.delete('USD');
 
     // Prefer stable first, then by symbol
     const order = CANONICAL_ASSETS.map((c) => c.symbol);
@@ -162,7 +163,8 @@ export function useTokenRegistry() {
 
   const chainKeysForSymbol = useCallback(
     (symbol: string, direction?: 'deposit' | 'withdraw') => {
-      const tok = tokens.find((t) => t.symbol.toUpperCase() === symbol.toUpperCase());
+      const sym = symbol.toUpperCase() === 'USD' ? 'USDT' : symbol.toUpperCase();
+      const tok = tokens.find((t) => t.symbol.toUpperCase() === sym);
       if (!tok) {
         // No registry variant yet — empty; deposit UI will show empty chain state
         return [] as string[];

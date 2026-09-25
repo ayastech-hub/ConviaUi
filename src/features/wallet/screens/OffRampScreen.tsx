@@ -152,7 +152,7 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
 
   const fee = Number(amount) * selectedAsset.price * 0.015;
   const youGet = Math.max(0, (Number(amount) * selectedAsset.price - fee) * payRate);
-  const offrampMin = limitFor(limits, currency.code).offrampMin;
+  const offrampMin = limitFor(limits, payCode).offrampMin;
   const belowOfframpMin = offrampMin > 0 && youGet > 0 && youGet < offrampMin;
   const selectedAccount = bankAccounts.find((a) => a.id === selectedAccountId);
   const rateLabel =
@@ -175,6 +175,12 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
       return;
     }
     if (!gates.canOfframp) return;
+    if (belowOfframpMin) {
+      setApiError({
+        message: `Minimum sell payout is ${offrampMin.toLocaleString()} ${payCode}`,
+      });
+      return;
+    }
     const pinGate = await ensureTransactionPin(userId);
     if (!pinGate.ok) {
       if (pinGate.hasPin === false) {
@@ -324,6 +330,12 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
               youGet={youGet}
               onPreview={() => {
                 if (!gates.canOfframp) return;
+    if (belowOfframpMin) {
+      setApiError({
+        message: `Minimum sell payout is ${offrampMin.toLocaleString()} ${payCode}`,
+      });
+      return;
+    }
                 if (Number(amount) > 0 && selectedAccountId && !belowOfframpMin) {
                   setApiError(null);
                   setStep('review');

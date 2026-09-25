@@ -87,7 +87,8 @@ export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenP
     setLiveMin(null);
     const { chainKey, chainFamily } = resolveChain(network || asset.chains[0] || 'Ethereum');
     try {
-      const info = await fetchDepositInfo(userId, asset.symbol, chainKey);
+      const depositSym = asset.symbol.toUpperCase() === 'USD' ? 'USDT' : asset.symbol;
+      const info = await fetchDepositInfo(userId, depositSym, chainKey);
       setAddress(info.address);
       const native = Number(info.minimumDeposit);
       const usd = Number(info.minimumDepositUsd);

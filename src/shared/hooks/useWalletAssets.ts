@@ -55,11 +55,17 @@ export function useWalletAssets() {
 
   const symbols = useMemo(() => {
     const set = new Set<string>();
-    for (const a of registry.assets || []) set.add(a.symbol.toUpperCase());
+    for (const a of registry.assets || []) {
+      const s = a.symbol.toUpperCase();
+      if (s === 'USD') continue;
+      set.add(s);
+    }
     for (const h of portfolio.data?.holdings || []) {
-      const s = String(h.asset || '').toUpperCase();
+      let s = String(h.asset || '').toUpperCase();
+      if (s === 'USD') s = 'USDT'; // TON USD rail = USDT family
       if (s) set.add(s);
     }
+    set.delete('USD');
     return Array.from(set).sort();
   }, [registry.assets, portfolio.data?.holdings]);
 
@@ -104,12 +110,24 @@ export function useWalletAssets() {
   const assets = useMemo(() => {
     const bal = new Map<string, { qty: number; ledgerValue: number; ledgerPrice: number }>();
     for (const h of portfolio.data?.holdings || []) {
-      const sym = String(h.asset || '').toUpperCase();
+      let sym = String(h.asset || '').toUpperCase();
       if (!sym) continue;
+      if (sym === 'USD') sym = 'USDT'; // same family as USDT
       const qty = Number(h.quantity) || 0;
       const ledgerValue = Number(h.valueUsd) || 0;
       const ledgerPrice = Number(h.priceUsd) || (qty > 0 && ledgerValue > 0 ? ledgerValue / qty : 0);
-      bal.set(sym, { qty, ledgerValue, ledgerPrice });
+      const prev = bal.get(sym);
+      if (prev) {
+        const nq = prev.qty + qty;
+        const nv = prev.ledgerValue + ledgerValue;
+        bal.set(sym, {
+          qty: nq,
+          ledgerValue: nv,
+          ledgerPrice: nq > 0 ? nv / nq : ledgerPrice || prev.ledgerPrice,
+        });
+      } else {
+        bal.set(sym, { qty, ledgerValue, ledgerPrice });
+      }
     }
 
     const priceFor = (sym: string, fallback = 0) => {
@@ -127,8 +145,10 @@ export function useWalletAssets() {
       return 0;
     };
 
-    const merged: Asset[] = (registry.assets || []).map((a) => {
-      const b = bal.get(a.symbol);
+    const merged: Asset[] = (registry.assets || [])
+      .filter((a) => a.symbol.toUpperCase() !== 'USD')
+      .map((a) => {
+      const b = bal.get(a.symbol.toUpperCase() === 'USD' ? 'USDT' : a.symbol);
       const qty = b?.qty ?? 0;
       const price = priceFor(a.symbol, a.price || 0);
       const change24h = marketBySymbol.get(a.symbol)?.change24h ?? a.change24h ?? 0;
@@ -137,6 +157,7 @@ export function useWalletAssets() {
     });
 
     for (const [sym, b] of bal) {
+      if (sym === 'USD') continue;
       if (merged.some((a) => a.symbol === sym)) continue;
       const price = priceFor(sym, b.ledgerPrice);
       const valueUSD = valueFor(sym, b.qty, b.ledgerValue, price);

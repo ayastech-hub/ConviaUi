@@ -2,7 +2,7 @@
 
 export type ResolvedChain = {
   chainKey: string;
-  chainFamily: 'evm' | 'solana' | 'bitcoin' | 'tron';
+  chainFamily: 'evm' | 'solana' | 'bitcoin' | 'tron' | 'ton';
 };
 
 const KEY_ALIASES: Record<string, string> = {
@@ -19,7 +19,7 @@ const KEY_ALIASES: Record<string, string> = {
   bnbsmartchain: 'bnb',
   bnb: 'bnb',
   base: 'base',
-  basesepolia: 'base', // if only base in product, still map carefully
+  basesepolia: 'base',
   arbitrum: 'arbitrum',
   optimism: 'optimism',
   sol: 'solana',
@@ -28,31 +28,36 @@ const KEY_ALIASES: Record<string, string> = {
   btc: 'bitcoin',
   tron: 'tron',
   trx: 'tron',
+  ton: 'ton',
+  toncoin: 'ton',
+  theopennetwork: 'ton',
 };
 
 function familyForKey(key: string): ResolvedChain['chainFamily'] {
   if (key === 'solana') return 'solana';
   if (key === 'bitcoin') return 'bitcoin';
   if (key === 'tron') return 'tron';
+  if (key === 'ton') return 'ton';
   return 'evm';
 }
 
 /**
- * Prefer passing a real registry chainKey (sepolia, ethereum, bnb…).
- * Labels like "Ethereum Sepolia" are normalized too.
+ * Prefer passing a real registry chainKey (sepolia, ethereum, bnb, ton…).
+ * Labels like "Ethereum Sepolia" / "TON" are normalized too.
  */
 export function resolveChain(networkOrKey: string): ResolvedChain {
   const raw = (networkOrKey || '').trim();
   const n = raw.toLowerCase().replace(/\s+/g, '');
 
-  // Direct product keys
-  if (['ethereum', 'sepolia', 'bnb', 'base', 'polygon', 'solana', 'tron', 'bitcoin'].includes(n)) {
+  if (['ethereum', 'sepolia', 'bnb', 'base', 'polygon', 'solana', 'tron', 'bitcoin', 'ton'].includes(n)) {
     return { chainKey: n, chainFamily: familyForKey(n) };
   }
 
-  // Sepolia before generic ethereum (label "Ethereum Sepolia")
   if (n.includes('sepolia')) {
     return { chainKey: 'sepolia', chainFamily: 'evm' };
+  }
+  if (n.includes('ton') || n === 'gram') {
+    return { chainKey: 'ton', chainFamily: 'ton' };
   }
   if (n.includes('sol')) return { chainKey: 'solana', chainFamily: 'solana' };
   if (n.includes('bitcoin') || n === 'btc') return { chainKey: 'bitcoin', chainFamily: 'bitcoin' };
@@ -65,7 +70,6 @@ export function resolveChain(networkOrKey: string): ResolvedChain {
   const aliased = KEY_ALIASES[n];
   if (aliased) return { chainKey: aliased, chainFamily: familyForKey(aliased) };
 
-  // Default EVM mainnet only when clearly ethereum
   if (n.includes('eth')) return { chainKey: 'ethereum', chainFamily: 'evm' };
 
   return { chainKey: 'ethereum', chainFamily: 'evm' };

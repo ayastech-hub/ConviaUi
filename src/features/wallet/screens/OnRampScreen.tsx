@@ -120,10 +120,17 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
     flag: (profile?.country || gates.country || 'NG').toString().slice(0, 2),
   };
 
-  // Live quote when amount changes
+  const onrampMin = limitFor(limits, fiatCurrency || currency.code).onrampMin;
+
+  // Live quote only when amount meets minimum — never hit API below min
   useEffect(() => {
     if (!fiatAmount || Number(fiatAmount) <= 0 || !gates.canOnramp) {
       setQuote(null);
+      return;
+    }
+    if (onrampMin > 0 && Number(fiatAmount) < onrampMin) {
+      setQuote(null);
+      setQuoting(false);
       return;
     }
     let cancelled = false;
@@ -156,7 +163,7 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
       cancelled = true;
       clearTimeout(t);
     };
-  }, [fiatAmount, fiatCurrency, selectedAsset.symbol, gates.canOnramp, amountMode]);
+  }, [fiatAmount, fiatCurrency, selectedAsset.symbol, gates.canOnramp, amountMode, onrampMin]);
 
   const youGet = quote ? Number(quote.netCrypto) : 0;
   const usdAmount =
@@ -430,7 +437,7 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
         <AnimatePresence mode="wait">
           {step === 'form' && (
             {/* min from API */}<OnRampFormStep
-              minFiat={limitFor(limits, (typeof fiatCurrency !== 'undefined' ? fiatCurrency : currency.code)).onrampMin}
+              minFiat={onrampMin}
               currency={payCurrencyDisplay}
               format={format}
               amount={amount}
