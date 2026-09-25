@@ -23,29 +23,27 @@ type Row = {
 
 const DEPOSIT_ROWS: (Row & { param?: string })[] = [
   {
-    id: 'receive',
-    label: 'Deposit address',
-    sub: 'Receive crypto on-chain to your wallet',
-    badge: 'On-chain',
+    id: 'crypto',
+    label: 'Deposit Crypto',
+    sub: 'Transfer crypto from your on-chain wallet or another exchange',
+    badge: 'Recently Used',
     icon: 'receive',
     screen: 'deposit',
   },
   {
-    id: 'card',
-    label: 'Credit / debit card',
-    sub: 'Buy crypto with card',
-    badge: 'Recommended',
+    id: 'request',
+    label: 'Payment request',
+    sub: 'Create a link so someone can pay you on Convia',
+    icon: 'request',
+    screen: 'request',
+  },
+  {
+    id: 'buy',
+    label: 'Buy with local currency',
+    sub: 'Card or bank transfer — Visa and Mastercard supported',
     icon: 'card',
     screen: 'onramp',
     param: 'card',
-  },
-  {
-    id: 'bank',
-    label: 'Bank transfer',
-    sub: 'Pay from your local bank account',
-    icon: 'bank',
-    screen: 'onramp',
-    param: 'bank',
   },
 ];
 
@@ -78,7 +76,7 @@ const SEND_ROWS: (Row & { param?: string })[] = [
 
 export function FundOptionsSheet({ open, onClose, onNavigate, mode = 'deposit' }: Props) {
   const rows = mode === 'send' ? SEND_ROWS : DEPOSIT_ROWS;
-  const title = mode === 'send' ? 'Send / Withdraw' : 'Deposit';
+  const title = mode === 'send' ? 'Send / Withdraw' : 'Select Payment Method';
 
   const go = (screen: Screen, param?: string) => {
     onClose();
