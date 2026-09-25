@@ -29,6 +29,17 @@ interface HomeScreenProps {
  */
 export function HomeScreen({ navigate, notificationCount: notificationCountProp }: HomeScreenProps) {
   const { status, username, displayName, email } = useAuth();
+
+  /** First name for greeting — max 12 chars so the chip stays readable. */
+  const firstName = (() => {
+    const raw = (displayName || username || (email ? email.split('@')[0] : '') || '').trim();
+    if (!raw) return 'there';
+    const first = raw.split(/\s+/)[0] || raw;
+    const cleaned = first.replace(/^@/, '');
+    if (cleaned.length <= 12) return cleaned;
+    return `${cleaned.slice(0, 11)}…`;
+  })();
+
   const [balanceVisible, setBalanceVisible] = useState(() => {
     try {
       return localStorage.getItem('convia.hideBalance') !== '1';
@@ -105,21 +116,13 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
               border: '1.5px solid color-mix(in oklab, var(--primary) 40%, var(--border))',
             }}
           >
-            {(
-              (displayName || username || email || 'C').trim().charAt(0) || 'C'
-            ).toUpperCase()}
+            {(firstName !== 'there' ? firstName : 'C').charAt(0).toUpperCase()}
           </span>
           <span
             className="truncate"
-            style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13, maxWidth: 110 }}
+            style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 13.5, maxWidth: 128 }}
           >
-            {username
-              ? `@${username}`
-              : displayName
-                ? displayName.split(' ')[0]
-                : email
-                  ? email.split('@')[0]
-                  : 'Account'}
+            Hi, {firstName}
           </span>
           <ChevronDown size={14} strokeWidth={2.4} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
         </motion.button>
