@@ -436,7 +436,7 @@ export function OnRampScreen({ goBack, presetSymbol }: OnRampScreenProps) {
       <div className="flex-1 overflow-y-auto px-5">
         <AnimatePresence mode="wait">
           {step === 'form' && (
-            {/* min from API */}<OnRampFormStep
+            <OnRampFormStep
               minFiat={onrampMin}
               currency={payCurrencyDisplay}
               format={format}
