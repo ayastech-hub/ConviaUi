@@ -38,8 +38,27 @@ interface OnRampFormStepProps {
   submitting?: boolean;
 }
 
-const QUICK_LOCAL = [5000, 10000, 25000, 50000];
 const QUICK_USD = [10, 25, 50, 100];
+
+/** Suggested buy amounts in local currency (≈ $5–$50 band where sensible). */
+function quickAmountsForCurrency(code: string): number[] {
+  switch (code.toUpperCase()) {
+    case 'USD':
+      return QUICK_USD;
+    case 'NGN':
+      return [5000, 10000, 25000, 50000];
+    case 'GHS':
+      return [50, 100, 250, 500];
+    case 'KES':
+      return [1000, 2500, 5000, 10000];
+    case 'ZAR':
+      return [150, 300, 750, 1500];
+    case 'UGX':
+      return [25000, 50000, 100000, 250000];
+    default:
+      return [5000, 10000, 25000, 50000];
+  }
+}
 
 /** Buy form — amount, asset, quote, payment. No marketing copy. */
 export function OnRampFormStep({
@@ -72,7 +91,7 @@ export function OnRampFormStep({
   submitting,
 }: OnRampFormStepProps) {
   const paySymbol = amountMode === 'usd' ? '$' : currency.symbol;
-  const quick = amountMode === 'usd' ? QUICK_USD : QUICK_LOCAL;
+  const quick = amountMode === 'usd' ? QUICK_USD : quickAmountsForCurrency(currency.code);
   const canContinue = Number(amount) > 0 && !quoting && !!quote && !submitting;
 
   return (

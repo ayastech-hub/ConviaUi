@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Loader, Coins, CreditCard, HandCoins, Link2 } from 'lucide-react';
 import { MethodOptionRow, MethodOrDivider } from '../components/MethodOptionRow';
 import { type Asset, type Screen } from '../../../shared/data/mockData';
-import { NETWORKS, type NetworkInfo } from '../components/deposit/types';
+import { NETWORKS, ASSET_MIN_DEPOSIT, type NetworkInfo } from '../components/deposit/types';
 import { AssetDropdown } from '../components/deposit/AssetDropdown';
 import { NetworkDropdown } from '../components/deposit/NetworkDropdown';
 import { TokenSelectionList } from '../components/deposit/TokenSelectionList';
@@ -59,12 +59,23 @@ export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenP
       minDeposit: 0,
       explorer: '',
     };
-    if (!liveMin) return base;
+    const assetFloor = asset ? (ASSET_MIN_DEPOSIT[asset.symbol.toUpperCase()] ?? 0) : 0;
+    if (!liveMin) {
+      return {
+        ...base,
+        minDeposit: assetFloor > 0 ? assetFloor : base.minDeposit,
+      };
+    }
     return {
       ...base,
       confirmations: liveMin.conf || base.confirmations,
       estTime: estTimeForConfirmations(liveMin.conf || base.confirmations),
-      minDeposit: liveMin.native > 0 ? liveMin.native : base.minDeposit,
+      minDeposit:
+        liveMin.native > 0
+          ? liveMin.native
+          : assetFloor > 0
+            ? assetFloor
+            : base.minDeposit,
       minDepositUsd: liveMin.usd > 0 ? liveMin.usd : base.minDepositUsd,
     };
   }, [fallbackNet, liveMin, network]);

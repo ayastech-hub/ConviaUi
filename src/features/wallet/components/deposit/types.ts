@@ -11,13 +11,30 @@ export interface NetworkInfo {
   explorer: string;
 }
 
+/** Fallback native mins when API has not returned live minimum yet. */
+export const ASSET_MIN_DEPOSIT: Record<string, number> = {
+  USDT: 0.1,
+  USDC: 0.1,
+  USD: 0.1,
+  BTC: 0.00005,
+  ETH: 0.002,
+  BNB: 0.01,
+  SOL: 0.05,
+  TRX: 50,
+  TON: 2,
+  POL: 5,
+  AERO: 5,
+  JUP: 5,
+  NOT: 500,
+};
+
 export const NETWORKS: Record<string, NetworkInfo> = {
   Bitcoin: { name: 'Bitcoin', label: 'BTC', color: 'var(--muted-foreground)', confirmations: 3, estTime: '10–30 min', minDeposit: 0.0001, explorer: 'mempool.space' },
   Ethereum: { name: 'Ethereum', label: 'ERC-20', color: 'var(--muted-foreground)', confirmations: 12, estTime: '3–5 min', minDeposit: 0.005, explorer: 'etherscan.io' },
   BASE: { name: 'BASE', label: 'Base', color: 'var(--muted-foreground)', confirmations: 12, estTime: '2–4 min', minDeposit: 0.005, explorer: 'basescan.org' },
   BSC: { name: 'BNB Smart Chain', label: 'BEP-20', color: 'var(--muted-foreground)', confirmations: 15, estTime: '1–3 min', minDeposit: 0.01, explorer: 'bscscan.com' },
   Solana: { name: 'Solana', label: 'SPL', color: 'var(--muted-foreground)', confirmations: 1, estTime: '1–10 sec', minDeposit: 0.01, explorer: 'solscan.io' },
-  Tron: { name: 'Tron', label: 'TRC-20', color: 'var(--muted-foreground)', confirmations: 19, estTime: '1–2 min', minDeposit: 1, explorer: 'tronscan.org' },
+  Tron: { name: 'Tron', label: 'TRC-20', color: 'var(--muted-foreground)', confirmations: 19, estTime: '1–2 min', minDeposit: 0.1, explorer: 'tronscan.org' },
 };
 
 /** Deterministic mock address generator (not a real address — for UI demo purposes only). */
