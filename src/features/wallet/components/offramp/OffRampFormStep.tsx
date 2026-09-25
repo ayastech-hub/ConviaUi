@@ -9,6 +9,9 @@ interface OffRampFormStepProps {
   currency: Currency;
   format: (n: number) => string;
   amount: string;
+  /** Min local payout — only shown while typing */
+  minLocal?: number;
+  minLocalSymbol?: string;
   setAmount: (v: string) => void;
   stablecoins: Asset[];
   selectedAsset: Asset;
@@ -34,6 +37,8 @@ export function OffRampFormStep({
   currency,
   format,
   amount,
+  minLocal = 0,
+  minLocalSymbol,
   setAmount,
   stablecoins,
   selectedAsset,
@@ -52,8 +57,10 @@ export function OffRampFormStep({
   onPreview,
 }: OffRampFormStepProps) {
   const bal = selectedAsset.balance || 0;
-  const over = Number(amount) > bal && Number(amount) > 0;
-  const canContinue = Number(amount) > 0 && !over && !!selectedAccountId;
+  const amtNum = Number(amount) || 0;
+  const over = amtNum > bal && amtNum > 0;
+  const belowMin = minLocal > 0 && amtNum > 0 && youGet > 0 && youGet < minLocal;
+  const canContinue = amtNum > 0 && !over && !belowMin && !!selectedAccountId;
 
   const bankLine = selectedAccount
     ? `${selectedAccount.bankName || 'Bank'} · ${(selectedAccount.accountNumber || selectedAccount.last4 || '').toString().slice(-4)}`
@@ -108,6 +115,13 @@ export function OffRampFormStep({
           />
         </div>
 
+        {(belowMin || (minLocal > 0 && amtNum > 0)) && (
+          <p style={{ color: belowMin ? 'var(--destructive)' : 'var(--muted-foreground)', fontSize: 12, marginTop: 8 }}>
+            {belowMin
+              ? `Minimum payout ${minLocalSymbol || currency.symbol}${minLocal.toLocaleString()}`
+              : `Min payout ${minLocalSymbol || currency.symbol}${minLocal.toLocaleString()}`}
+          </p>
+        )}
         {over && (
           <p className="mt-2" style={{ color: 'var(--destructive)', fontSize: 12, fontWeight: 600 }}>
             Exceeds available balance
@@ -277,7 +291,7 @@ export function OffRampFormStep({
           type="button"
           whileTap={{ scale: canContinue ? 0.98 : 1 }}
           disabled={!canContinue}
-          onClick={onPreview}
+          onClick={() => { if (!belowMin) onPreview(); }}
           className="w-full py-4 rounded-full mx-auto block"
           style={{
             maxWidth: 480,

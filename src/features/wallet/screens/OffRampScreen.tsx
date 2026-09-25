@@ -310,6 +310,8 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
         <AnimatePresence mode="wait">
           {step === 'form' && (
             <OffRampFormStep
+              minLocal={offrampMin}
+              minLocalSymbol={payoutCurrency.symbol}
               currency={payoutCurrency}
               format={format}
               stablecoins={cryptoAssets}

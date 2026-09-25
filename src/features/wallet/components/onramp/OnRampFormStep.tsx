@@ -177,9 +177,11 @@ export function OnRampFormStep({
             </button>
           ))}
         </div>
-        {minFiat > 0 && amountMode === 'fiat' && (
+        {minFiat > 0 && amountMode === 'fiat' && amtNum > 0 && (
           <p style={{ color: belowMin ? 'var(--destructive)' : 'var(--muted-foreground)', fontSize: 12, marginTop: 8 }}>
-            Minimum {currency.symbol}{minFiat.toLocaleString()}
+            {belowMin
+              ? `Minimum ${currency.symbol}${minFiat.toLocaleString()}`
+              : `Min ${currency.symbol}${minFiat.toLocaleString()}`}
           </p>
         )}
       </div>
@@ -291,8 +293,9 @@ export function OnRampFormStep({
           className="w-full py-4 rounded-full mx-auto block"
           style={{
             maxWidth: 480,
-            background: canContinue ? 'var(--primary)' : 'var(--muted)',
-            color: canContinue ? 'var(--primary-foreground, #fff)' : 'var(--muted-foreground)',
+            background: 'var(--primary)',
+            color: 'var(--primary-foreground, #fff)',
+            opacity: canContinue && !submitting ? 1 : 0.45,
             fontWeight: 700,
             fontSize: 16,
           }}

@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Loader, Coins, CreditCard, HandCoins, Link2 } from 'lucide-react';
 import { MethodOptionRow, MethodOrDivider } from '../components/MethodOptionRow';
 import { type Asset, type Screen } from '../../../shared/data/mockData';
-import { NETWORKS, ASSET_MIN_DEPOSIT, type NetworkInfo } from '../components/deposit/types';
+import { ASSET_MIN_DEPOSIT, networkInfoForKey, type NetworkInfo } from '../components/deposit/types';
 import { AssetDropdown } from '../components/deposit/AssetDropdown';
 import { NetworkDropdown } from '../components/deposit/NetworkDropdown';
 import { TokenSelectionList } from '../components/deposit/TokenSelectionList';
@@ -34,7 +34,7 @@ function estTimeForConfirmations(n: number): string {
 
 /** Deposit hub → crypto address flow or buy / request. */
 export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenProps) {
-  const { assets: cryptoAssets } = useWalletAssets();
+  const { assets: cryptoAssets, chainKeysForSymbol } = useWalletAssets();
   const { userId, status } = useAuth();
   const [asset, setAsset] = useState<Asset | null>(null);
   const [network, setNetwork] = useState<string>('');
@@ -47,18 +47,19 @@ export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenP
   const [mode, setMode] = useState<'hub' | 'crypto'>('crypto');
   const [liveMin, setLiveMin] = useState<{ native: number; usd: number; conf: number } | null>(null);
 
-  const fallbackNet = NETWORKS[network] || NETWORKS.Ethereum || Object.values(NETWORKS)[0];
+  const depositChains = useMemo(() => {
+    if (!asset) return [] as string[];
+    try {
+      const keys = chainKeysForSymbol?.(asset.symbol, 'deposit') || [];
+      if (keys.length) return keys;
+    } catch {
+      /* fall through */
+    }
+    return (asset.chains || []).map((c) => networkInfoForKey(c).chainKey);
+  }, [asset, chainKeysForSymbol]);
 
   const netInfo: NetworkInfo = useMemo(() => {
-    const base = fallbackNet || {
-      name: network || 'Network',
-      label: network || '—',
-      color: 'var(--muted-foreground)',
-      confirmations: 12,
-      estTime: '3–5 min',
-      minDeposit: 0,
-      explorer: '',
-    };
+    const base = networkInfoForKey(network || depositChains[0] || 'ethereum');
     const assetFloor = asset ? (ASSET_MIN_DEPOSIT[asset.symbol.toUpperCase()] ?? 0) : 0;
     if (!liveMin) {
       return {
@@ -78,14 +79,17 @@ export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenP
             : base.minDeposit,
       minDepositUsd: liveMin.usd > 0 ? liveMin.usd : base.minDepositUsd,
     };
-  }, [fallbackNet, liveMin, network]);
+  }, [network, depositChains, liveMin, asset]);
 
   const loadAddress = useCallback(async () => {
     if (!userId || !asset) return;
     setLoading(true);
     setError(null);
     setLiveMin(null);
-    const { chainKey, chainFamily } = resolveChain(network || asset.chains[0] || 'Ethereum');
+    setAddress('');
+    const resolved = resolveChain(network || depositChains[0] || 'ethereum');
+    const chainKey = resolved.chainKey;
+    const chainFamily = resolved.chainFamily;
     try {
       const depositSym = asset.symbol.toUpperCase() === 'USD' ? 'USDT' : asset.symbol;
       const info = await fetchDepositInfo(userId, depositSym, chainKey);
@@ -115,7 +119,7 @@ export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenP
     } finally {
       setLoading(false);
     }
-  }, [userId, asset, network]);
+  }, [userId, asset, network, depositChains]);
 
   useEffect(() => {
     void loadAddress();
@@ -123,7 +127,16 @@ export function DepositScreen({ goBack, navigate, presetSymbol }: DepositScreenP
 
   const handleAssetSelect = (a: Asset) => {
     setAsset(a);
-    setNetwork(a.chains[0] || 'Ethereum');
+    {
+      let keys: string[] = [];
+      try {
+        keys = chainKeysForSymbol?.(a.symbol, 'deposit') || [];
+      } catch {
+        keys = [];
+      }
+      const first = keys[0] || networkInfoForKey(a.chains?.[0] || 'ethereum').chainKey;
+      setNetwork(first);
+    }
     setMode('crypto');
   };
 
@@ -228,9 +241,13 @@ if (!asset) {
       />
       <NetworkDropdown
         open={networkOpen}
-        networks={asset.chains}
+        networks={depositChains.length ? depositChains : asset.chains}
         selected={network}
-        onSelect={setNetwork}
+        onSelect={(key) => {
+          setNetwork(key);
+          setAddress('');
+          setLiveMin(null);
+        }}
         onClose={() => setNetworkOpen(false)}
       />
     </div>

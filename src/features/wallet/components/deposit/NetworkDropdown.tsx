@@ -1,50 +1,45 @@
-import { NETWORKS } from './types';
+import { networkInfoForKey } from './types';
 
 interface NetworkDropdownProps {
   open: boolean;
   networks: string[];
   selected: string;
-  onSelect: (n: string) => void;
+  onSelect: (network: string) => void;
   onClose: () => void;
 }
 
-/** Compact bottom sheet — same interaction as withdraw network picker. */
 export function NetworkDropdown({ open, networks, selected, onSelect, onClose }: NetworkDropdownProps) {
   if (!open) return null;
+  const selectedKey = networkInfoForKey(selected).chainKey;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end"
-      style={{ background: 'rgba(0,0,0,0.5)' }}
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50 flex flex-col justify-end" style={{ background: 'rgba(0,0,0,0.45)' }}>
+      <button type="button" className="flex-1" aria-label="Close" onClick={onClose} />
       <div
-        className="w-full max-h-[45vh] overflow-y-auto rounded-t-[20px] px-4 pt-3 pb-8"
-        style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-        onClick={(e) => e.stopPropagation()}
+        className="rounded-t-[24px] max-h-[70vh] overflow-y-auto px-4 pb-8 pt-3"
+        style={{ background: 'var(--background)', border: '1px solid var(--border)' }}
       >
-        <div className="w-9 h-1 rounded-full mx-auto mb-3" style={{ background: 'var(--border)' }} />
-        <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 15, marginBottom: 8 }}>
-          Network
-        </p>
+        <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: 'var(--muted-foreground)' }} />
+        <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 16, marginBottom: 12 }}>Network</p>
         {networks.map((n) => {
-          const info = NETWORKS[n] || { label: n, name: n, estTime: '—', color: 'var(--muted)' };
-          const active = selected === n;
+          const info = networkInfoForKey(n);
+          const active = info.chainKey === selectedKey || n === selected;
           return (
             <button
-              key={n}
+              key={info.chainKey || n}
               type="button"
               onClick={() => {
-                onSelect(n);
+                onSelect(info.chainKey);
                 onClose();
               }}
-              className="w-full flex items-center justify-between px-3 py-3.5 rounded-xl text-left"
-              style={{ background: active ? 'var(--muted)' : 'transparent' }}
+              className="w-full flex items-center gap-3 px-3 py-3.5 rounded-2xl mb-1.5 text-left"
+              style={{
+                background: active ? 'var(--muted)' : 'transparent',
+                border: active ? '1px solid var(--border)' : '1px solid transparent',
+              }}
             >
-              <div>
-                <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>
-                  {info.name || n}
-                </p>
+              <div className="flex-1 min-w-0">
+                <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>{info.name}</p>
                 <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>
                   {info.label}
                   {info.estTime ? ` · ${info.estTime}` : ''}
