@@ -13,21 +13,8 @@ export interface NetworkInfo {
 }
 
 /** Fallback native mins when API has not returned live minimum yet. */
-export const ASSET_MIN_DEPOSIT: Record<string, number> = {
-  USDT: 0.1,
-  USDC: 0.1,
-  USD: 0.1,
-  BTC: 0.00005,
-  ETH: 0.002,
-  BNB: 0.01,
-  SOL: 0.05,
-  TRX: 50,
-  TON: 2,
-  POL: 5,
-  AERO: 5,
-  JUP: 5,
-  NOT: 500,
-};
+/** @deprecated Prefer live registry / deposit-info API. Empty = no local floor. */
+export const ASSET_MIN_DEPOSIT: Record<string, number> = {};
 
 /** Meta keyed by backend chainKey (lowercase). */
 export const CHAIN_META: Record<string, Omit<NetworkInfo, 'chainKey' | 'minDepositUsd'>> = {
@@ -37,7 +24,7 @@ export const CHAIN_META: Record<string, Omit<NetworkInfo, 'chainKey' | 'minDepos
     color: 'var(--muted-foreground)',
     confirmations: 12,
     estTime: '3–5 min',
-    minDeposit: 0.1,
+    minDeposit: 0,
     explorer: 'etherscan.io',
   },
   sepolia: {
@@ -46,7 +33,7 @@ export const CHAIN_META: Record<string, Omit<NetworkInfo, 'chainKey' | 'minDepos
     color: 'var(--muted-foreground)',
     confirmations: 2,
     estTime: '~1 min',
-    minDeposit: 0.1,
+    minDeposit: 0,
     explorer: 'sepolia.etherscan.io',
   },
   base: {
@@ -55,7 +42,7 @@ export const CHAIN_META: Record<string, Omit<NetworkInfo, 'chainKey' | 'minDepos
     color: 'var(--muted-foreground)',
     confirmations: 12,
     estTime: '2–4 min',
-    minDeposit: 0.1,
+    minDeposit: 0,
     explorer: 'basescan.org',
   },
   bnb: {
@@ -64,7 +51,7 @@ export const CHAIN_META: Record<string, Omit<NetworkInfo, 'chainKey' | 'minDepos
     color: 'var(--muted-foreground)',
     confirmations: 15,
     estTime: '1–3 min',
-    minDeposit: 0.1,
+    minDeposit: 0,
     explorer: 'bscscan.com',
   },
   polygon: {
@@ -73,7 +60,7 @@ export const CHAIN_META: Record<string, Omit<NetworkInfo, 'chainKey' | 'minDepos
     color: 'var(--muted-foreground)',
     confirmations: 30,
     estTime: '2–5 min',
-    minDeposit: 0.1,
+    minDeposit: 0,
     explorer: 'polygonscan.com',
   },
   solana: {
@@ -82,7 +69,7 @@ export const CHAIN_META: Record<string, Omit<NetworkInfo, 'chainKey' | 'minDepos
     color: 'var(--muted-foreground)',
     confirmations: 1,
     estTime: '1–10 sec',
-    minDeposit: 0.1,
+    minDeposit: 0,
     explorer: 'solscan.io',
   },
   tron: {
@@ -91,7 +78,7 @@ export const CHAIN_META: Record<string, Omit<NetworkInfo, 'chainKey' | 'minDepos
     color: 'var(--muted-foreground)',
     confirmations: 19,
     estTime: '1–2 min',
-    minDeposit: 0.1,
+    minDeposit: 0,
     explorer: 'tronscan.org',
   },
   bitcoin: {
@@ -100,7 +87,7 @@ export const CHAIN_META: Record<string, Omit<NetworkInfo, 'chainKey' | 'minDepos
     color: 'var(--muted-foreground)',
     confirmations: 3,
     estTime: '10–30 min',
-    minDeposit: 0.00005,
+    minDeposit: 0,
     explorer: 'mempool.space',
   },
   ton: {
@@ -109,7 +96,7 @@ export const CHAIN_META: Record<string, Omit<NetworkInfo, 'chainKey' | 'minDepos
     color: 'var(--muted-foreground)',
     confirmations: 1,
     estTime: '~5 sec',
-    minDeposit: 0.1,
+    minDeposit: 0,
     explorer: 'tonviewer.com',
   },
   nile: {
@@ -118,7 +105,7 @@ export const CHAIN_META: Record<string, Omit<NetworkInfo, 'chainKey' | 'minDepos
     color: 'var(--muted-foreground)',
     confirmations: 1,
     estTime: '~30 sec',
-    minDeposit: 1,
+    minDeposit: 0,
     explorer: 'nile.tronscan.org',
   },
   'solana-devnet': {
@@ -127,7 +114,7 @@ export const CHAIN_META: Record<string, Omit<NetworkInfo, 'chainKey' | 'minDepos
     color: 'var(--muted-foreground)',
     confirmations: 1,
     estTime: '~5 sec',
-    minDeposit: 0.01,
+    minDeposit: 0,
     explorer: 'explorer.solana.com/?cluster=devnet',
   },
   'ton-testnet': {
@@ -136,7 +123,7 @@ export const CHAIN_META: Record<string, Omit<NetworkInfo, 'chainKey' | 'minDepos
     color: 'var(--muted-foreground)',
     confirmations: 1,
     estTime: '~5 sec',
-    minDeposit: 0.1,
+    minDeposit: 0,
     explorer: 'testnet.tonscan.org',
   },
   'bitcoin-testnet': {
@@ -145,7 +132,7 @@ export const CHAIN_META: Record<string, Omit<NetworkInfo, 'chainKey' | 'minDepos
     color: 'var(--muted-foreground)',
     confirmations: 1,
     estTime: '5–20 min',
-    minDeposit: 0.00001,
+    minDeposit: 0,
     explorer: 'blockstream.info/testnet',
   },
 };
