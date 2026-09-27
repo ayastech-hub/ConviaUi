@@ -169,8 +169,16 @@ export function useTokenRegistry() {
         // No registry variant yet — empty; deposit UI will show empty chain state
         return [] as string[];
       }
+      const enabledKeys = new Set(
+        (chains || [])
+          .filter((ch) => ch.isEnabled !== false && ch.enabled !== false)
+          .map((ch) => (ch.key || ch.chainKey || '').toLowerCase())
+          .filter(Boolean),
+      );
       return (tok.chains || [])
         .filter((c) => {
+          const key = (c.chainKey || c.key || '').toLowerCase();
+          if (enabledKeys.size && key && !enabledKeys.has(key)) return false;
           if (direction === 'deposit') return c.depositsEnabled !== false;
           if (direction === 'withdraw') return c.withdrawalsEnabled !== false;
           return true;
@@ -178,7 +186,7 @@ export function useTokenRegistry() {
         .map((c) => (c.chainKey || c.key || '').toLowerCase())
         .filter(Boolean);
     },
-    [tokens],
+    [tokens, chains],
   );
 
   return {
