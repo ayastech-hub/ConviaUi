@@ -112,6 +112,42 @@ export const CHAIN_META: Record<string, Omit<NetworkInfo, 'chainKey' | 'minDepos
     minDeposit: 0.1,
     explorer: 'tonviewer.com',
   },
+  nile: {
+    name: 'TRON Nile',
+    label: 'TRC-20',
+    color: 'var(--muted-foreground)',
+    confirmations: 1,
+    estTime: '~30 sec',
+    minDeposit: 1,
+    explorer: 'nile.tronscan.org',
+  },
+  'solana-devnet': {
+    name: 'Solana Devnet',
+    label: 'SPL',
+    color: 'var(--muted-foreground)',
+    confirmations: 1,
+    estTime: '~5 sec',
+    minDeposit: 0.01,
+    explorer: 'explorer.solana.com/?cluster=devnet',
+  },
+  'ton-testnet': {
+    name: 'TON Testnet',
+    label: 'TON',
+    color: 'var(--muted-foreground)',
+    confirmations: 1,
+    estTime: '~5 sec',
+    minDeposit: 0.1,
+    explorer: 'testnet.tonscan.org',
+  },
+  'bitcoin-testnet': {
+    name: 'Bitcoin Testnet',
+    label: 'BTC',
+    color: 'var(--muted-foreground)',
+    confirmations: 1,
+    estTime: '5–20 min',
+    minDeposit: 0.00001,
+    explorer: 'blockstream.info/testnet',
+  },
 };
 
 /** @deprecated use CHAIN_META + resolveChain; kept for any leftover imports */

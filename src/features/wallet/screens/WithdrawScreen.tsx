@@ -10,7 +10,7 @@ import { WithdrawSuccessView } from '../components/withdraw/WithdrawSuccessView'
 import { FeatureAlert, mapApiCodeToReason } from '../../../shared/components/FeatureAlert';
 import { useAuth } from '../../../shared/context/AuthContext';
 import {
-  withdrawCrypto,
+  withdrawCrypto, getWithdrawalStatus,
   quoteWithdrawCrypto,
   fetchDepositInfo,
   type WithdrawQuote,
@@ -286,19 +286,39 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
         withdrawalRequestId?: string;
       };
 
-      // Never wait for on-chain finality in the UI — backend finishes in background.
-      const hash = res.txHash || '';
-      const status =
-        res.status === 'completed' && hash
-          ? 'confirmed'
-          : 'pending';
+      let hash = res.txHash || '';
+      let statusLabel: 'confirmed' | 'pending' =
+        res.status === 'completed' && hash ? 'confirmed' : 'pending';
+      const requestId = String(res.withdrawalRequestId || '');
+
+      // Poll until completed/needs_ops or timeout (~45s) so success can show txHash.
+      if (requestId && statusLabel === 'pending') {
+        const deadline = Date.now() + 45_000;
+        while (Date.now() < deadline) {
+          await new Promise((r) => setTimeout(r, 2000));
+          try {
+            const st = await getWithdrawalStatus(requestId);
+            if (st.txHash) hash = st.txHash;
+            if (st.status === 'completed') {
+              statusLabel = 'confirmed';
+              break;
+            }
+            if (st.status === 'needs_ops' || st.status === 'rejected' || st.status === 'broadcast_unknown') {
+              break;
+            }
+          } catch {
+            break;
+          }
+        }
+      }
+
       setReceiptTx({
-        id: String(res.withdrawalRequestId || 'wd-' + Date.now()),
+        id: requestId || 'wd-' + Date.now(),
         type: 'withdraw',
         asset: selectedAsset.symbol,
         amount: Number(res.netAmount || amount),
         valueUSD: Number(res.netAmount || amount) * (selectedAsset.price || 0),
-        status,
+        status: statusLabel,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         hash: hash || undefined,
         address,

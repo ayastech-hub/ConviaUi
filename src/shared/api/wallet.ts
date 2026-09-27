@@ -82,3 +82,19 @@ export function withdrawCrypto(body: {
     headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
   });
 }
+
+export type WithdrawalStatus = {
+  id: string;
+  status: string;
+  txHash: string | null;
+  asset: string;
+  amount: string;
+  destination: string;
+  chainKey: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function getWithdrawalStatus(id: string) {
+  return api.get<WithdrawalStatus>(`/crypto/withdraw/${id}`);
+}

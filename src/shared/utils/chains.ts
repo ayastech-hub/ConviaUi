@@ -34,10 +34,11 @@ const KEY_ALIASES: Record<string, string> = {
 };
 
 function familyForKey(key: string): ResolvedChain['chainFamily'] {
-  if (key === 'solana') return 'solana';
-  if (key === 'bitcoin') return 'bitcoin';
-  if (key === 'tron') return 'tron';
-  if (key === 'ton') return 'ton';
+  const k = key.toLowerCase();
+  if (k === 'solana' || k === 'solana-devnet') return 'solana';
+  if (k === 'bitcoin' || k === 'bitcoin-testnet') return 'bitcoin';
+  if (k === 'tron' || k === 'nile' || k === 'shasta') return 'tron';
+  if (k === 'ton' || k === 'ton-testnet') return 'ton';
   return 'evm';
 }
 
@@ -49,13 +50,17 @@ export function resolveChain(networkOrKey: string): ResolvedChain {
   const raw = (networkOrKey || '').trim();
   const n = raw.toLowerCase().replace(/\s+/g, '');
 
-  if (['ethereum', 'sepolia', 'bnb', 'base', 'polygon', 'solana', 'tron', 'bitcoin', 'ton'].includes(n)) {
+  if (['ethereum', 'sepolia', 'bnb', 'base', 'polygon', 'solana', 'solana-devnet', 'tron', 'nile', 'bitcoin', 'bitcoin-testnet', 'ton', 'ton-testnet'].includes(n)) {
     return { chainKey: n, chainFamily: familyForKey(n) };
   }
 
   if (n.includes('sepolia')) {
     return { chainKey: 'sepolia', chainFamily: 'evm' };
   }
+  if (n.includes('nile')) return { chainKey: 'nile', chainFamily: 'tron' };
+  if (n.includes('devnet') && n.includes('sol')) return { chainKey: 'solana-devnet', chainFamily: 'solana' };
+  if (n.includes('ton') && n.includes('test')) return { chainKey: 'ton-testnet', chainFamily: 'ton' };
+  if (n.includes('bitcoin') && n.includes('test')) return { chainKey: 'bitcoin-testnet', chainFamily: 'bitcoin' };
   if (n.includes('ton') || n === 'gram') {
     return { chainKey: 'ton', chainFamily: 'ton' };
   }
