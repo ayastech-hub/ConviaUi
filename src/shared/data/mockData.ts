@@ -100,6 +100,7 @@ export interface Transaction {
   fiatCurrency?: string;
   counterparty?: string;
   title?: string;
+  rawType?: string;
 }
 
 export interface ChatContact {
