@@ -14,30 +14,33 @@ export interface OnboardingSlideData {
 export const ONBOARDING_SLIDES: OnboardingSlideData[] = [
   {
     icon: Globe,
-    title: "Africa's Financial Universe",
-    subtitle: 'One app for crypto, banking, payments, and investing. Built for Africa, loved by the world.',
+    title: 'Your money, one place',
+    subtitle:
+      'Hold crypto and local balances in one wallet. Built for everyday use across Africa.',
     accent: 'var(--primary)',
     accentGlow: 'var(--muted)',
-    stat: '12+ Currencies',
-    statLabel: 'Across the continent',
+    stat: 'Multi-currency',
+    statLabel: 'NGN, GHS, KES, ZAR, UGX & more',
   },
   {
     icon: TrendingUp,
-    title: 'Trade & Grow Your Wealth',
-    subtitle: 'Access multi-chain crypto, real-time markets, OTC trading, and off-ramp to any local currency.',
+    title: 'Buy, sell & move crypto',
+    subtitle:
+      'Deposit on supported chains, swap inside the app, and cash out to your bank when you need naira or other local currency.',
     accent: 'var(--positive)',
     accentGlow: 'var(--muted)',
-    stat: '50K+ Traders',
-    statLabel: 'Active community',
+    stat: 'Multi-chain',
+    statLabel: 'ETH, SOL, TRON, TON, BTC & stables',
   },
   {
     icon: Users,
-    title: 'Pay Anyone, Anywhere',
-    subtitle: 'Send money by username. Chat with traders. Build wealth together as a community.',
+    title: 'Pay bills from your balance',
+    subtitle:
+      'Airtime, data, power, TV, and more — paid from your Convia balance. Send to friends by username when you need to.',
     accent: 'var(--primary)',
     accentGlow: 'var(--muted)',
-    stat: '24/7 Support',
-    statLabel: 'Always here for you',
+    stat: 'Bills & pay',
+    statLabel: 'Utilities, QR, and request links',
   },
 ];
 
