@@ -709,8 +709,10 @@ function TransactionRow({
 }) {
   const m = meta(tx.type);
   const displayLabel = (tx as { title?: string }).title || m.label;
-
-  const sign = getTxSign(tx.type);
+  const isRefund =
+    String(tx.title || '').toLowerCase().includes('refund') ||
+    String((tx as { rawType?: string }).rawType || '').toLowerCase().includes('withdraw_release');
+  const sign = isRefund ? '+' : getTxSign(tx.type);
   const amountPrimary =
     tx.type === 'swap'
       ? `${formatTokenAmount(tx.amount)} ${tx.asset || ''}`
@@ -723,7 +725,11 @@ function TransactionRow({
         ? format(tx.valueUSD)
         : null;
 
-  const amountTone = getTxColor(tx.type);
+  const amountTone = isRefund
+    ? 'var(--positive, #2dd4bf)'
+    : getTxColor(tx.type);
+  const statusLabel = isRefund ? 'Refunded' : tx.status;
+
 
   return (
     <motion.button
@@ -755,13 +761,13 @@ function TransactionRow({
         >
           {tx.type === 'swap'
             ? `${tx.asset || '—'} → ${tx.assetTo || '—'}`
-            : m.label}
+            : displayLabel}
         </div>
 
         <div className="mt-1 flex min-w-0 items-center gap-1.5">
           <span
             className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
-            style={{ background: statusColor(tx.status) }}
+            style={{ background: isRefund ? 'var(--positive, #2dd4bf)' : statusColor(tx.status) }}
           />
 
           <span
@@ -773,7 +779,7 @@ function TransactionRow({
               textTransform: 'capitalize',
             }}
           >
-            {tx.status}
+            {statusLabel}
           </span>
 
           {tx.asset && tx.type !== 'swap' && (

@@ -64,6 +64,15 @@ function mapType(t: ApiTransaction): Transaction['type'] {
   if (raw.includes('giveaway')) return 'giveaway';
   if (raw.includes('money_request') || raw.includes('request_link') || raw.includes('request')) return 'request';
   if (raw.includes('reward') || raw.includes('referral')) return 'reward';
+  // Refund / release credits must NOT look like outgoing withdrawals
+  if (
+    raw.includes('withdraw_release') ||
+    raw.includes('withdrawal refund') ||
+    raw.includes('withdraw refund') ||
+    (raw.includes('refund') && (raw.includes('withdraw') || t.direction === 'credit'))
+  ) {
+    return 'receive';
+  }
   if (raw.includes('withdraw') || raw.includes('withdrawal') || t.kind === 'withdrawal') return 'withdraw';
 
   // Bills / utilities — never map to sell
@@ -133,10 +142,20 @@ export function apiTxToUi(t: ApiTransaction): Transaction {
     const v = meta[k];
     return v != null && String(v).trim() ? String(v) : undefined;
   };
+  const rawType = String(t.type || '').toLowerCase();
+  let status = mapStatus(t.status);
+  // Refund rows are not "confirmed withdrawals" — neutral completed refund
+  if (rawType.includes('withdraw_release') || String(t.title || '').toLowerCase().includes('refund')) {
+    status = 'confirmed'; // funds returned; label handled by title/type
+  }
+  const title =
+    rawType.includes('withdraw_release')
+      ? (t.title && t.title.toLowerCase().includes('refund') ? t.title : 'Withdrawal refund')
+      : t.title || undefined;
   return {
     id: t.id,
     type: mapped,
-    title: t.title || undefined,
+    title,
     asset: t.asset || '—',
     assetTo: isSwap ? assetTo || undefined : assetTo,
     amount,
@@ -144,7 +163,7 @@ export function apiTxToUi(t: ApiTransaction): Transaction {
     valueUSD: amount,
     time,
     createdAt: t.createdAt || undefined,
-    status: mapStatus(t.status),
+    status,
     hash: t.txHash || str('txHash') || str('hash') || undefined,
     network: str('network') || str('chain') || str('chainKey') || undefined,
     chainKey: str('chainKey') || str('chain') || undefined,
