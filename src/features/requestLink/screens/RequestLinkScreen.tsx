@@ -564,7 +564,7 @@ function CreateForm({ onDone }: { onDone: (id: string) => void }) {
     try {
       const request = await createRequest({
         asset,
-        amount: n,
+        amount: amount.trim(),
         note,
         expiresAt,
         creatorId: userId || 'local',

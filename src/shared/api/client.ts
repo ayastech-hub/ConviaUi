@@ -154,7 +154,11 @@ export async function apiRequest<T>(path: string, opts: RequestOptions = {}): Pr
 
   if (!res.ok) {
     const body = (await parseBody(res)) as ApiErrorBody;
-    if (res.status === 401) {
+    const code = typeof body?.code === 'string' ? body.code : '';
+    // PIN / TOTP challenges must not look like a dead session
+    const authChallenge =
+      code.startsWith('pin_') || code.startsWith('totp_') || code === 'mfa_required';
+    if (res.status === 401 && !authChallenge) {
       setTokens(null);
       onAuthFailure();
     }

@@ -2,7 +2,7 @@ import { api } from './client';
 
 export type ApiRequestLink = {
   id: string;
-  requesterId: string;
+  requesterId?: string;
   code: string;
   asset: string;
   amount: string;
@@ -12,6 +12,13 @@ export type ApiRequestLink = {
   createdAt: string;
   payPath?: string;
   requesterUsername?: string | null;
+  requester?: {
+    username?: string | null;
+    displayName?: string | null;
+    avatarUrl?: string | null;
+  };
+  requiresAuth?: boolean;
+  message?: string;
 };
 
 export function createRequestLink(body: {
@@ -32,10 +39,14 @@ export function getRequestLinkByCode(code: string) {
   return api.get<ApiRequestLink>(`/request-links/code/${encodeURIComponent(code)}`, { auth: false });
 }
 
-export function payRequestLink(code: string, pin?: string) {
+export function payRequestLink(code: string, pin: string, userId?: string) {
   return api.post<{ id: string; status: string; asset: string; amount: string; ledgerTxId?: string }>(
     '/request-links/pay',
-    { code, ...(pin ? { pin } : {}) },
+    {
+      code,
+      pin,
+      ...(userId ? { userId } : {}),
+    },
     { idempotent: true },
   );
 }

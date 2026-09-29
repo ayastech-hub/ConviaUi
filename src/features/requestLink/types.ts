@@ -4,26 +4,33 @@ export interface PaymentRequest {
   id: string;
   code: string;
   asset: string;
+  /** Human amount for display; prefer amountStr for API */
   amount: number;
+  amountStr: string;
   note: string;
   status: RequestStatus;
   createdAt: string;
   expiresAt: string;
   creatorId: string;
   creatorLabel: string;
+  creatorAvatar?: string | null;
   paidBy?: string;
   paidAt?: string;
 }
 
+/** Canonical share URL: /pay/CODE (SPA rewrite must map to index.html) */
 export function payUrl(code: string): string {
-  if (typeof window !== 'undefined') {
-    return `${window.location.origin}/?pay=${encodeURIComponent(code)}`;
+  const c = encodeURIComponent(String(code || '').trim());
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return `${window.location.origin}/pay/${c}`;
   }
-  return `https://convia.app/pay/${code}`;
+  return `https://convia.app/pay/${c}`;
 }
 
 export function refreshRequest(r: PaymentRequest, now = Date.now()): PaymentRequest {
   if (r.status !== 'open') return r;
-  if (new Date(r.expiresAt).getTime() <= now) return { ...r, status: 'expired' };
+  if (r.expiresAt && Date.parse(r.expiresAt) < now) {
+    return { ...r, status: 'expired' };
+  }
   return r;
 }

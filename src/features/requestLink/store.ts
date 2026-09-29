@@ -11,17 +11,28 @@ function mapStatus(s: string): PaymentRequest['status'] {
 }
 
 export function mapApiLink(row: ApiRequestLink): PaymentRequest {
+  const amountStr = String(row.amount ?? '0');
+  const amount = Number(amountStr);
+  const requester = row.requester;
+  const creatorLabel =
+    requester?.displayName?.trim() ||
+    requester?.username?.trim() ||
+    row.requesterUsername?.trim() ||
+    'Convia user';
+
   return {
     id: row.id,
     code: row.code,
     asset: row.asset,
-    amount: Number(row.amount) || 0,
+    amount: Number.isFinite(amount) ? amount : 0,
+    amountStr,
     note: row.note || '',
     status: mapStatus(row.status),
     expiresAt: row.expiresAt,
     createdAt: row.createdAt,
-    creatorId: row.requesterId,
-    creatorLabel: row.requesterUsername || 'User',
+    creatorId: row.requesterId || '',
+    creatorLabel,
+    creatorAvatar: requester?.avatarUrl ?? null,
     paidBy: undefined,
     paidAt: undefined,
   };
@@ -55,7 +66,7 @@ export async function getRequest(idOrCode: string): Promise<PaymentRequest | nul
 
 export async function createRequest(input: {
   asset: string;
-  amount: number;
+  amount: string;
   note: string;
   expiresAt: string;
   creatorId: string;
@@ -63,7 +74,7 @@ export async function createRequest(input: {
 }): Promise<PaymentRequest> {
   const row = await requestLinksApi.createRequestLink({
     asset: input.asset,
-    amount: String(input.amount),
+    amount: String(input.amount).trim(),
     note: input.note || undefined,
     expiresAt: input.expiresAt,
     pin: input.pin,
@@ -82,11 +93,11 @@ export async function cancelRequest(id: string): Promise<PaymentRequest | null> 
 
 export async function payRequest(
   code: string,
-  _payerId: string,
-  pin?: string,
-): Promise<{ ok: true; request: PaymentRequest } | { ok: false; error: string }> {
+  payerId: string,
+  pin: string,
+): Promise<{ ok: true; request: PaymentRequest } | { ok: false; error: string; code?: string }> {
   try {
-    const res = await requestLinksApi.payRequestLink(code.trim(), pin);
+    const res = await requestLinksApi.payRequestLink(code.trim(), pin, payerId);
     const request =
       (await getRequest(code)) ||
       ({
@@ -94,21 +105,22 @@ export async function payRequest(
         code: code.trim().toUpperCase(),
         asset: res.asset,
         amount: Number(res.amount) || 0,
+        amountStr: String(res.amount || '0'),
         note: '',
         status: 'paid' as const,
         expiresAt: new Date().toISOString(),
         createdAt: new Date().toISOString(),
         creatorId: '',
-        creatorLabel: 'User',
+        creatorLabel: 'Convia user',
       } as PaymentRequest);
     return { ok: true, request: { ...request, status: 'paid' } };
   } catch (e: unknown) {
-    const msg =
+    const body =
       e && typeof e === 'object' && 'body' in e
-        ? String((e as { body?: { message?: string; code?: string } }).body?.message ||
-            (e as { body?: { code?: string } }).body?.code ||
-            'Payment failed')
-        : 'Payment failed';
-    return { ok: false, error: msg };
+        ? (e as { body?: { message?: string; code?: string } }).body
+        : undefined;
+    const codeErr = body?.code;
+    const msg = String(body?.message || codeErr || 'Payment failed');
+    return { ok: false, error: msg, code: codeErr };
   }
 }

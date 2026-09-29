@@ -17,6 +17,9 @@ import { AssetIcon } from '../../../shared/components/AssetIcon';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { getRequest, payRequest } from '../store';
 import { getPendingPay, setPendingPay, clearPendingPay } from '../../../shared/utils/pendingPay';
+import { EnterPinFullScreen } from '../../../shared/components/PinFullScreen';
+import { SetTransactionPinSheet } from '../../../shared/components/SetTransactionPinSheet';
+import { ensureTransactionPin } from '../../../shared/security/ensureTransactionPin';
 
 interface Props {
   code: string;
@@ -32,6 +35,9 @@ export function PayScreen({ code, goBack, navigate }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
+  const [showPin, setShowPin] = useState(false);
+  const [showSetPin, setShowSetPin] = useState(false);
+  const [pinError, setPinError] = useState<string | null>(null);
 
   const resolvedCode = (() => {
     const c = (code || '').trim();
@@ -154,25 +160,44 @@ export function PayScreen({ code, goBack, navigate }: Props) {
   }
 
   const onPay = async () => {
-    if (!authenticated || !userId || busy) return;
-
-    setBusy(true);
+    if (!authenticated || !userId || busy || !req) return;
     setError('');
+    setPinError(null);
+    const gate = await ensureTransactionPin(userId);
+    if (!gate.ok) {
+      if (gate.hasPin === false) {
+        setShowSetPin(true);
+        return;
+      }
+      setError(gate.message || 'Set a transaction PIN in Security to pay.');
+      return;
+    }
+    setShowPin(true);
+  };
 
+  const submitWithPin = async (pinStr: string) => {
+    if (!authenticated || !userId || busy || !req) return;
+    setBusy(true);
+    setPinError(null);
+    setError('');
     try {
-      const result = await payRequest(req.code || resolvedCode, userId);
-
+      const result = await payRequest(req.code || resolvedCode, userId, pinStr);
       if (!result.ok) {
+        const code = result.code || '';
+        if (code.startsWith('pin_') || code === 'pin_required' || code === 'pin_invalid') {
+          setPinError(result.error || 'Incorrect PIN');
+          return;
+        }
+        setShowPin(false);
         setError(result.error || 'Payment could not be completed.');
-        // Session may have been cleared on 401 — keep pay code so login returns here
         if (resolvedCode) setPendingPay(resolvedCode);
         return;
       }
-
       clearPendingPay();
+      setShowPin(false);
       setDone(true);
     } catch {
-      setError('Payment could not be completed. Please try again.');
+      setPinError('Payment could not be completed. Please try again.');
     } finally {
       setBusy(false);
     }
@@ -202,6 +227,33 @@ export function PayScreen({ code, goBack, navigate }: Props) {
           />
         )}
       </div>
+
+      <EnterPinFullScreen
+        open={showPin}
+        title="Confirm payment"
+        subtitle={req ? `Pay ${req.amountStr || req.amount} ${req.asset}` : undefined}
+        error={pinError}
+        busy={busy}
+        onSubmit={submitWithPin}
+        onCancel={() => {
+          if (!busy) {
+            setShowPin(false);
+            setPinError(null);
+          }
+        }}
+      />
+
+      {userId && (
+        <SetTransactionPinSheet
+          open={showSetPin}
+          userId={userId}
+          onClose={() => setShowSetPin(false)}
+          onComplete={() => {
+            setShowSetPin(false);
+            setShowPin(true);
+          }}
+        />
+      )}
     </Shell>
   );
 }
