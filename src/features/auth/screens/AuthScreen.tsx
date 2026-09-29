@@ -294,7 +294,7 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
   return (
     <div className="flex flex-col h-full overflow-y-auto" style={{ background: 'var(--background)' }}>
       <PageTop />
-      <div className="px-6 flex-1 flex flex-col pb-8">
+      <div className="px-4 sm:px-6 flex-1 flex flex-col pb-8 min-w-0 w-full max-w-lg mx-auto">
         <div className="mb-8 flex flex-col items-center text-center">
           <div
             className="w-14 h-14 rounded-[18px] flex items-center justify-center mb-5"

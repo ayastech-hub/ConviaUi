@@ -34,8 +34,17 @@ export function ProfileCard({ onOpenProfile }: ProfileCardProps) {
   const isFrozen = Boolean(profile?.isFrozen);
   const authenticated = status === 'authenticated';
 
+  const structuredName = [profile?.firstName, profile?.middleName, profile?.lastName]
+    .map((x) => (typeof x === 'string' ? x.trim() : ''))
+    .filter(Boolean)
+    .join(' ');
   const displayName =
-    profile?.displayName || sessionDisplayName || profile?.username || sessionUsername || 'Convia user';
+    structuredName ||
+    profile?.displayName ||
+    sessionDisplayName ||
+    profile?.username ||
+    sessionUsername ||
+    'Convia user';
   const handle = profile?.username || sessionUsername;
   const country = profile?.country;
   const currency = profile?.preferredCurrency;

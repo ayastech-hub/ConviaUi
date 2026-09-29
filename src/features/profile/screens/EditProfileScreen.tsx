@@ -15,13 +15,6 @@ interface EditProfileScreenProps {
   goBack: () => void;
 }
 
-type Visibility = 'public' | 'followers_only' | 'private';
-
-const VIS: { id: Visibility; label: string; desc: string }[] = [
-  { id: 'public', label: 'Public', desc: 'Anyone can find you' },
-  { id: 'followers_only', label: 'Followers', desc: 'Only people you accept' },
-  { id: 'private', label: 'Private', desc: 'Hidden from search' },
-];
 
 function initialsOf(name: string) {
   return name
@@ -38,13 +31,23 @@ export function EditProfileScreen({ goBack }: EditProfileScreenProps) {
   const { invalidate } = useMyProfile();
 
   const [nameLocked, setNameLocked] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [middleName, setMiddleName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
   const [country, setCountry] = useState('');
   const [currency, setCurrencyCode] = useState('NGN');
   const [avatar, setAvatar] = useState<string | null>(null);
-  const [visibility, setVisibility] = useState<Visibility>('public');
-  const [orig, setOrig] = useState({ displayName: '', bio: '', country: '', currency: 'NGN', visibility: 'public' as Visibility });
+  const [orig, setOrig] = useState({
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    displayName: '',
+    bio: '',
+    country: '',
+    currency: 'NGN',
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -55,19 +58,23 @@ export function EditProfileScreen({ goBack }: EditProfileScreenProps) {
     profileApi
       .getMyProfile()
       .then((p) => {
-        const vis = (p.profileVisibility as Visibility) || 'public';
         const next = {
+          firstName: p.firstName || '',
+          middleName: p.middleName || '',
+          lastName: p.lastName || '',
           displayName: p.displayName || '',
           bio: p.bio || '',
           country: (p.country || '').toUpperCase(),
           currency: (p.preferredCurrency || 'NGN').toUpperCase(),
-          visibility: vis,
         };
+        setFirstName(next.firstName);
+        setMiddleName(next.middleName);
+        setLastName(next.lastName);
         setDisplayName(next.displayName);
         setBio(next.bio);
         setCountry(next.country);
         setCurrencyCode(next.currency);
-        setVisibility(next.visibility);
+        
         setAvatar(p.avatarUrl || null);
         setOrig(next);
         const locked =
@@ -80,9 +87,10 @@ export function EditProfileScreen({ goBack }: EditProfileScreenProps) {
   }, []);
 
   const dirty =
-    displayName.trim() !== orig.displayName ||
-    bio.trim() !== orig.bio ||
-    visibility !== orig.visibility;
+    firstName.trim() !== orig.firstName ||
+    middleName.trim() !== orig.middleName ||
+    lastName.trim() !== orig.lastName ||
+    bio.trim() !== orig.bio;
 
   const save = async () => {
     setSaving(true);
@@ -90,25 +98,32 @@ export function EditProfileScreen({ goBack }: EditProfileScreenProps) {
     setSaved(false);
     try {
       const body: {
-        displayName?: string;
+        firstName?: string;
+        lastName?: string;
+        middleName?: string | null;
         bio?: string;
         avatarUrl?: string;
       } = {};
-      if (displayName.trim() && !nameLocked) body.displayName = displayName.trim();
+      if (!nameLocked) {
+        if (firstName.trim()) body.firstName = firstName.trim();
+        if (lastName.trim()) body.lastName = lastName.trim();
+        body.middleName = middleName.trim() || null;
+      }
       body.bio = bio.trim();
       if (avatar && /^https?:\/\//i.test(avatar)) body.avatarUrl = avatar;
       await profileApi.updateMyProfile(body);
-      if (visibility !== orig.visibility) {
-        await profileApi.updatePrivacy(visibility);
-      }
       cacheInvalidate('profile:');
       invalidate();
+      const composed = [firstName.trim(), middleName.trim(), lastName.trim()].filter(Boolean).join(' ');
+      setDisplayName(composed);
       setOrig({
-        displayName: displayName.trim(),
+        firstName: firstName.trim(),
+        middleName: middleName.trim(),
+        lastName: lastName.trim(),
+        displayName: composed,
         bio: bio.trim(),
         country: orig.country,
         currency: orig.currency,
-        visibility,
       });
       setSaved(true);
     } catch (err) {
@@ -145,14 +160,31 @@ export function EditProfileScreen({ goBack }: EditProfileScreenProps) {
 
             <div className="flex flex-col gap-4 mb-6">
               <ProfileFormField
-                label="Name"
+                label="First name"
                 icon={User}
-                value={displayName}
-                onChange={nameLocked ? () => {} : setDisplayName}
-                placeholder="Your name"
+                value={firstName}
+                onChange={nameLocked ? () => {} : setFirstName}
+                placeholder="First name"
                 readOnly={nameLocked}
                 trailing={nameLocked ? <Lock size={14} style={{ color: 'var(--muted-foreground)' }} /> : undefined}
                 hint={nameLocked ? 'Locked after identity verification' : undefined}
+              />
+              <ProfileFormField
+                label="Middle name"
+                icon={User}
+                value={middleName}
+                onChange={nameLocked ? () => {} : setMiddleName}
+                placeholder="Optional"
+                readOnly={nameLocked}
+              />
+              <ProfileFormField
+                label="Last name"
+                icon={User}
+                value={lastName}
+                onChange={nameLocked ? () => {} : setLastName}
+                placeholder="Last name"
+                readOnly={nameLocked}
+                trailing={nameLocked ? <Lock size={14} style={{ color: 'var(--muted-foreground)' }} /> : undefined}
               />
               <ProfileFormField
                 label="Username"
@@ -185,37 +217,6 @@ export function EditProfileScreen({ goBack }: EditProfileScreenProps) {
               />
             </div>
 
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600, letterSpacing: '0.04em', marginBottom: 10 }}>
-              PRIVACY
-            </p>
-            <div className="rounded-[20px] overflow-hidden mb-6" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-              {VIS.map((v, i) => {
-                const on = visibility === v.id;
-                return (
-                  <button
-                    key={v.id}
-                    type="button"
-                    onClick={() => setVisibility(v.id)}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
-                    style={{ borderBottom: i < VIS.length - 1 ? '1px solid var(--border)' : 'none' }}
-                  >
-                    <div className="flex-1">
-                      <p style={{ color: 'var(--foreground)', fontWeight: 600, fontSize: 14 }}>{v.label}</p>
-                      <p style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>{v.desc}</p>
-                    </div>
-                    <div
-                      className="w-5 h-5 rounded-full border-2 flex items-center justify-center"
-                      style={{
-                        borderColor: on ? 'var(--primary)' : 'var(--border)',
-                        background: on ? 'var(--primary)' : 'transparent',
-                      }}
-                    >
-                      {on && <Check size={11} style={{ color: '#fff', strokeWidth: 3 }} />}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
 
             <motion.button
               type="button"

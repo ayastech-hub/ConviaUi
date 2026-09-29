@@ -95,7 +95,7 @@ export function CredentialsStep({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.22 }}
-      className="flex flex-col flex-1"
+      className="flex flex-col flex-1 min-w-0 w-full"
     >
       {/* Social */}
       {!isForgot && (
@@ -136,7 +136,7 @@ export function CredentialsStep({
         )}
 
         {isSignup && setFirstName && setLastName && (
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 min-w-0">
             <Field
               icon={<User size={17} style={{ color: 'var(--muted-foreground)' }} />}
               type="text"
@@ -189,6 +189,16 @@ export function CredentialsStep({
           </p>
         )}
 
+        {isSignup && setPhoneNational && phoneCountry && setPhoneCountry && (
+          <PhoneCountryField
+            national={phoneNational}
+            onNationalChange={setPhoneNational}
+            country={phoneCountry}
+            onCountryChange={setPhoneCountry}
+            onE164Change={onPhoneE164}
+          />
+        )}
+
         {!isForgot && (
           <Field
             icon={<Lock size={17} style={{ color: 'var(--muted-foreground)' }} />}
@@ -206,16 +216,6 @@ export function CredentialsStep({
                 )}
               </button>
             }
-          />
-        )}
-
-        {isSignup && setPhoneNational && phoneCountry && setPhoneCountry && (
-          <PhoneCountryField
-            national={phoneNational}
-            onNationalChange={setPhoneNational}
-            country={phoneCountry}
-            onCountryChange={setPhoneCountry}
-            onE164Change={onPhoneE164}
           />
         )}
 
@@ -251,15 +251,7 @@ export function CredentialsStep({
               </div>
               <p style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>{strength.label}</p>
             </div>
-            {setReferralCode && (
-              <Field
-                icon={<Gift size={17} style={{ color: 'var(--muted-foreground)' }} />}
-                type="text"
-                placeholder="Referral code (optional)"
-                value={referralCode}
-                onChange={setReferralCode}
-              />
-            )}
+            {/* Referral applied silently from /ref/CODE or ?ref= — no fake gift field on signup */}
             <label className="flex items-start gap-2.5 px-1 cursor-pointer">
               <button
                 type="button"
@@ -393,17 +385,17 @@ function Field({
 }) {
   return (
     <div
-      className="flex items-center gap-3 px-4 h-12 rounded-2xl"
+      className="flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 h-12 rounded-2xl min-w-0 w-full"
       style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
     >
-      {icon}
+      <span className="shrink-0">{icon}</span>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         autoComplete={autoComplete}
-        className="flex-1 bg-transparent outline-none"
+        className="flex-1 min-w-0 bg-transparent outline-none"
         style={{ color: 'var(--foreground)', fontSize: 15, fontWeight: 500 }}
       />
       {trailing}

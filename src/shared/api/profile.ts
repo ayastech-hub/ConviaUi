@@ -4,6 +4,9 @@ export type UserProfile = {
   userId?: string;
   username: string;
   displayName?: string | null;
+  firstName?: string | null;
+  middleName?: string | null;
+  lastName?: string | null;
   nameLocked?: boolean;
   kycStatus?: string | null;
   avatarUrl?: string | null;
@@ -30,6 +33,9 @@ export function getPublicProfile(username: string) {
 
 export function updateMyProfile(body: {
   displayName?: string;
+  firstName?: string;
+  lastName?: string;
+  middleName?: string | null;
   bio?: string;
   avatarUrl?: string;
   country?: string;

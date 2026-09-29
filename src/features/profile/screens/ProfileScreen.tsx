@@ -123,8 +123,17 @@ export function ProfileScreen({ navigate, goBack }: ProfileScreenProps) {
     if (userId && status === 'authenticated') prefetchAppData(userId);
   }, [userId, status]);
 
+  const structuredName = [profile?.firstName, profile?.middleName, profile?.lastName]
+    .map((x) => (typeof x === 'string' ? x.trim() : ''))
+    .filter(Boolean)
+    .join(' ');
   const displayName =
-    profile?.displayName || sessionDisplayName || profile?.username || sessionUsername || 'Convia user';
+    structuredName ||
+    profile?.displayName ||
+    sessionDisplayName ||
+    profile?.username ||
+    sessionUsername ||
+    'Convia user';
   const handle = profile?.username || sessionUsername;
   const avatarUrl = profile?.avatarUrl || null;
   const initials = initialsOf(displayName);
