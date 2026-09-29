@@ -7,6 +7,12 @@ interface CredentialsStepProps {
   mode: 'login' | 'signup' | 'forgot-password';
   email: string;
   setEmail: (v: string) => void;
+  firstName?: string;
+  setFirstName?: (v: string) => void;
+  middleName?: string;
+  setMiddleName?: (v: string) => void;
+  lastName?: string;
+  setLastName?: (v: string) => void;
   username?: string;
   setUsername?: (v: string) => void;
   usernameStatus?: 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
@@ -43,6 +49,12 @@ export function CredentialsStep({
   mode,
   email,
   setEmail,
+  firstName = '',
+  setFirstName,
+  middleName = '',
+  setMiddleName,
+  lastName = '',
+  setLastName,
   username = '',
   setUsername,
   usernameStatus = 'idle',
@@ -123,6 +135,36 @@ export function CredentialsStep({
           </p>
         )}
 
+        {isSignup && setFirstName && setLastName && (
+          <div className="grid grid-cols-2 gap-2.5">
+            <Field
+              icon={<User size={17} style={{ color: 'var(--muted-foreground)' }} />}
+              type="text"
+              placeholder="First name"
+              value={firstName}
+              onChange={setFirstName}
+              autoComplete="given-name"
+            />
+            <Field
+              icon={<User size={17} style={{ color: 'var(--muted-foreground)' }} />}
+              type="text"
+              placeholder="Last name"
+              value={lastName}
+              onChange={setLastName}
+              autoComplete="family-name"
+            />
+          </div>
+        )}
+        {isSignup && setMiddleName && (
+          <Field
+            icon={<User size={17} style={{ color: 'var(--muted-foreground)' }} />}
+            type="text"
+            placeholder="Middle name (optional)"
+            value={middleName}
+            onChange={setMiddleName}
+            autoComplete="additional-name"
+          />
+        )}
         {isSignup && setUsername && (
           <Field
             icon={<User size={17} style={{ color: 'var(--muted-foreground)' }} />}

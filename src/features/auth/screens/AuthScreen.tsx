@@ -43,6 +43,9 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
   const { t } = useLanguage();
   const { login, register } = useAuth();
   const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [middleName, setMiddleName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [username, setUsername] = useState('');
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle');
   const [referralCode, setReferralCode] = useState(() => {
@@ -124,6 +127,10 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
     if (mode !== 'forgot-password' && !password) { setError('Please enter your password'); return; }
 
     if (mode === 'signup') {
+      if (!firstName.trim() || !lastName.trim()) {
+        setError('Enter your first and last name');
+        return;
+      }
       if (password !== confirmPassword) { setError('Passwords do not match'); return; }
       if (strength.score < 3) { setError('Password is too weak. Use 8+ chars with upper/lower/numbers/symbols'); return; }
       if (!agreeTerms) { setError('Please accept the Terms of Service to continue'); return; }
@@ -214,7 +221,17 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
         try { localStorage.setItem('convia_ref', referralCode.trim()); } catch { /* ignore */ }
       }
       void phoneE164; // stored for profile phone update after register when API supports it
-      await register(email, password, username.trim() || undefined, referralCode.trim() || undefined);
+      await register(
+        email,
+        password,
+        {
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          middleName: middleName.trim() || undefined,
+        },
+        username.trim() || undefined,
+        referralCode.trim() || undefined,
+      );
       setSuccess(true);
       setTimeout(() => finishAuth(), 800);
     } catch (err) {
@@ -309,6 +326,9 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
             <CredentialsStep
               mode={mode}
               email={email} setEmail={setEmail}
+              firstName={firstName} setFirstName={setFirstName}
+              middleName={middleName} setMiddleName={setMiddleName}
+              lastName={lastName} setLastName={setLastName}
               username={username} setUsername={setUsername}
               usernameStatus={usernameStatus}
               emailStatus={emailStatus}

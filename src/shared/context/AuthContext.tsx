@@ -29,7 +29,13 @@ type AuthContextValue = {
   username: string | null;
   displayName: string | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, username?: string, referralCode?: string) => Promise<void>;
+  register: (
+    email: string,
+    password: string,
+    names: { firstName: string; lastName: string; middleName?: string },
+    username?: string,
+    referralCode?: string,
+  ) => Promise<void>;
   logout: () => Promise<void>;
   setSession: (s: SessionTokens | null) => void;
 };
@@ -109,9 +115,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const register = useCallback(
-    async (email: string, password: string, username?: string, referralCode?: string) => {
-      // Empty / undefined username → backend derives from email
-      const payload: { email: string; password: string; username?: string; referralCode?: string } = { email, password };
+    async (
+      email: string,
+      password: string,
+      names: { firstName: string; lastName: string; middleName?: string },
+      username?: string,
+      referralCode?: string,
+    ) => {
+      const payload: {
+        email: string;
+        password: string;
+        firstName: string;
+        lastName: string;
+        middleName?: string;
+        username?: string;
+        referralCode?: string;
+      } = {
+        email,
+        password,
+        firstName: names.firstName.trim(),
+        lastName: names.lastName.trim(),
+      };
+      if (names.middleName?.trim()) payload.middleName = names.middleName.trim();
       if (username && username.trim().length >= 3) {
         payload.username = username.trim().toLowerCase();
       }
