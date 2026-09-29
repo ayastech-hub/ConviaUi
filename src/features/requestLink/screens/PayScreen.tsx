@@ -16,6 +16,7 @@ import { BackButton } from '../../../shared/components/BackButton';
 import { AssetIcon } from '../../../shared/components/AssetIcon';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { getRequest, payRequest } from '../store';
+import { getPendingPay, setPendingPay, clearPendingPay } from '../../../shared/utils/pendingPay';
 
 interface Props {
   code: string;
@@ -35,11 +36,7 @@ export function PayScreen({ code, goBack, navigate }: Props) {
   const resolvedCode = (() => {
     const c = (code || '').trim();
     if (c) return c;
-    try {
-      return sessionStorage.getItem('convia.pendingPay') || '';
-    } catch {
-      return '';
-    }
+    return getPendingPay();
   })();
 
   useEffect(() => {
@@ -59,6 +56,8 @@ export function PayScreen({ code, goBack, navigate }: Props) {
       .then((result) => {
         if (cancelled) return;
         setReq(result);
+        if (result) setPendingPay(resolvedCode);
+        else clearPendingPay();
       })
       .catch(() => {
         if (!cancelled) {
@@ -165,9 +164,12 @@ export function PayScreen({ code, goBack, navigate }: Props) {
 
       if (!result.ok) {
         setError(result.error || 'Payment could not be completed.');
+        // Session may have been cleared on 401 — keep pay code so login returns here
+        if (resolvedCode) setPendingPay(resolvedCode);
         return;
       }
 
+      clearPendingPay();
       setDone(true);
     } catch {
       setError('Payment could not be completed. Please try again.');
@@ -177,12 +179,7 @@ export function PayScreen({ code, goBack, navigate }: Props) {
   };
 
   const goAuth = (screen: 'signup' | 'login') => {
-    try {
-      sessionStorage.setItem('convia.pendingPay', resolvedCode);
-    } catch {
-      return;
-    }
-
+    if (resolvedCode) setPendingPay(resolvedCode);
     navigate(screen);
   };
 

@@ -1,3 +1,4 @@
+import { getPendingPay, setPendingPay } from '../../../shared/utils/pendingPay';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ConviaLogo } from '../../../shared/components/ConviaLogo';
@@ -30,15 +31,12 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
 
   /** After login/signup: resume payment deep link if present */
   const finishAuth = () => {
-    try {
-      const pending = sessionStorage.getItem('convia.pendingPay');
-      if (pending) {
-        sessionStorage.removeItem('convia.pendingPay');
-        navigate('pay', pending);
-        return;
-      }
-    } catch {
-      /* ignore */
+    const pending = getPendingPay();
+    if (pending) {
+      // Keep pending until PayScreen loads — avoids race with App auth effect → home
+      setPendingPay(pending);
+      navigate('pay', pending);
+      return;
     }
     switchTab('home');
   };

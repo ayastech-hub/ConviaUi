@@ -50,6 +50,7 @@ import { TokenDetailScreen } from '../features/wallet/screens/TokenDetailScreen'
 import { GiveawayScreen } from '../features/gifts/screens/GiveawayScreen';
 import { RequestLinkScreen } from '../features/requestLink/screens/RequestLinkScreen';
 import { PayScreen } from '../features/requestLink/screens/PayScreen';
+import { getPendingPay, setPendingPay, clearPendingPay } from '../shared/utils/pendingPay';
 import { fetchPlatformStatus } from '../shared/api/platform';
 
 const MAIN_TABS: Screen[] = ['home'];
@@ -210,7 +211,7 @@ export default function App() {
         if (hm) pay = hm[1];
       }
       if (pay) {
-        sessionStorage.setItem('convia.pendingPay', pay);
+        setPendingPay(pay);
         navigate('pay', pay);
         window.history.replaceState({}, '', window.location.pathname || '/');
       }
@@ -256,15 +257,12 @@ export default function App() {
     if (status === 'loading') return;
     if (status === 'authenticated' && (current === 'login' || current === 'signup' || current === 'onboarding')) {
       markOnboardingSeen();
-      try {
-        const pending = sessionStorage.getItem('convia.pendingPay');
-        if (pending) {
-          sessionStorage.removeItem('convia.pendingPay');
-          navigate('pay', pending);
-          return;
-        }
-      } catch {
-        /* ignore */
+      // Resume payment link — do NOT clear pending here (PayScreen clears after load).
+      // Clearing here raced with AuthScreen.finishAuth and bounced users to home.
+      const pending = getPendingPay();
+      if (pending) {
+        navigate('pay', pending);
+        return;
       }
       switchTab('home');
     }
