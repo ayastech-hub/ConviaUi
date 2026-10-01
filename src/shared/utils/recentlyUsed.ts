@@ -29,7 +29,7 @@ const LABELS: Partial<Record<Screen, string>> = {
   rates: 'Rates',
   giveaway: 'Gifts',
   request: 'Request',
-  'request-link': 'Pay link',
+  'request-link': 'Payment invoice',
   kyc: 'KYC',
   security: 'Security',
   notifications: 'Notifications',

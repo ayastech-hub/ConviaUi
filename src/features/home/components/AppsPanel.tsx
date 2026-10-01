@@ -43,7 +43,7 @@ const SECTIONS: { title: string; items: Item[] }[] = [
       { id: 'bank', label: 'Bank transfer', icon: 'bank', screen: 'onramp' },
       { id: 'card', label: 'Card', icon: 'card', screen: 'onramp' },
       { id: 'request', label: 'Request', icon: 'request', screen: 'request' },
-      { id: 'reqlink', label: 'Payment link', icon: 'reqlink', screen: 'request-link' },
+      { id: 'reqlink', label: 'Payment invoice', icon: 'reqlink', screen: 'request-link' },
       { id: 'scan', label: 'Scanner', icon: 'scan', screen: 'scan' },
     ],
   },

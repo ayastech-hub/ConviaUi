@@ -61,7 +61,7 @@ export function RequestLinkScreen({ goBack }: Props) {
       .then((result) => {
         if (cancelled) return;
         if (!result) {
-          setDetailError('This payment request could not be found.');
+          setDetailError('This invoice could not be found.');
           setDetail(null);
           return;
         }
@@ -70,7 +70,7 @@ export function RequestLinkScreen({ goBack }: Props) {
       .catch(() => {
         if (!cancelled) {
           setDetail(null);
-          setDetailError('Could not load this payment request.');
+          setDetailError('Could not load this invoice.');
         }
       })
       .finally(() => {
@@ -101,10 +101,10 @@ export function RequestLinkScreen({ goBack }: Props) {
 
   const title =
     mode === 'create'
-      ? 'Create request'
+      ? 'Create invoice'
       : mode === 'detail'
-        ? 'Payment link'
-        : 'Request payment';
+        ? 'Payment invoice'
+        : 'Payment invoice';
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
@@ -237,7 +237,7 @@ function Hero({ onCreate }: { onCreate: () => void }) {
                 letterSpacing: -0.45,
               }}
             >
-              Request a payment
+              Create a payment invoice
             </p>
 
             <p
@@ -249,7 +249,7 @@ function Hero({ onCreate }: { onCreate: () => void }) {
                 maxWidth: 300,
               }}
             >
-              Create a payment link and send it to anyone using Convia.
+              Create a payment invoice and send it to anyone using Convia.
             </p>
           </div>
         </div>
@@ -273,7 +273,7 @@ function Hero({ onCreate }: { onCreate: () => void }) {
               lineHeight: 1.4,
             }}
           >
-            The payer completes the request directly from their Convia balance.
+            The payer settles the invoice directly from their Convia balance.
           </p>
         </div>
 
@@ -288,7 +288,7 @@ function Hero({ onCreate }: { onCreate: () => void }) {
           }}
         >
           <Plus size={18} />
-          Create payment link
+          Create invoice
         </motion.button>
       </div>
     </section>
@@ -339,7 +339,7 @@ function Mine({
             textTransform: 'uppercase',
           }}
         >
-          Recent requests
+          Recent invoices
         </p>
 
         {list.length > 0 && (
@@ -454,7 +454,7 @@ function EmptyRequests() {
           fontSize: 14,
         }}
       >
-        No payment requests yet
+        No invoices yet
       </p>
 
       <p
@@ -464,7 +464,7 @@ function EmptyRequests() {
           fontSize: 12,
         }}
       >
-        Your created payment links will appear here.
+        Your created payment invoices will appear here.
       </p>
     </div>
   );
@@ -581,9 +581,9 @@ function CreateForm({ onDone }: { onDone: (id: string) => void }) {
                 ?.message ||
                 (e as { body?: { message?: string; code?: string } }).body
                   ?.code ||
-                'Could not create request',
+                'Could not create invoice',
             )
-          : 'Could not create request';
+          : 'Could not create invoice';
 
       setError(message);
     } finally {
@@ -768,7 +768,7 @@ function CreateForm({ onDone }: { onDone: (id: string) => void }) {
         </Field>
 
         <ExpiryPicker
-          label="Link expires"
+          label="Invoice expires"
           presets={EXPIRY}
           presetId={expiry}
           customDate={customDate}
@@ -824,12 +824,12 @@ function CreateForm({ onDone }: { onDone: (id: string) => void }) {
           {submitting ? (
             <>
               <Loader2 size={17} className="animate-spin" />
-              Creating link...
+              Creating invoice...
             </>
           ) : (
             <>
               <Link2 size={17} />
-              Create payment link
+              Create invoice
             </>
           )}
         </motion.button>
@@ -872,7 +872,7 @@ function Detail({
     try {
       if (navigator.share) {
         await navigator.share({
-          title: 'Convia payment request',
+          title: 'Convia invoice',
           text,
           url,
         });
@@ -932,7 +932,7 @@ function Detail({
                     fontWeight: 750,
                   }}
                 >
-                  Payment request
+                  Invoice
                 </p>
                 <p
                   style={{
@@ -1057,7 +1057,7 @@ function Detail({
                   lineHeight: 1.4,
                 }}
               >
-                The payer can scan this code or open the payment link.
+                The payer can scan this code or open the payment invoice.
               </p>
             </div>
           </div>
@@ -1092,7 +1092,7 @@ function Detail({
           }}
         >
           {copied ? <Check size={16} /> : <Copy size={16} />}
-          {copied ? 'Copied' : 'Copy link'}
+          {copied ? 'Copied' : 'Copy invoice link'}
         </motion.button>
 
         <motion.button
@@ -1127,7 +1127,7 @@ function Detail({
             opacity: cancelling ? 0.6 : 1,
           }}
         >
-          {cancelling ? 'Cancelling...' : 'Cancel payment request'}
+          {cancelling ? 'Cancelling...' : 'Cancel invoice'}
         </button>
       )}
 
@@ -1139,14 +1139,14 @@ function Detail({
           lineHeight: 1.45,
         }}
       >
-        Only share this link with the person you want to pay this request.
+        Only share this invoice with the person who should pay.
       </p>
 
       <ConfirmSheet
         open={confirmCancel}
-        title="Cancel payment request?"
-        body="This link will stop accepting payments. Anyone who has the link will no longer be able to complete this request."
-        confirmLabel="Cancel request"
+        title="Cancel invoice?"
+        body="This invoice will stop accepting payments. Anyone with the link will no longer be able to pay."
+        confirmLabel="Cancel invoice"
         cancelLabel="Keep open"
         destructive
         onConfirm={doCancel}
@@ -1180,7 +1180,7 @@ function DetailLoading() {
                 fontSize: 12,
               }}
             >
-              Loading payment request...
+              Loading invoice...
             </p>
           </div>
         </div>
@@ -1226,7 +1226,7 @@ function DetailError({
             fontWeight: 750,
           }}
         >
-          Request unavailable
+          Invoice unavailable
         </p>
 
         <p
@@ -1249,7 +1249,7 @@ function DetailError({
             color: 'var(--primary-foreground)',
           }}
         >
-          Back to requests
+          Back to invoices
         </button>
       </div>
     </div>

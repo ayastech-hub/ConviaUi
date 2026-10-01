@@ -27,7 +27,7 @@ const QUICK: GridItem[] = [
   { label: 'Scan QR', icon: 'qr', screen: 'scan' },
   { label: 'Airtime', icon: 'airtime', screen: 'airtime' },
   { label: 'Buy crypto', icon: 'card', screen: 'onramp' },
-  { label: 'Pay link', icon: 'reqlink', screen: 'request-link' },
+  { label: 'Payment invoice', icon: 'reqlink', screen: 'request-link' },
 ];
 
 const BILLS: GridItem[] = [
@@ -41,7 +41,7 @@ const BILLS: GridItem[] = [
 
 const TRANSFER: GridItem[] = [
   { label: 'Request', icon: 'request', screen: 'request' },
-  { label: 'Pay link', icon: 'reqlink', screen: 'request-link' },
+  { label: 'Payment invoice', icon: 'reqlink', screen: 'request-link' },
   { label: 'Bank transfer', icon: 'bank', screen: 'onramp' },
   { label: 'Scan QR', icon: 'qr', screen: 'scan' },
 ];
@@ -75,7 +75,7 @@ const SLIDES: PaySlide[] = [
   },
   {
     id: 'link',
-    label: 'PAYMENT LINK',
+    label: 'PAYMENT INVOICE',
     title: 'Get paid with a link',
     description: 'Share once. Receive when they pay.',
     screen: 'request-link',

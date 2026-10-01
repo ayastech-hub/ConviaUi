@@ -257,7 +257,7 @@ export default function App() {
     if (status === 'loading') return;
     if (status === 'authenticated' && (current === 'login' || current === 'signup' || current === 'onboarding')) {
       markOnboardingSeen();
-      // Resume payment link — do NOT clear pending here (PayScreen clears after load).
+      // Resume payment invoice — do NOT clear pending here (PayScreen clears after load).
       // Clearing here raced with AuthScreen.finishAuth and bounced users to home.
       const pending = getPendingPay();
       if (pending) {

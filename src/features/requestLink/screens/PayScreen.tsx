@@ -53,7 +53,7 @@ export function PayScreen({ code, goBack, navigate }: Props) {
 
     if (!resolvedCode) {
       setReq(null);
-      setLoadError('Missing payment code.');
+      setLoadError('Missing invoice code.');
       setLoading(false);
       return;
     }
@@ -68,7 +68,7 @@ export function PayScreen({ code, goBack, navigate }: Props) {
       .catch(() => {
         if (!cancelled) {
           setReq(null);
-          setLoadError('Could not load this payment request.');
+          setLoadError('Could not load this invoice.');
         }
       })
       .finally(() => {
@@ -87,8 +87,8 @@ export function PayScreen({ code, goBack, navigate }: Props) {
       <Shell goBack={goBack} title="Payment">
         <StateCard
           icon={<Clock3 size={21} />}
-          title="Loading payment"
-          body="Fetching the payment request securely."
+          title="Loading invoice"
+          body="Fetching the invoice securely."
           loading
         />
       </Shell>
@@ -100,7 +100,7 @@ export function PayScreen({ code, goBack, navigate }: Props) {
       <Shell goBack={goBack} title="Payment">
         <StateCard
           icon={<AlertCircle size={21} />}
-          title="Unable to load payment"
+          title="Unable to load invoice"
           body={loadError}
           actionLabel="Go back"
           onAction={goBack}
@@ -114,8 +114,8 @@ export function PayScreen({ code, goBack, navigate }: Props) {
       <Shell goBack={goBack} title="Payment">
         <StateCard
           icon={<AlertCircle size={21} />}
-          title="Payment link not found"
-          body="This payment request is invalid, unavailable, or was removed."
+          title="Invoice not found"
+          body="This invoice is invalid, unavailable, or was removed."
           actionLabel="Go back"
           onAction={goBack}
         />
@@ -128,8 +128,8 @@ export function PayScreen({ code, goBack, navigate }: Props) {
       <Shell goBack={goBack} title="Payment">
         <StateCard
           icon={<Clock3 size={21} />}
-          title="Payment link expired"
-          body="This request is no longer accepting payments."
+          title="Invoice expired"
+          body="This invoice is no longer accepting payments."
           actionLabel="Go back"
           onAction={goBack}
         />
@@ -143,7 +143,7 @@ export function PayScreen({ code, goBack, navigate }: Props) {
         <StateCard
           icon={<AlertCircle size={21} />}
           title="Payment cancelled"
-          body="The sender cancelled this payment request."
+          body="The sender cancelled this invoice."
           actionLabel="Go back"
           onAction={goBack}
         />
@@ -209,7 +209,7 @@ export function PayScreen({ code, goBack, navigate }: Props) {
   };
 
   return (
-    <Shell goBack={goBack} title="Review payment">
+    <Shell goBack={goBack} title="Review invoice">
       <div className="px-5 pb-14">
         <PaymentSummary req={req} />
 
@@ -230,7 +230,7 @@ export function PayScreen({ code, goBack, navigate }: Props) {
 
       <EnterPinFullScreen
         open={showPin}
-        title="Confirm payment"
+        title="Confirm invoice payment"
         subtitle={req ? `Pay ${req.amountStr || req.amount} ${req.asset}` : undefined}
         error={pinError}
         busy={busy}
@@ -292,7 +292,7 @@ function PaymentSummary({
                   fontWeight: 750,
                 }}
               >
-                Payment request
+                Invoice
               </p>
 
               <p

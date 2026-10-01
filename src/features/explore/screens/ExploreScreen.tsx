@@ -82,7 +82,7 @@ const TOOLS: Feat[] = [
   { label: 'Swap', icon: 'swap', screen: 'swap' },
   { label: 'Buy', icon: 'buy', screen: 'onramp' },
   { label: 'Sell', icon: 'sell', screen: 'offramp' },
-  { label: 'Pay link', icon: 'reqlink', screen: 'request-link' },
+  { label: 'Payment invoice', icon: 'reqlink', screen: 'request-link' },
   { label: 'Request', icon: 'request', screen: 'request' },
   { label: 'Rewards', icon: 'rewards', screen: 'rewards' },
   { label: 'History', icon: 'history', screen: 'history' },

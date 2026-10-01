@@ -40,7 +40,7 @@ export const ONBOARDING_SLIDES: OnboardingSlideData[] = [
     accent: 'var(--primary)',
     accentGlow: 'var(--muted)',
     stat: 'Bills & pay',
-    statLabel: 'Utilities, QR, and request links',
+    statLabel: 'Utilities, QR, and payment invoices',
   },
 ];
 
