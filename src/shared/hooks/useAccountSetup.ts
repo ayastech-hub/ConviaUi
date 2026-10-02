@@ -5,7 +5,7 @@ import { getTransactionPinStatus } from '../api/security';
 import { listBankAccounts } from '../api/banks';
 import { queryKeys } from '../query/queryClient';
 
-export type SetupStepId = 'pin' | 'bank' | 'kyc';
+export type SetupStepId = 'kyc' | 'bank' | 'pin';
 
 export type SetupStep = {
   id: SetupStepId;
@@ -16,7 +16,7 @@ export type SetupStep = {
 };
 
 /**
- * Account setup: PIN → bank → single KYC only (no profile, no basic/advanced split).
+ * Account setup order: identity verification → bank account → transaction PIN.
  */
 export function useAccountSetup() {
   const { userId, status } = useAuth();
@@ -48,27 +48,27 @@ export function useAccountSetup() {
 
   const steps: SetupStep[] = [
     {
-      id: 'pin',
-      title: 'Set transaction PIN',
-      description: 'Confirm payments and withdrawals',
-      done: hasPin,
-    },
-    {
-      id: 'bank',
-      title: 'Add bank account',
-      description: 'Needed for cash-out',
-      done: hasBank,
-    },
-    {
       id: 'kyc',
       title: 'Identity verification',
       description: kyc.isPending
-        ? 'Submitted — under review'
+        ? 'Your documents are under review'
         : kyc.isApproved
-          ? 'Verified'
-          : 'Unlock withdrawals and cash-out',
+          ? 'Identity verified'
+          : 'Required to access withdrawals and cash-out',
       done: kyc.isApproved,
       pending: kyc.isPending,
+    },
+    {
+      id: 'bank',
+      title: 'Bank account',
+      description: 'Required to receive local currency payouts',
+      done: hasBank,
+    },
+    {
+      id: 'pin',
+      title: 'Transaction PIN',
+      description: 'Used to authorize payments and withdrawals',
+      done: hasPin,
     },
   ];
 

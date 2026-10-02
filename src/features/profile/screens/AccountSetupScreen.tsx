@@ -14,15 +14,11 @@ interface Props {
 }
 
 const ICONS: Record<SetupStepId, typeof Lock> = {
-  pin: Lock,
-  bank: Landmark,
   kyc: ShieldCheck,
+  bank: Landmark,
+  pin: Lock,
 };
 
-/**
- * Guided setup: list with ticks + bottom Next.
- * PIN opens set flow here. Next routes to the next incomplete step.
- */
 export function AccountSetupScreen({ goBack, navigate }: Props) {
   const { userId } = useAuth();
   const {
@@ -43,25 +39,27 @@ export function AccountSetupScreen({ goBack, navigate }: Props) {
       goBack();
       return;
     }
-    if (nextIncomplete.id === 'pin') {
-      setShowSetPin(true);
+    if (nextIncomplete.id === 'kyc') {
+      navigate('kyc');
       return;
     }
     if (nextIncomplete.id === 'bank') {
       navigate('payment-methods');
       return;
     }
-    if (nextIncomplete.id === 'kyc') {
-      navigate('kyc');
+    if (nextIncomplete.id === 'pin') {
+      setShowSetPin(true);
     }
   };
 
   const nextLabel = (() => {
-    if (allDone || !nextIncomplete) return 'Done';
-    if (nextIncomplete.id === 'pin') return 'Set PIN';
-    if (nextIncomplete.id === 'bank') return 'Add bank account';
-    if (nextIncomplete.pending) return 'View verification status';
-    return 'Verify identity';
+    if (allDone || !nextIncomplete) return 'Continue';
+    if (nextIncomplete.id === 'kyc') {
+      return nextIncomplete.pending ? 'View verification status' : 'Continue to verification';
+    }
+    if (nextIncomplete.id === 'bank') return 'Continue to bank account';
+    if (nextIncomplete.id === 'pin') return 'Set transaction PIN';
+    return 'Continue';
   })();
 
   return (
@@ -77,7 +75,7 @@ export function AccountSetupScreen({ goBack, navigate }: Props) {
             {loading
               ? 'Loading…'
               : allDone
-                ? 'You are all set'
+                ? 'All requirements complete'
                 : `${doneCount} of ${total} complete · ${percent}%`}
           </p>
         </div>
@@ -98,10 +96,10 @@ export function AccountSetupScreen({ goBack, navigate }: Props) {
           style={{ color: 'var(--muted-foreground)', lineHeight: 1.45 }}
         >
           {isKycPending
-            ? 'Verification is under review. Finish any remaining steps below while you wait.'
+            ? 'Your identity verification is under review. You may complete remaining requirements while you wait.'
             : allDone
-              ? 'Withdrawals and cash-out unlock when verification is approved.'
-              : 'Use Next to complete each step. Finished steps show a tick.'}
+              ? 'Your account meets the requirements for withdrawals and local cash-out.'
+              : 'Complete the requirements below to enable withdrawals and local currency payouts.'}
         </p>
 
         <div
@@ -118,7 +116,7 @@ export function AccountSetupScreen({ goBack, navigate }: Props) {
                 className="w-full flex items-center gap-3 px-4 py-3.5"
                 style={{
                   borderTop: i === 0 ? undefined : '1px solid var(--border)',
-                  opacity: done ? 0.8 : 1,
+                  opacity: done ? 0.85 : 1,
                 }}
               >
                 <div
@@ -156,12 +154,12 @@ export function AccountSetupScreen({ goBack, navigate }: Props) {
                 </div>
                 {done && (
                   <span className="text-[11px] font-semibold" style={{ color: '#22c55e' }}>
-                    Done
+                    Complete
                   </span>
                 )}
                 {pending && (
                   <span className="text-[11px] font-semibold" style={{ color: 'var(--primary)' }}>
-                    Review
+                    Under review
                   </span>
                 )}
               </div>

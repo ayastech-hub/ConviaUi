@@ -6,8 +6,7 @@ import { useAuth } from '../context/AuthContext';
 type Mode = 'withdraw' | 'offramp' | 'bills' | 'external_send';
 
 /**
- * Full-screen gate on arrival for pages that need KYC / setup.
- * Prefer this over waiting for an API error toast.
+ * Blocks restricted money flows until account requirements are met.
  */
 export function AccountSetupGate({
   mode,
@@ -25,7 +24,7 @@ export function AccountSetupGate({
     return (
       <GateShell
         title="Sign in required"
-        body="Sign in to use this feature."
+        body="Please sign in to continue."
         primaryLabel="Go back"
         onPrimary={onBack}
       />
@@ -37,8 +36,11 @@ export function AccountSetupGate({
   if (g.isFrozen) {
     return (
       <GateShell
-        title="Account frozen"
-        body={g.frozenReason || 'Transfers and withdrawals are blocked. Contact support.'}
+        title="Account restricted"
+        body={
+          g.frozenReason ||
+          'Transfers and withdrawals are currently unavailable on this account. Contact support for assistance.'
+        }
         primaryLabel="Go back"
         onPrimary={onBack}
       />
@@ -49,8 +51,8 @@ export function AccountSetupGate({
     return (
       <GateShell
         title="Verification under review"
-        body="Your identity check is still in progress. This feature unlocks after approval."
-        primaryLabel="View account setup"
+        body="Your identity verification is still in progress. This service will be available after approval."
+        primaryLabel="View account status"
         onPrimary={onSetup}
         secondaryLabel={onBack ? 'Go back' : undefined}
         onSecondary={onBack}
@@ -59,19 +61,19 @@ export function AccountSetupGate({
   }
 
   if (g.needsKyc) {
-    const feature =
+    const service =
       mode === 'offramp'
         ? 'cash-out'
         : mode === 'withdraw'
           ? 'withdrawals'
           : mode === 'bills'
             ? 'bill payments'
-            : 'this feature';
+            : 'this service';
     return (
       <GateShell
-        title="Complete your profile"
-        body={`Finish account setup and identity verification to use ${feature}.`}
-        primaryLabel="Complete setup"
+        title="Verification required"
+        body={`Identity verification is required before you can use ${service}.`}
+        primaryLabel="Complete account setup"
         onPrimary={onSetup}
         secondaryLabel={onBack ? 'Go back' : undefined}
         onSecondary={onBack}
@@ -82,7 +84,6 @@ export function AccountSetupGate({
   return null;
 }
 
-/** True when this mode should block the page body. */
 export function useShouldGateAccount(mode: Mode): boolean {
   const { status } = useAuth();
   const g = useAccountGates();

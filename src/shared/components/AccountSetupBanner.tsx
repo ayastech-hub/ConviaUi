@@ -4,10 +4,7 @@ import { useAccountSetup } from '../hooks/useAccountSetup';
 import { useAuth } from '../context/AuthContext';
 
 /**
- * Home setup banner (design ref: progress card, not toast).
- * - Incomplete → "Complete account setup" with % 
- * - KYC under review → review banner (not the incomplete checklist)
- * - All done / approved → hidden
+ * Home status card for incomplete setup or verification under review.
  */
 export function AccountSetupBanner({ onOpen }: { onOpen: () => void }) {
   const { status } = useAuth();
@@ -17,7 +14,6 @@ export function AccountSetupBanner({ onOpen }: { onOpen: () => void }) {
   if (status !== 'authenticated' || loading) return null;
   if (allDone && isKycApproved) return null;
 
-  // Under review takes priority over "complete setup"
   if (isKycPending) {
     return (
       <div className="px-5 mb-3">
@@ -45,7 +41,7 @@ export function AccountSetupBanner({ onOpen }: { onOpen: () => void }) {
               Verification under review
             </p>
             <p className="text-[12px] mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
-              We are checking your details. Some features stay limited until approved.
+              Your identity check is in progress. Some services remain limited until approval.
             </p>
           </div>
           <ChevronRight size={18} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
@@ -101,7 +97,7 @@ export function AccountSetupBanner({ onOpen }: { onOpen: () => void }) {
             Complete account setup
           </p>
           <p className="text-[12px] mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
-            Provide information to unlock withdrawals and cash-out
+            Finish verification to enable withdrawals and cash-out
           </p>
         </div>
         <ChevronRight size={18} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
