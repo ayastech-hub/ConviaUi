@@ -18,13 +18,13 @@ const COPY: Record<
 > = {
   kyc_required: {
     title: 'Verification required',
-    body: 'Complete identity verification to unlock this feature.',
+    body: 'Identity verification is required to access this service.',
     icon: ShieldAlert,
     tone: 'warn',
   },
   kyc_pending: {
     title: 'Verification in review',
-    body: 'Your KYC is pending. This feature unlocks after approval.',
+    body: 'Your identity verification is under review. This service will be available after approval.',
     icon: Info,
     tone: 'info',
   },
@@ -36,7 +36,7 @@ const COPY: Record<
   },
   account_frozen: {
     title: 'Account frozen',
-    body: 'Contact support before transfers or withdrawals.',
+    body: 'Transfers and withdrawals are unavailable. Please contact support.',
     icon: Snowflake,
     tone: 'danger',
   },

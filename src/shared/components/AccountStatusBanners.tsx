@@ -37,8 +37,8 @@ export function AccountStatusBanners({
           reason={g.isPending ? 'kyc_pending' : 'kyc_required'}
           message={
             g.isPending
-              ? 'Some features stay limited until KYC is approved'
-              : 'Required for withdrawals, off-ramp, and bills'
+              ? 'Some services remain limited until verification is approved'
+              : 'Required for withdrawals, cash-out, and bill payments'
           }
           floating
           dismissible
@@ -92,8 +92,8 @@ export function GateHint({
         reason={g.isPending ? 'kyc_pending' : 'kyc_required'}
         message={
           g.isPending
-            ? 'KYC still in review — try again after approval.'
-            : 'Complete identity verification to continue.'
+            ? 'Identity verification is still under review. Please try again after approval.'
+            : 'Identity verification is required to continue.'
         }
         floating
         dismissible
