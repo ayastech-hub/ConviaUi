@@ -6,7 +6,14 @@ import { FeatureAlert } from './FeatureAlert';
 /**
  * Home / wallet status alerts — fixed overlay, dismissible, does not push layout.
  */
-export function AccountStatusBanners({ onKyc }: { onKyc?: () => void }) {
+export function AccountStatusBanners({
+  onKyc,
+  onlyFrozen,
+}: {
+  onKyc?: () => void;
+  /** When true, skip KYC toasts — home uses AccountSetupBanner instead. */
+  onlyFrozen?: boolean;
+}) {
   const { status } = useAuth();
   const g = useAccountGates();
   const [hideFrozen, setHideFrozen] = useState(false);
@@ -25,7 +32,7 @@ export function AccountStatusBanners({ onKyc }: { onKyc?: () => void }) {
           onDismiss={() => setHideFrozen(true)}
         />
       )}
-      {!g.isFrozen && g.needsKyc && !hideKyc && (
+      {!onlyFrozen && !g.isFrozen && g.needsKyc && !hideKyc && (
         <FeatureAlert
           reason={g.isPending ? 'kyc_pending' : 'kyc_required'}
           message={

@@ -18,6 +18,10 @@ import {
 import { sendToUsername } from '../../../shared/api/payments';
 import { newIdempotencyKey } from '../../../shared/api/client';
 import { useAccountGates } from '../../../shared/hooks/useAccountGates';
+import {
+  AccountSetupGate,
+  useShouldGateAccount,
+} from '../../../shared/components/AccountSetupGate';
 import { queryClient, queryKeys } from '../../../shared/query/queryClient';
 import { resolveChain, chainFamilyForKey } from '../../../shared/utils/chains';
 import { ApiError } from '../../../shared/api/types';
@@ -63,6 +67,7 @@ function friendlyWithdrawError(code: string, raw: string): string {
 export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScreenProps) {
   const { userId } = useAuth();
   const gates = useAccountGates();
+  const blockExternal = useShouldGateAccount('withdraw');
   const { assets: walletAssets } = useWalletAssets();
   const { chainKeysForSymbol } = useTokenRegistry();
 
@@ -382,6 +387,18 @@ export function WithdrawScreen({ goBack, navigate, presetSymbol }: WithdrawScree
       }
     }
   };
+
+  if (blockExternal && (step === 'select' || step === 'onchain')) {
+    return (
+      <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
+        <AccountSetupGate
+          mode="withdraw"
+          onSetup={() => navigate?.('account-setup')}
+          onBack={goBack}
+        />
+      </div>
+    );
+  }
 
   if (step === 'success' && selectedAsset) {
     return (

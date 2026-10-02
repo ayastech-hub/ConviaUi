@@ -14,6 +14,10 @@ import {
 import { useAuth } from '../../../shared/context/AuthContext';
 import { useAccountGates } from '../../../shared/hooks/useAccountGates';
 import { GateHint } from '../../../shared/components/AccountStatusBanners';
+import {
+  AccountSetupGate,
+  useShouldGateAccount,
+} from '../../../shared/components/AccountSetupGate';
 import { queryClient, queryKeys } from '../../../shared/query/queryClient';
 import { useKycStatus } from '../../../shared/hooks/useKycStatus';
 import * as fiatApi from '../../../shared/api/fiat';
@@ -55,6 +59,7 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
   const { currency, format } = useCurrency();
   const { userId } = useAuth();
   const gates = useAccountGates();
+  const blockArrival = useShouldGateAccount('offramp');
   const { isApproved } = useKycStatus();
   const { profile } = useMyProfile();
 
@@ -265,6 +270,23 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
     );
   }
 
+  if (blockArrival && step === 'form') {
+    return (
+      <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
+        <PageTop />
+        <div className="flex items-center gap-3 px-5 mb-2">
+          <BackButton onClick={goBack} />
+          <h2 style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: 18 }}>Sell crypto</h2>
+        </div>
+        <AccountSetupGate
+          mode="offramp"
+          onSetup={() => navigate?.('account-setup')}
+          onBack={goBack}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--background)' }}>
       <PageTop />
@@ -276,14 +298,6 @@ export function OffRampScreen({ goBack, navigate, presetSymbol }: OffRampScreenP
               reason={mapApiCodeToReason(apiError.code)}
               message={apiError.message}
               detail={apiError.code}
-            />
-          )}
-          {eligibility?.action === 'complete_kyc' && !isApproved && (
-            <FeatureAlert
-              reason="kyc_required"
-              message="Sell requires approved KYC and a bank account in your legal name."
-              onAction={() => navigate?.('kyc')}
-              actionLabel="Start KYC"
             />
           )}
           {eligibility?.action === 'add_payment_details' && (

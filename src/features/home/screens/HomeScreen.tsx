@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Screen, Transaction } from '../../../shared/data/mockData';
 import { TransactionReceipt } from '../../../shared/components/TransactionReceipt';
 import { AccountStatusBanners } from '../../../shared/components/AccountStatusBanners';
+import { AccountSetupBanner } from '../../../shared/components/AccountSetupBanner';
 import { CenteredBalance } from '../components/CenteredBalance';
 import { HubActions } from '../components/HubActions';
 import { AppsPanel } from '../components/AppsPanel';
@@ -177,7 +178,10 @@ export function HomeScreen({ navigate, notificationCount: notificationCountProp 
         </div>
       ) : null}
 
-      <AccountStatusBanners onKyc={() => navigate('kyc')} />
+      {/* Frozen still floats; KYC/setup uses in-flow banner (not toast) */}
+      <AccountStatusBanners onKyc={() => navigate('account-setup')} onlyFrozen />
+
+      <AccountSetupBanner onOpen={() => navigate('account-setup')} />
 
       <div className="mt-3 mb-1" />
       <PromoBanner onNavigate={navigate} />

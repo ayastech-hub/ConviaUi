@@ -25,6 +25,7 @@ export type Screen =
   | 'settings'
   | 'security'
   | 'kyc'
+  | 'account-setup'
   | 'chat'
   | 'portfolio'
   | 'help-center'

@@ -34,7 +34,8 @@ import { ProfileScreen } from '../features/profile/screens/ProfileScreen';
 import { EditProfileScreen } from '../features/profile/screens/EditProfileScreen';
 import { SettingsScreen } from '../features/profile/screens/SettingsScreen';
 import { SecurityScreen } from '../features/profile/screens/SecurityScreen';
-import { KYCScreen } from '../features/profile/screens/KYCScreen';
+import { KYCScreen } from '../features/profile/screens/KYCScreen'
+import { AccountSetupScreen } from '../features/profile/screens/AccountSetupScreen';
 
 import { HelpCenterScreen } from '../features/support/screens/HelpCenterScreen';
 import { LegalDocumentScreen } from '../features/support/screens/LegalDocumentScreen';
@@ -434,6 +435,12 @@ export default function App() {
         return (
           <motion.div key="security" {...slideRight} className="absolute inset-0">
             <SecurityScreen goBack={goBack} />
+          </motion.div>
+        );
+      case 'account-setup':
+        return (
+          <motion.div key="account-setup" {...slideRight} className="absolute inset-0">
+            <AccountSetupScreen goBack={goBack} navigate={navigate} />
           </motion.div>
         );
       case 'kyc':
