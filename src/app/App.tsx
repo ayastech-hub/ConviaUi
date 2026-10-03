@@ -266,6 +266,16 @@ export default function App() {
         return;
       }
       switchTab('home');
+      return;
+    }
+    // Sign-out, expired session, or revoked tokens: leave the app shell immediately.
+    // Do not wait for a full page refresh.
+    if (status === 'anonymous') {
+      const authScreens = new Set(['login', 'signup', 'forgot-password', 'onboarding']);
+      if (!authScreens.has(current)) {
+        markOnboardingSeen();
+        navigate('signup');
+      }
     }
   }, [status, current, switchTab, navigate]);
 

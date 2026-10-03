@@ -57,6 +57,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSessionState(stored);
     setStatus(stored ? 'authenticated' : 'anonymous');
 
+    // Other tabs / native shell cleared session → leave app shell immediately
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== 'convia.session') return;
+      if (!e.newValue) {
+        setSessionState(null);
+        setStatus('anonymous');
+        cacheInvalidate();
+        queryClient.clear();
+      }
+    };
+    window.addEventListener('storage', onStorage);
+
     bindAuthHandlers({
       getTokens: () => {
         try {
@@ -78,6 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         cacheInvalidate();
       },
     });
+    return () => window.removeEventListener('storage', onStorage);
   }, []);
 
   useEffect(() => {
