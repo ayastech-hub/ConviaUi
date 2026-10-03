@@ -88,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSessionState(null);
         setStatus('anonymous');
         cacheInvalidate();
+        queryClient.clear();
       },
     });
     return () => window.removeEventListener('storage', onStorage);

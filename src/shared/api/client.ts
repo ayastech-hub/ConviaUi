@@ -90,12 +90,25 @@ async function refreshSession(): Promise<SessionTokens | null> {
         body: JSON.stringify({ sessionId: current.sessionId, refreshToken: current.refreshToken }),
       });
       if (!res.ok) {
-        // Parallel refresh race — wait; winner may already have written new tokens
+        // Parallel 401→refresh race: backend returns 409 for the loser.
+        // Poll briefly for the winner's tokens — do not wipe the session on a race.
         if (res.status === 409) {
-          await new Promise((r) => setTimeout(r, 250));
-          const again = getTokens();
-          if (again?.accessToken && again.accessToken !== current.accessToken) return again;
+          for (let i = 0; i < 8; i++) {
+            await new Promise((r) => setTimeout(r, 150));
+            const again = getTokens();
+            if (
+              again?.accessToken &&
+              (again.accessToken !== current.accessToken ||
+                again.sessionId !== current.sessionId ||
+                again.refreshToken !== current.refreshToken)
+            ) {
+              return again;
+            }
+          }
+          // Still no winner tokens — soft fail this request only; do not sign the user out.
+          return getTokens();
         }
+        // Real auth failure (401 reuse, expired, mismatch)
         setTokens(null);
         onAuthFailure();
         return null;
@@ -110,6 +123,7 @@ async function refreshSession(): Promise<SessionTokens | null> {
       setTokens(next);
       return next;
     } catch {
+      // Network blip — keep existing session; caller will surface the original 401/error
       return null;
     }
   })().finally(() => {

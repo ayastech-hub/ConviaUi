@@ -117,7 +117,7 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
     setTimeout(() => {
       setLoading(false);
       setSuccess(true);
-      setTimeout(() => finishAuth(), 1500);
+      setTimeout(() => finishAuth(), 400);
     }, delay);
   };
 
@@ -185,7 +185,7 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
     try {
       await login(email, password);
       setSuccess(true);
-      setTimeout(() => finishAuth(), 800);
+      setTimeout(() => finishAuth(), 300);
     } catch (err) {
       // Never reveal whether email or password was wrong; never surface infra messages
       if (err instanceof ApiError) {
@@ -233,7 +233,7 @@ export function AuthScreen({ mode, navigate, goBack, switchTab }: AuthScreenProp
         referralCode.trim() || undefined,
       );
       setSuccess(true);
-      setTimeout(() => finishAuth(), 800);
+      setTimeout(() => finishAuth(), 300);
     } catch (err) {
       if (err instanceof ApiError) {
         const code = String(err.code || err.body?.code || '').toLowerCase();
