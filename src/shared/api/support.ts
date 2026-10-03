@@ -41,6 +41,9 @@ export function createCase(body: {
   priority?: string;
   body: string;
   attachments?: SupportAttachment[];
+  relatedType?: string;
+  relatedId?: string;
+  relatedRef?: string;
 }) {
   return api.post<SupportCase>('/support/cases', body);
 }

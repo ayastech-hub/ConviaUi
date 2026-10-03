@@ -30,6 +30,9 @@ import {
 import { useState, useMemo } from 'react';
 import { type Transaction } from '../data/mockData';
 import { useCurrency } from '../context/CurrencyContext';
+import { createCase } from '../api/support';
+import { useToast } from '../context/ToastContext';
+import { MessageCircleWarning } from 'lucide-react';
 
 interface TransactionReceiptProps {
   tx: Transaction | null;
@@ -130,6 +133,10 @@ function Row({ label, value, mono, copyable }: { label: string; value: string; m
 
 export function TransactionReceipt({ tx, open, onClose }: TransactionReceiptProps) {
   const { format } = useCurrency();
+  const { success: toastSuccess, error: toastError } = useToast();
+  const [disputeOpen, setDisputeOpen] = useState(false);
+  const [disputeNote, setDisputeNote] = useState('');
+  const [disputeBusy, setDisputeBusy] = useState(false);
   const [shareState, setShareState] = useState<'idle' | 'busy'>('idle');
 
   const meta = tx ? (txMeta[tx.type] || txMeta.send) : txMeta.send;
@@ -317,6 +324,89 @@ export function TransactionReceipt({ tx, open, onClose }: TransactionReceiptProp
                   <ExternalLink size={15} />
                   View on explorer
                 </a>
+              )}
+
+              {!disputeOpen ? (
+                <button
+                  type="button"
+                  onClick={() => setDisputeOpen(true)}
+                  className="flex items-center justify-center gap-2 w-full h-11 rounded-2xl mb-3"
+                  style={{
+                    background: 'color-mix(in oklab, var(--destructive, #ef4444) 12%, transparent)',
+                    color: 'var(--foreground)',
+                    fontWeight: 650,
+                    fontSize: 13,
+                    border: '1px solid var(--border)',
+                  }}
+                >
+                  <MessageCircleWarning size={15} />
+                  Report a problem
+                </button>
+              ) : (
+                <div
+                  className="rounded-2xl p-3 mb-3 space-y-2"
+                  style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+                >
+                  <p style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 13 }}>
+                    What went wrong with this transaction?
+                  </p>
+                  <textarea
+                    value={disputeNote}
+                    onChange={(e) => setDisputeNote(e.target.value)}
+                    placeholder="Describe the issue (payment sent but not credited, wrong amount, …)"
+                    className="w-full min-h-[88px] rounded-xl px-3 py-2 text-sm"
+                    style={{
+                      background: 'var(--muted)',
+                      border: '1px solid var(--border)',
+                      color: 'var(--foreground)',
+                    }}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setDisputeOpen(false); setDisputeNote(''); }}
+                      className="flex-1 h-10 rounded-full text-sm font-semibold"
+                      style={{ background: 'var(--muted)', color: 'var(--foreground)' }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      disabled={disputeBusy || disputeNote.trim().length < 10}
+                      onClick={() => {
+                        void (async () => {
+                          setDisputeBusy(true);
+                          try {
+                            await createCase({
+                              subject: `Transaction issue · ${meta.label}`,
+                              category: 'payments',
+                              priority: 'normal',
+                              body: disputeNote.trim(),
+                              relatedType: tx.type || 'transaction',
+                              relatedId: tx.id,
+                              relatedRef: tx.hash || tx.id,
+                            });
+                            toastSuccess('Report submitted. Support will review this transaction.');
+                            setDisputeOpen(false);
+                            setDisputeNote('');
+                          } catch (e) {
+                            toastError(e instanceof Error ? e.message : 'Could not submit report');
+                          } finally {
+                            setDisputeBusy(false);
+                          }
+                        })();
+                      }}
+                      className="flex-1 h-10 rounded-full text-sm font-bold"
+                      style={{
+                        background: 'var(--primary)',
+                        color: 'var(--primary-foreground)',
+                        opacity: disputeBusy || disputeNote.trim().length < 10 ? 0.5 : 1,
+                      }}
+                    >
+                      {disputeBusy ? 'Sending…' : 'Submit'}
+                    </button>
+                  </div>
+                </div>
               )}
 
               <div className="flex gap-2">
