@@ -12,7 +12,6 @@ import { prefetchForScreen } from '../shared/query/prefetchAppData';
 import { useAuth } from '../shared/context/AuthContext';
 import { trackRecentUse } from '../shared/utils/recentlyUsed';
 import { setupNotificationNavigation } from '../shared/native/notificationNavigation';
-import { ServiceBanner } from '../shared/components/ServiceBanner';
 
 import { OnboardingScreen } from '../features/onboarding/screens/OnboardingScreen';
 import { AuthScreen } from '../features/auth/screens/AuthScreen';
@@ -611,12 +610,6 @@ export default function App() {
         >
           <div className="relative flex-1 overflow-hidden" style={{ background: 'var(--background)' }}>
             <AnimatePresence mode="wait">{renderScreen()}</AnimatePresence>
-          </div>
-
-          <div className="absolute top-0 left-0 right-0 z-30 pointer-events-none">
-            <div className="pointer-events-auto">
-              <ServiceBanner />
-            </div>
           </div>
 
           {showNav && (
